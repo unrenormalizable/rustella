@@ -1,50 +1,30 @@
 #![no_std]
 
-mod opcodes;
+pub mod cpu;
+pub mod mem;
+pub mod opcode;
 
-use bitflags::bitflags;
+use mem::*;
 
-bitflags! {
-    struct PSR: u8 {
-        const C = 1 << 0;
-        const Z = 1 << 1;
-        const I = 1 << 2;
-        const D = 1 << 3;
-        const B = 1 << 4;
-        const V = 1 << 6;
-        const N = 1 << 7;
-    }
+/// References:
+/// - Patterns: https://llx.com/Neil/a2/opcodes.html
+/// - Instruction set: https://www.masswerk.at/6502/6502_instruction_set.html
+pub fn decode(mem: &Memory, lo: u8, hi: u8) -> u8 {
+    let instr = mem.get(lo, hi);
+    assert_eq!(instr, 00);
+    todo!()
 }
 
-#[allow(dead_code)]
-#[allow(non_snake_case)]
-struct MT6502 {
-    A: u8,
-    Y: u8,
-    X: u8,
-    PC: u16,
-    S: u8,
-    P: PSR,
-}
-
-// NOTE: Reset vector: $FFFC-$FFFB,
-
-#[allow(dead_code)]
-struct Memory {
-    data: [u8; 0x1_0000],
-}
-
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+// A        Accumulator         OPC A       operand is AC (implied single byte instruction)
+// abs      absolute            OPC $LLHH   operand is address $HHLL *
+// abs,X    absolute, X-indexed OPC $LLHH,X operand is address; effective address is address incremented by X with carry **
+// abs,Y    absolute, Y-indexed OPC $LLHH,Y operand is address; effective address is address incremented by Y with carry **
+// #        immediate           OPC #$BB    operand is byte BB
+// impl     implied             OPC         operand implied
+// ind      indirect            OPC ($LLHH) operand is address; effective address is contents of word at address: C.w($HHLL)
+// X,ind    X-indexed, indirect OPC ($LL,X) operand is zeropage address; effective address is word in (LL + X, LL + X + 1), inc. without carry: C.w($00LL + X)
+// ind,Y    indirect, Y-indexed OPC ($LL),Y operand is zeropage address; effective address is word in (LL, LL + 1) incremented by Y with carry: C.w($00LL) + Y
+// rel      relative            OPC $BB     branch target is PC + signed offset BB ***
+// zpg      zeropage            OPC $LL     operand is zeropage address (hi-byte is zero, address = $00LL)
+// zpg,X    zeropage, X-indexed OPC $LL,X   operand is zeropage address; effective address is address incremented by X without carry **
+// zpg,Y    zeropage, Y-indexed OPC $LL,Y   operand is zeropage address; effective address is address incremented by Y without carry **

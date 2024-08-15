@@ -1,7 +1,10 @@
 [package]
-name = "lib"
+name = "a2600"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 bitflags = "1.2.1"
+
+[dev-dependencies]
+test-case = "3.3.1"
