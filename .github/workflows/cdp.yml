@@ -1,0 +1,78 @@
+name: cdp
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    branches: [master]
+
+jobs:
+  build-test-rust:
+    name: Build & test rust
+    strategy:
+      matrix:
+        os:
+          - windows-latest
+          - ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Run cargo build
+        continue-on-error: false
+        run: |
+          cargo build --release --examples
+
+      - name: Run cargo test
+        continue-on-error: false
+        run: |
+          cargo test --release
+        shell: pwsh
+
+  lint-rust:
+    name: Lint rust
+    strategy:
+      matrix:
+        os:
+          - windows-latest
+          - ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+
+      - name: Run cargo fmt
+        continue-on-error: false
+        run: |
+          cargo fmt --all -- --check
+
+      - name: Run cargo clippy
+        continue-on-error: false
+        run: |
+          cargo clippy --all-targets --all-features -- -D warnings
+
+  finish:
+    name: Finish
+    needs: [build-test-rust, lint-rust]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Done..."
