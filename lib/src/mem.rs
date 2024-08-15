@@ -1,7 +1,12 @@
+use core::mem;
+
 pub const ADDRESSABLE_MEMORY_SIZE: usize = 0x1_0000;
 pub const TOTAL_MEMORY_SIZE: usize = 0x2000;
 pub const RESET_VECTOR_LO: u8 = 0xFC;
 pub const RESET_VECTOR_HI: u8 = 0xFF;
+pub const RAM_START_LO: u8 = 0x80;
+pub const RAM_START_HI: u8 = 0x00;
+pub const RAM_SIZE: usize = 0x0080;
 pub const CARTRIDGE_ROM_START: usize = 0x1000;
 
 /// 2600 Memory map:
@@ -38,27 +43,41 @@ pub struct Memory {
     data: [u8; TOTAL_MEMORY_SIZE],
 }
 
-/// Refer: https://forums.atariage.com/topic/27190-session-5-memory-architecture/
-fn make_addr(lo: u8, hi: u8) -> u16 {
+/// Refer:
+/// - https://forums.atariage.com/topic/192418-mirrored-memory/#comment-2439795
+/// - https://forums.atariage.com/topic/27190-session-5-memory-architecture/#comment-442653
+pub fn make_addr(lo: u8, hi: u8) -> u16 {
     let mut addr = ((hi as u16) << 8) + lo as u16;
     // Step 0. Turn off A13-A15 pins.
     addr &= 0b0001_1111_1111_1111;
+
+    // Step 1. If not in cartridge ROM, turn off
+    if addr < CARTRIDGE_ROM_START as u16 {
+        addr &= 0b0011_1111_1111;
+    }
+
+    // Step 2. Implement mirrors in 0000-03FF range
+    // TODO.
 
     addr
 }
 
 // TODO: Implement memory map & checks.
 // TODO: Implement mirroring.
-// TODO: Implement 2K cartridge
-// TODO: Implement 4K+ cartridge
+// TODO: Implement 2K cartridges
 impl Memory {
-    pub fn new(cartridge: &[u8]) -> Self {
+    pub fn new(cartridge: &[u8], init: bool) -> Self {
         if cartridge.len() != 0x1000 {
             unimplemented!("Cartridges other than 4K haven't been implemented yet.")
         }
 
         let mut data = [0u8; TOTAL_MEMORY_SIZE]; // TODO: Initialize to baadf00d and deadbeef.
+        if init {
+            Self::fill_with_pattern(&mut data, 0xdeadbeef_baadf00d)
+        }
+
         data[CARTRIDGE_ROM_START..CARTRIDGE_ROM_START + cartridge.len()].copy_from_slice(cartridge);
+
         Self { data }
     }
 
@@ -66,8 +85,20 @@ impl Memory {
         self.data[make_addr(lo, hi) as usize]
     }
 
+    pub fn get_u16(&self, addr: u16) -> u8 {
+        self.data[make_addr(addr as u8, (addr >> 8) as u8) as usize]
+    }
+
     pub fn set(&mut self, lo: u8, hi: u8, value: u8) {
         self.data[make_addr(lo, hi) as usize] = value;
+    }
+
+    fn fill_with_pattern(data: &mut [u8], pattern: u64) {
+        let pattern_bytes = pattern.to_be_bytes();
+        let pattern_size = mem::size_of_val(&pattern);
+        for word in data.chunks_exact_mut(pattern_size) {
+            word[..pattern_size].copy_from_slice(&pattern_bytes[..pattern_size]);
+        }
     }
 }
 
@@ -80,6 +111,9 @@ mod tests {
     #[test_case(0xff, 0x1f, 0x1fff; "no mirroring - 2")]
     #[test_case(0x00, 0x20, 0x0000; "higher half of address space - 1")]
     #[test_case(RESET_VECTOR_LO, RESET_VECTOR_HI, 0x1FFC; "higher half of address space - 2")]
+    #[test_case(0xfe, 0x07, 0x3fe; "TIA-RAM-RIOT mirror - 1")]
+    #[test_case(0x01, 0x08, 0x001; "TIA-RAM-RIOT mirror - 2")]
+    #[test_case(0x80, 0x0d, 0x180; "TIA-RAM-RIOT mirror - 3")]
     fn test_make_addr(lo: u8, hi: u8, addr: u16) {
         let ret = make_addr(lo, hi);
         assert_eq!(ret, addr);
@@ -87,7 +121,7 @@ mod tests {
 
     #[test]
     fn test_mem_get_set() {
-        let mut mem = Memory::new(&[0b01010101; 0x1000]);
+        let mut mem = Memory::new(&[0b01010101; 0x1000], true);
         assert_eq!(mem.get(0x00, 0x11), 0b01010101);
         mem.set(0xA0, 0x00, 0xFE);
         assert_eq!(mem.get(0xA0, 0x00), 0xFE);
