@@ -27,11 +27,10 @@ bitflags! {
         /// Negative.
         const N = 1 << 7;
 
-        const ALL = 0xff;
+        const ALL = 0b_1111_0011;
     }
 }
 
-#[allow(dead_code)]
 #[allow(non_snake_case)]
 /// Refer: https://www.princeton.edu/~mae412/HANDOUTS/Datasheets/6502.pdf
 pub struct MCS6502 {
@@ -45,13 +44,13 @@ pub struct MCS6502 {
 }
 
 impl MCS6502 {
-    pub fn new() -> Self {
+    pub fn new(pc_lo: u8, pc_hi: u8) -> Self {
         Self {
             A: 0xde,
             Y: 0xad,
             X: 0xbe,
-            PC_lo: 0x00,
-            PC_hi: 0x00,
+            PC_lo: pc_lo,
+            PC_hi: pc_hi,
             S: 0xef,
             P: !PSR::ALL,
         }
@@ -60,14 +59,19 @@ impl MCS6502 {
     /// References:
     /// - Patterns: https://llx.com/Neil/a2/opcodes.html
     /// - Instruction set: https://www.masswerk.at/6502/6502_instruction_set.html
-    pub fn fetch_decode_execute(&mut self, mem: &mut mem::Memory, init_pc_lo: u8, init_pc_hi: u8) {
-        self.PC_lo = init_pc_lo;
-        self.PC_hi = init_pc_hi;
-
+    ///
+    /// NOTE: Remove the callback once we find a better signalling mechanism to indicate hw breakpoint.
+    pub fn fetch_decode_execute(
+        &mut self,
+        mem: &mut mem::Memory,
+        callback: fn(opc: u8, cpu: &mut Self, mem: &mut mem::Memory) -> bool,
+    ) {
         loop {
             let opc = mem.get(self.PC_lo, self.PC_hi);
-            let opc_fn = opcode::ALL_OPCODES[opc as usize];
-            opc_fn(opc, self.PC_lo, self.PC_hi, self, mem);
+            if !callback(opc, self, mem) {
+                break;
+            }
+            opcode::ALL_OPCODES[opc as usize](opc, self.PC_lo, self.PC_hi, self, mem);
         }
     }
 
@@ -123,14 +127,12 @@ impl MCS6502 {
         self.P = PSR::from_bits_truncate(p);
     }
 
+    pub fn pc(&self) -> (u8, u8) {
+        (self.PC_lo, self.PC_hi)
+    }
+
     pub fn pc_incr(&mut self, incr: u8) {
         self.PC_lo += incr;
-    }
-}
-
-impl Default for MCS6502 {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

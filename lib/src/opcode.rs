@@ -179,22 +179,22 @@ fn lsr_a(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
 
 fn rol(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
     cpu.pc_incr(1);
-    unimplemented!();
+    todo!();
 }
 
 fn ror(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
     cpu.pc_incr(1);
-    unimplemented!();
+    todo!();
 }
 
 fn rti(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
     cpu.pc_incr(1);
-    unimplemented!();
+    todo!();
 }
 
 fn rts(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
     cpu.pc_incr(1);
-    unimplemented!();
+    todo!();
 }
 
 fn dey(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
@@ -610,7 +610,7 @@ mod tests {
 
     #[test]
     fn test_push_pop() {
-        let mut cpu = MCS6502::default();
+        let mut cpu = MCS6502::new(0x00, 0x00);
         let mut mem = Memory::new(&[0b01010101; 0x1000], true);
 
         const SP: u8 = 0xff;

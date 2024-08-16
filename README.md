@@ -1,14 +1,24 @@
-# Atari 2600 Emulator
+# Atari 2600 Emulator in Rust
 
 [![CDP](https://github.com/unrenormalizable/atari2600.rs/actions/workflows/cdp.yml/badge.svg)](https://github.com/unrenormalizable/atari2600.rs/actions/workflows/cdp.yml) [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg?label=license)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
-> Built with [**rust-analyzer.vs**](https://marketplace.visualstudio.com/items?itemName=kitamstudios.RustAnalyzer&ssr=false#overview) (free)
+> Built with [**rust-analyzer.vs**](https://marketplace.visualstudio.com/items?itemName=kitamstudios.RustAnalyzer&ssr=false#overview) (free Visual Studio 2022 Extension)
+
+## What?
+
+![image](https://github.com/user-attachments/assets/812f6e79-a023-4fff-8241-93f8d1af6d33)
+
+## Why?
+
+Why not?
 
 ## Development Principles
 
-- No referring to any existing A2600 emulator code 
-  - Allowed: Datasheets and tutorials on the web.
+- In no_std safe Rust.
+- No referring to any existing A2600 emulator code.
+  - Allowed: Datasheets / tutorials / discussions on the web that is not emulator code.
 - v1: Just sufficient to play the very basic games.
+- v1: Web front-end with hardware debugger.
 
 ## Specs
 
@@ -33,4 +43,3 @@
 - [6502 Memory map requirements](https://wilsonminesco.com/6502primer/MemMapReqs.html)
 - [Stella reference emulator](https://stella-emu.github.io/docs/index.html#ROMInfo)
 - ROMS: Open AI Gym: &lt;user&gt;\\.conda\envs\rlenvs\Lib\site-packages\AutoROM\roms
-- [iridium VM](https://gitlab.com/subnetzero/iridium)

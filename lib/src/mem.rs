@@ -46,6 +46,7 @@ pub struct Memory {
 /// Refer:
 /// - https://forums.atariage.com/topic/192418-mirrored-memory/#comment-2439795
 /// - https://forums.atariage.com/topic/27190-session-5-memory-architecture/#comment-442653
+/// - https://wilsonminesco.com/6502primer/MemMapReqs.html
 pub fn make_addr(lo: u8, hi: u8) -> u16 {
     let mut addr = ((hi as u16) << 8) + lo as u16;
     // Step 0. Turn off A13-A15 pins.
@@ -95,6 +96,13 @@ impl Memory {
         for word in data.chunks_exact_mut(pattern_size) {
             word[..pattern_size].copy_from_slice(&pattern_bytes[..pattern_size]);
         }
+    }
+
+    pub fn get_pc_from_reset_vector(&self) -> (u8, u8) {
+        let pc_lo = self.get(RESET_VECTOR_LO, RESET_VECTOR_HI);
+        let pc_hi = self.get(RESET_VECTOR_LO + 1, RESET_VECTOR_HI);
+
+        (pc_lo, pc_hi)
     }
 }
 
