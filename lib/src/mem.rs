@@ -63,6 +63,10 @@ pub fn make_addr(lo: u8, hi: u8) -> u16 {
     addr
 }
 
+pub fn addr_u16_to_u8(addr: u16) -> (u8, u8) {
+    (addr as u8, (addr >> 8) as u8)
+}
+
 // TODO: Implement memory map & checks.
 // TODO: Implement mirroring.
 // TODO: Implement 2K cartridges

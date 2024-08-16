@@ -23,16 +23,13 @@ pub enum Commands {
     #[command(name = "g")]
     Go,
 
-    #[command(name = "d")]
-    DumpRam,
-
     #[command(name = "r")]
     Registers,
 
-    #[command(name = "m")]
+    #[command(name = "d")]
     DumpMem {
         #[arg(index = 1)]
-        start: u16,
+        start: Option<String>,
     },
 }
 
