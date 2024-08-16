@@ -85,10 +85,6 @@ impl Memory {
         self.data[make_addr(lo, hi) as usize]
     }
 
-    pub fn get_u16(&self, addr: u16) -> u8 {
-        self.data[make_addr(addr as u8, (addr >> 8) as u8) as usize]
-    }
-
     pub fn set(&mut self, lo: u8, hi: u8, value: u8) {
         self.data[make_addr(lo, hi) as usize] = value;
     }

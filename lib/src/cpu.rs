@@ -3,12 +3,28 @@ use bitflags::bitflags;
 
 bitflags! {
     pub struct PSR: u8 {
+        /// Carry.
         const C = 1 << 0;
+
+        /// Zero.
         const Z = 1 << 1;
+
+        /// Interrupt Disable.
         const I = 1 << 2;
+
+        /// Decimal
         const D = 1 << 3;
+
+        /// Break command.
         const B = 1 << 4;
+
+        /// Ignored.
+        const __ = 1 << 5;
+
+        /// Overflow.
         const V = 1 << 6;
+
+        /// Negative.
         const N = 1 << 7;
 
         const ALL = 0xff;
@@ -50,11 +66,8 @@ impl MCS6502 {
 
         loop {
             let opc = mem.get(self.PC_lo, self.PC_hi);
-            let opc = opcode::ALL_OPCODES[opc as usize];
-            let pc = opc(self, mem);
-
-            self.PC_lo = pc.0;
-            self.PC_hi = pc.1;
+            let opc_fn = opcode::ALL_OPCODES[opc as usize];
+            opc_fn(opc, self.PC_lo, self.PC_hi, self, mem);
         }
     }
 
@@ -70,6 +83,14 @@ impl MCS6502 {
         clr_bit(&mut self.P, bit)
     }
 
+    pub fn a(&mut self) -> u8 {
+        self.A
+    }
+
+    pub fn set_a(&mut self, a: u8) {
+        self.A = a;
+    }
+
     pub fn x(&mut self) -> u8 {
         self.X
     }
@@ -78,12 +99,32 @@ impl MCS6502 {
         self.X = x;
     }
 
+    pub fn y(&mut self) -> u8 {
+        self.Y
+    }
+
+    pub fn set_y(&mut self, y: u8) {
+        self.Y = y;
+    }
+
+    pub fn s(&mut self) -> u8 {
+        self.S
+    }
+
     pub fn set_s(&mut self, s: u8) {
         self.S = s;
     }
 
-    pub fn pc(&self, off_lo: u8) -> (u8, u8) {
-        (self.PC_lo + off_lo, self.PC_hi)
+    pub fn p(&mut self) -> u8 {
+        self.P.bits()
+    }
+
+    pub fn set_p(&mut self, p: u8) {
+        self.P = PSR::from_bits_truncate(p);
+    }
+
+    pub fn pc_incr(&mut self, incr: u8) {
+        self.PC_lo += incr;
     }
 }
 
