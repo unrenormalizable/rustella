@@ -1,6 +1,6 @@
 mod repl;
 
-use a2600::{cpu, mem};
+use a2600::{cpu, hw_dbg, mem};
 use std::fs::File;
 use std::io::{self, Read};
 
@@ -29,17 +29,33 @@ fn read_cartridge_rom() -> Vec<u8> {
 }
 
 fn dump_registers(opc: u8, cpu: &mut cpu::MCS6502) {
-    println!(" PC  | OP |  A  X  Y  S | [ N V B D I Z C ]");
+    println!(" PC  | OP                 |  A  X  Y  S | [N V B D I Z C]");
     println!(
-        "{:02x}{:02x} | {:02x} | {:02x} {:02x} {:02x} {:02x} | [N V B D I Z C]",
+        "{:02x}{:02x} | {:02x} {: >15} | {:02x} {:02x} {:02x} {:02x} | [{} {} {} {} {} {} {}]",
         cpu.pc().1,
         cpu.pc().0,
         opc,
+        hw_dbg::ALL_OPCODE_INFO[opc as usize].0,
         cpu.a(),
         cpu.x(),
         cpu.y(),
-        cpu.s()
+        cpu.s(),
+        bit_value(cpu, cpu::PSR::N),
+        bit_value(cpu, cpu::PSR::V),
+        bit_value(cpu, cpu::PSR::B),
+        bit_value(cpu, cpu::PSR::D),
+        bit_value(cpu, cpu::PSR::I),
+        bit_value(cpu, cpu::PSR::Z),
+        bit_value(cpu, cpu::PSR::C),
     );
+}
+
+fn bit_value(cpu: &cpu::MCS6502, bit: cpu::PSR) -> &str {
+    if cpu.p() & bit.bits() == bit.bits() {
+        "1"
+    } else {
+        "0"
+    }
 }
 
 fn hw_debugger_callback(opc: u8, cpu: &mut cpu::MCS6502, _mem: &mut mem::Memory) -> bool {

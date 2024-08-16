@@ -71,7 +71,7 @@ impl MCS6502 {
             if !callback(opc, self, mem) {
                 break;
             }
-            opcode::ALL_OPCODES[opc as usize](opc, self.PC_lo, self.PC_hi, self, mem);
+            opcode::ALL_OPCODE_ROUTINES[opc as usize](opc, self.PC_lo, self.PC_hi, self, mem);
         }
     }
 
@@ -119,7 +119,7 @@ impl MCS6502 {
         self.S = s;
     }
 
-    pub fn p(&mut self) -> u8 {
+    pub fn p(&self) -> u8 {
         self.P.bits()
     }
 

@@ -307,11 +307,9 @@ fn _rotate_right(val: u8) -> u8 {
     val.rotate_right(1)
 }
 
-/// NOTE: To generate json data, run the following on https://www.masswerk.at/6502/6502_instruction_set.html
-/// JSON.stringify([...document.querySelectorAll("dl[class='opcodes'] [aria-label='details'] tbody")].flatMap(x => [...x.querySelectorAll("tr")].slice(1).map(e => { const fields = [...e.childNodes].map(c => c.innerText); const obj = {}; obj["addressing"] = fields[0].trim(); obj["assembler"] = fields[1].trim(); obj["opc"] = fields[2].trim(); obj["bytes"] = fields[3].trim(); obj["cycles"] = fields[4].trim(); return obj })))
-/// gc -Raw D:\src\delme\opc.json | ConvertFrom-Json | sort -Property opc | ConvertTo-Json
+/// NOTE: See opc.json
 #[rustfmt::skip]
-pub const ALL_OPCODES: &[&OpCode; 0x1_00] = &[
+pub const ALL_OPCODE_ROUTINES: &[&OpCode; 0x1_00] = &[
     /* 0x00 */ &todo,
     /* 0x01 */ &todo,
     /* 0x02 */ &illegal,
