@@ -2,1063 +2,1065 @@
 NOTE: To generate json data, run the following on https://www.masswerk.at/6502/6502_instruction_set.html
 JSON.stringify([...document.querySelectorAll("dl[class='opcodes'] [aria-label='details'] tbody")].flatMap(x => [...x.querySelectorAll("tr")].slice(1).map(e => { const fields = [...e.childNodes].map(c => c.innerText); const obj = {}; obj["addressing"] = fields[0].trim(); obj["assembler"] = fields[1].trim(); obj["opc"] = fields[2].trim(); obj["bytes"] = fields[3].trim(); obj["cycles"] = fields[4].trim(); return obj })))
 gc -Raw "D:\src\u\a2600\lib\src\opcodes.json" | ConvertFrom-Json | sort -Property opc | ConvertTo-Json
+$json = (gc -Raw "D:\src\u\a2600\lib\src\opcodes.json").replace("absolute", "abs").replace("implied", "impl").replace("relative", "rel").replace("zeropage", "zpg").replace("accumulator", "A").replace("immediate", "#").replace("indirect", "ind"); $json>D:\src\u\a2600\lib\src\opcodes.json
 */
 [
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "BRK",
     "opc": "00",
     "bytes": "1",
     "cycles": "7"
   },
   {
-    "addressing": "(indirect,X)",
+    "addressing": "(ind,X)",
     "assembler": "ORA (oper,X)",
     "opc": "01",
     "bytes": "2",
     "cycles": "6"
   },
   {
-    "addressing": "zeropage",
+    "addressing": "zpg",
     "assembler": "ORA oper",
     "opc": "05",
     "bytes": "2",
     "cycles": "3"
   },
   {
-    "addressing": "zeropage",
+    "addressing": "zpg",
     "assembler": "ASL oper",
     "opc": "06",
     "bytes": "2",
     "cycles": "5"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "PHP",
     "opc": "08",
     "bytes": "1",
     "cycles": "3"
   },
   {
-    "addressing": "immediate",
+    "addressing": "#",
     "assembler": "ORA #oper",
     "opc": "09",
     "bytes": "2",
     "cycles": "2"
   },
   {
-    "addressing": "accumulator",
+    "addressing": "A",
     "assembler": "ASL A",
     "opc": "0A",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "ORA oper",
     "opc": "0D",
     "bytes": "3",
     "cycles": "4"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "ASL oper",
     "opc": "0E",
     "bytes": "3",
     "cycles": "6"
   },
   {
-    "addressing": "relative",
+    "addressing": "rel",
     "assembler": "BPL oper",
     "opc": "10",
     "bytes": "2",
     "cycles": "2**"
   },
   {
-    "addressing": "(indirect),Y",
+    "addressing": "(ind),Y",
     "assembler": "ORA (oper),Y",
     "opc": "11",
     "bytes": "2",
     "cycles": "5*"
   },
   {
-    "addressing": "zeropage,X",
+    "addressing": "zpg,X",
     "assembler": "ORA oper,X",
     "opc": "15",
     "bytes": "2",
     "cycles": "4"
   },
   {
-    "addressing": "zeropage,X",
+    "addressing": "zpg,X",
     "assembler": "ASL oper,X",
     "opc": "16",
     "bytes": "2",
     "cycles": "6"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "CLC",
     "opc": "18",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "absolute,Y",
+    "addressing": "abs,Y",
     "assembler": "ORA oper,Y",
     "opc": "19",
     "bytes": "3",
     "cycles": "4*"
   },
   {
-    "addressing": "absolute,X",
+    "addressing": "abs,X",
     "assembler": "ORA oper,X",
     "opc": "1D",
     "bytes": "3",
     "cycles": "4*"
   },
   {
-    "addressing": "absolute,X",
+    "addressing": "abs,X",
     "assembler": "ASL oper,X",
     "opc": "1E",
     "bytes": "3",
     "cycles": "7"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "JSR oper",
     "opc": "20",
     "bytes": "3",
     "cycles": "6"
   },
   {
-    "addressing": "(indirect,X)",
+    "addressing": "(ind,X)",
     "assembler": "AND (oper,X)",
     "opc": "21",
     "bytes": "2",
     "cycles": "6"
   },
   {
-    "addressing": "zeropage",
+    "addressing": "zpg",
     "assembler": "BIT oper",
     "opc": "24",
     "bytes": "2",
     "cycles": "3"
   },
   {
-    "addressing": "zeropage",
+    "addressing": "zpg",
     "assembler": "AND oper",
     "opc": "25",
     "bytes": "2",
     "cycles": "3"
   },
   {
-    "addressing": "zeropage",
+    "addressing": "zpg",
     "assembler": "ROL oper",
     "opc": "26",
     "bytes": "2",
     "cycles": "5"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "PLP",
     "opc": "28",
     "bytes": "1",
     "cycles": "4"
   },
   {
-    "addressing": "immediate",
+    "addressing": "#",
     "assembler": "AND #oper",
     "opc": "29",
     "bytes": "2",
     "cycles": "2"
   },
   {
-    "addressing": "accumulator",
+    "addressing": "A",
     "assembler": "ROL A",
     "opc": "2A",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "BIT oper",
     "opc": "2C",
     "bytes": "3",
     "cycles": "4"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "AND oper",
     "opc": "2D",
     "bytes": "3",
     "cycles": "4"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "ROL oper",
     "opc": "2E",
     "bytes": "3",
     "cycles": "6"
   },
   {
-    "addressing": "relative",
+    "addressing": "rel",
     "assembler": "BMI oper",
     "opc": "30",
     "bytes": "2",
     "cycles": "2**"
   },
   {
-    "addressing": "(indirect),Y",
+    "addressing": "(ind),Y",
     "assembler": "AND (oper),Y",
     "opc": "31",
     "bytes": "2",
     "cycles": "5*"
   },
   {
-    "addressing": "zeropage,X",
+    "addressing": "zpg,X",
     "assembler": "AND oper,X",
     "opc": "35",
     "bytes": "2",
     "cycles": "4"
   },
   {
-    "addressing": "zeropage,X",
+    "addressing": "zpg,X",
     "assembler": "ROL oper,X",
     "opc": "36",
     "bytes": "2",
     "cycles": "6"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "SEC",
     "opc": "38",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "absolute,Y",
+    "addressing": "abs,Y",
     "assembler": "AND oper,Y",
     "opc": "39",
     "bytes": "3",
     "cycles": "4*"
   },
   {
-    "addressing": "absolute,X",
+    "addressing": "abs,X",
     "assembler": "AND oper,X",
     "opc": "3D",
     "bytes": "3",
     "cycles": "4*"
   },
   {
-    "addressing": "absolute,X",
+    "addressing": "abs,X",
     "assembler": "ROL oper,X",
     "opc": "3E",
     "bytes": "3",
     "cycles": "7"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "RTI",
     "opc": "40",
     "bytes": "1",
     "cycles": "6"
   },
   {
-    "addressing": "(indirect,X)",
+    "addressing": "(ind,X)",
     "assembler": "EOR (oper,X)",
     "opc": "41",
     "bytes": "2",
     "cycles": "6"
   },
   {
-    "addressing": "zeropage",
+    "addressing": "zpg",
     "assembler": "EOR oper",
     "opc": "45",
     "bytes": "2",
     "cycles": "3"
   },
   {
-    "addressing": "zeropage",
+    "addressing": "zpg",
     "assembler": "LSR oper",
     "opc": "46",
     "bytes": "2",
     "cycles": "5"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "PHA",
     "opc": "48",
     "bytes": "1",
     "cycles": "3"
   },
   {
-    "addressing": "immediate",
+    "addressing": "#",
     "assembler": "EOR #oper",
     "opc": "49",
     "bytes": "2",
     "cycles": "2"
   },
   {
-    "addressing": "accumulator",
+    "addressing": "A",
     "assembler": "LSR A",
     "opc": "4A",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "JMP oper",
     "opc": "4C",
     "bytes": "3",
     "cycles": "3"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "EOR oper",
     "opc": "4D",
     "bytes": "3",
     "cycles": "4"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "LSR oper",
     "opc": "4E",
     "bytes": "3",
     "cycles": "6"
   },
   {
-    "addressing": "relative",
+    "addressing": "rel",
     "assembler": "BVC oper",
     "opc": "50",
     "bytes": "2",
     "cycles": "2**"
   },
   {
-    "addressing": "(indirect),Y",
+    "addressing": "(ind),Y",
     "assembler": "EOR (oper),Y",
     "opc": "51",
     "bytes": "2",
     "cycles": "5*"
   },
   {
-    "addressing": "zeropage,X",
+    "addressing": "zpg,X",
     "assembler": "EOR oper,X",
     "opc": "55",
     "bytes": "2",
     "cycles": "4"
   },
   {
-    "addressing": "zeropage,X",
+    "addressing": "zpg,X",
     "assembler": "LSR oper,X",
     "opc": "56",
     "bytes": "2",
     "cycles": "6"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "CLI",
     "opc": "58",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "absolute,Y",
+    "addressing": "abs,Y",
     "assembler": "EOR oper,Y",
     "opc": "59",
     "bytes": "3",
     "cycles": "4*"
   },
   {
-    "addressing": "absolute,X",
+    "addressing": "abs,X",
     "assembler": "EOR oper,X",
     "opc": "5D",
     "bytes": "3",
     "cycles": "4*"
   },
   {
-    "addressing": "absolute,X",
+    "addressing": "abs,X",
     "assembler": "LSR oper,X",
     "opc": "5E",
     "bytes": "3",
     "cycles": "7"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "RTS",
     "opc": "60",
     "bytes": "1",
     "cycles": "6"
   },
   {
-    "addressing": "(indirect,X)",
+    "addressing": "(ind,X)",
     "assembler": "ADC (oper,X)",
     "opc": "61",
     "bytes": "2",
     "cycles": "6"
   },
   {
-    "addressing": "zeropage",
+    "addressing": "zpg",
     "assembler": "ADC oper",
     "opc": "65",
     "bytes": "2",
     "cycles": "3"
   },
   {
-    "addressing": "zeropage",
+    "addressing": "zpg",
     "assembler": "ROR oper",
     "opc": "66",
     "bytes": "2",
     "cycles": "5"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "PLA",
     "opc": "68",
     "bytes": "1",
     "cycles": "4"
   },
   {
-    "addressing": "immediate",
+    "addressing": "#",
     "assembler": "ADC #oper",
     "opc": "69",
     "bytes": "2",
     "cycles": "2"
   },
   {
-    "addressing": "accumulator",
+    "addressing": "A",
     "assembler": "ROR A",
     "opc": "6A",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "indirect",
+    "addressing": "ind",
     "assembler": "JMP (oper)",
     "opc": "6C",
     "bytes": "3",
     "cycles": "5"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "ADC oper",
     "opc": "6D",
     "bytes": "3",
     "cycles": "4"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "ROR oper",
     "opc": "6E",
     "bytes": "3",
     "cycles": "6"
   },
   {
-    "addressing": "relative",
+    "addressing": "rel",
     "assembler": "BVS oper",
     "opc": "70",
     "bytes": "2",
     "cycles": "2**"
   },
   {
-    "addressing": "(indirect),Y",
+    "addressing": "(ind),Y",
     "assembler": "ADC (oper),Y",
     "opc": "71",
     "bytes": "2",
     "cycles": "5*"
   },
   {
-    "addressing": "zeropage,X",
+    "addressing": "zpg,X",
     "assembler": "ADC oper,X",
     "opc": "75",
     "bytes": "2",
     "cycles": "4"
   },
   {
-    "addressing": "zeropage,X",
+    "addressing": "zpg,X",
     "assembler": "ROR oper,X",
     "opc": "76",
     "bytes": "2",
     "cycles": "6"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "SEI",
     "opc": "78",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "absolute,Y",
+    "addressing": "abs,Y",
     "assembler": "ADC oper,Y",
     "opc": "79",
     "bytes": "3",
     "cycles": "4*"
   },
   {
-    "addressing": "absolute,X",
+    "addressing": "abs,X",
     "assembler": "ADC oper,X",
     "opc": "7D",
     "bytes": "3",
     "cycles": "4*"
   },
   {
-    "addressing": "absolute,X",
+    "addressing": "abs,X",
     "assembler": "ROR oper,X",
     "opc": "7E",
     "bytes": "3",
     "cycles": "7"
   },
   {
-    "addressing": "(indirect,X)",
+    "addressing": "(ind,X)",
     "assembler": "STA (oper,X)",
     "opc": "81",
     "bytes": "2",
     "cycles": "6"
   },
   {
-    "addressing": "zeropage",
+    "addressing": "zpg",
     "assembler": "STY oper",
     "opc": "84",
     "bytes": "2",
     "cycles": "3"
   },
   {
-    "addressing": "zeropage",
+    "addressing": "zpg",
     "assembler": "STA oper",
     "opc": "85",
     "bytes": "2",
     "cycles": "3"
   },
   {
-    "addressing": "zeropage",
+    "addressing": "zpg",
     "assembler": "STX oper",
     "opc": "86",
     "bytes": "2",
     "cycles": "3"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "DEY",
     "opc": "88",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "TXA",
     "opc": "8A",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "STY oper",
     "opc": "8C",
     "bytes": "3",
     "cycles": "4"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "STA oper",
     "opc": "8D",
     "bytes": "3",
     "cycles": "4"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "STX oper",
     "opc": "8E",
     "bytes": "3",
     "cycles": "4"
   },
   {
-    "addressing": "relative",
+    "addressing": "rel",
     "assembler": "BCC oper",
     "opc": "90",
     "bytes": "2",
     "cycles": "2**"
   },
   {
-    "addressing": "(indirect),Y",
+    "addressing": "(ind),Y",
     "assembler": "STA (oper),Y",
     "opc": "91",
     "bytes": "2",
     "cycles": "6"
   },
   {
-    "addressing": "zeropage,X",
+    "addressing": "zpg,X",
     "assembler": "STY oper,X",
     "opc": "94",
     "bytes": "2",
     "cycles": "4"
   },
   {
-    "addressing": "zeropage,X",
+    "addressing": "zpg,X",
     "assembler": "STA oper,X",
     "opc": "95",
     "bytes": "2",
     "cycles": "4"
   },
   {
-    "addressing": "zeropage,Y",
+    "addressing": "zpg,Y",
     "assembler": "STX oper,Y",
     "opc": "96",
     "bytes": "2",
     "cycles": "4"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "TYA",
     "opc": "98",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "absolute,Y",
+    "addressing": "abs,Y",
     "assembler": "STA oper,Y",
     "opc": "99",
     "bytes": "3",
     "cycles": "5"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "TXS",
     "opc": "9A",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "absolute,X",
+    "addressing": "abs,X",
     "assembler": "STA oper,X",
     "opc": "9D",
     "bytes": "3",
     "cycles": "5"
   },
   {
-    "addressing": "immediate",
+    "addressing": "#",
     "assembler": "LDY #oper",
     "opc": "A0",
     "bytes": "2",
     "cycles": "2"
   },
   {
-    "addressing": "(indirect,X)",
+    "addressing": "(ind,X)",
     "assembler": "LDA (oper,X)",
     "opc": "A1",
     "bytes": "2",
     "cycles": "6"
   },
   {
-    "addressing": "immediate",
+    "addressing": "#",
     "assembler": "LDX #oper",
     "opc": "A2",
     "bytes": "2",
     "cycles": "2"
   },
   {
-    "addressing": "zeropage",
+    "addressing": "zpg",
     "assembler": "LDY oper",
     "opc": "A4",
     "bytes": "2",
     "cycles": "3"
   },
   {
-    "addressing": "zeropage",
+    "addressing": "zpg",
     "assembler": "LDA oper",
     "opc": "A5",
     "bytes": "2",
     "cycles": "3"
   },
   {
-    "addressing": "zeropage",
+    "addressing": "zpg",
     "assembler": "LDX oper",
     "opc": "A6",
     "bytes": "2",
     "cycles": "3"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "TAY",
     "opc": "A8",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "immediate",
+    "addressing": "#",
     "assembler": "LDA #oper",
     "opc": "A9",
     "bytes": "2",
     "cycles": "2"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "TAX",
     "opc": "AA",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "LDY oper",
     "opc": "AC",
     "bytes": "3",
     "cycles": "4"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "LDA oper",
     "opc": "AD",
     "bytes": "3",
     "cycles": "4"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "LDX oper",
     "opc": "AE",
     "bytes": "3",
     "cycles": "4"
   },
   {
-    "addressing": "relative",
+    "addressing": "rel",
     "assembler": "BCS oper",
     "opc": "B0",
     "bytes": "2",
     "cycles": "2**"
   },
   {
-    "addressing": "(indirect),Y",
+    "addressing": "(ind),Y",
     "assembler": "LDA (oper),Y",
     "opc": "B1",
     "bytes": "2",
     "cycles": "5*"
   },
   {
-    "addressing": "zeropage,X",
+    "addressing": "zpg,X",
     "assembler": "LDY oper,X",
     "opc": "B4",
     "bytes": "2",
     "cycles": "4"
   },
   {
-    "addressing": "zeropage,X",
+    "addressing": "zpg,X",
     "assembler": "LDA oper,X",
     "opc": "B5",
     "bytes": "2",
     "cycles": "4"
   },
   {
-    "addressing": "zeropage,Y",
+    "addressing": "zpg,Y",
     "assembler": "LDX oper,Y",
     "opc": "B6",
     "bytes": "2",
     "cycles": "4"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "CLV",
     "opc": "B8",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "absolute,Y",
+    "addressing": "abs,Y",
     "assembler": "LDA oper,Y",
     "opc": "B9",
     "bytes": "3",
     "cycles": "4*"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "TSX",
     "opc": "BA",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "absolute,X",
+    "addressing": "abs,X",
     "assembler": "LDY oper,X",
     "opc": "BC",
     "bytes": "3",
     "cycles": "4*"
   },
   {
-    "addressing": "absolute,X",
+    "addressing": "abs,X",
     "assembler": "LDA oper,X",
     "opc": "BD",
     "bytes": "3",
     "cycles": "4*"
   },
   {
-    "addressing": "absolute,Y",
+    "addressing": "abs,Y",
     "assembler": "LDX oper,Y",
     "opc": "BE",
     "bytes": "3",
     "cycles": "4*"
   },
   {
-    "addressing": "immediate",
+    "addressing": "#",
     "assembler": "CPY #oper",
     "opc": "C0",
     "bytes": "2",
     "cycles": "2"
   },
   {
-    "addressing": "(indirect,X)",
+    "addressing": "(ind,X)",
     "assembler": "CMP (oper,X)",
     "opc": "C1",
     "bytes": "2",
     "cycles": "6"
   },
   {
-    "addressing": "zeropage",
+    "addressing": "zpg",
     "assembler": "CPY oper",
     "opc": "C4",
     "bytes": "2",
     "cycles": "3"
   },
   {
-    "addressing": "zeropage",
+    "addressing": "zpg",
     "assembler": "CMP oper",
     "opc": "C5",
     "bytes": "2",
     "cycles": "3"
   },
   {
-    "addressing": "zeropage",
+    "addressing": "zpg",
     "assembler": "DEC oper",
     "opc": "C6",
     "bytes": "2",
     "cycles": "5"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "INY",
     "opc": "C8",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "immediate",
+    "addressing": "#",
     "assembler": "CMP #oper",
     "opc": "C9",
     "bytes": "2",
     "cycles": "2"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "DEX",
     "opc": "CA",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "CPY oper",
     "opc": "CC",
     "bytes": "3",
     "cycles": "4"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "CMP oper",
     "opc": "CD",
     "bytes": "3",
     "cycles": "4"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "DEC oper",
     "opc": "CE",
     "bytes": "3",
     "cycles": "6"
   },
   {
-    "addressing": "relative",
+    "addressing": "rel",
     "assembler": "BNE oper",
     "opc": "D0",
     "bytes": "2",
     "cycles": "2**"
   },
   {
-    "addressing": "(indirect),Y",
+    "addressing": "(ind),Y",
     "assembler": "CMP (oper),Y",
     "opc": "D1",
     "bytes": "2",
     "cycles": "5*"
   },
   {
-    "addressing": "zeropage,X",
+    "addressing": "zpg,X",
     "assembler": "CMP oper,X",
     "opc": "D5",
     "bytes": "2",
     "cycles": "4"
   },
   {
-    "addressing": "zeropage,X",
+    "addressing": "zpg,X",
     "assembler": "DEC oper,X",
     "opc": "D6",
     "bytes": "2",
     "cycles": "6"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "CLD",
     "opc": "D8",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "absolute,Y",
+    "addressing": "abs,Y",
     "assembler": "CMP oper,Y",
     "opc": "D9",
     "bytes": "3",
     "cycles": "4*"
   },
   {
-    "addressing": "absolute,X",
+    "addressing": "abs,X",
     "assembler": "CMP oper,X",
     "opc": "DD",
     "bytes": "3",
     "cycles": "4*"
   },
   {
-    "addressing": "absolute,X",
+    "addressing": "abs,X",
     "assembler": "DEC oper,X",
     "opc": "DE",
     "bytes": "3",
     "cycles": "7"
   },
   {
-    "addressing": "immediate",
+    "addressing": "#",
     "assembler": "CPX #oper",
     "opc": "E0",
     "bytes": "2",
     "cycles": "2"
   },
   {
-    "addressing": "(indirect,X)",
+    "addressing": "(ind,X)",
     "assembler": "SBC (oper,X)",
     "opc": "E1",
     "bytes": "2",
     "cycles": "6"
   },
   {
-    "addressing": "zeropage",
+    "addressing": "zpg",
     "assembler": "CPX oper",
     "opc": "E4",
     "bytes": "2",
     "cycles": "3"
   },
   {
-    "addressing": "zeropage",
+    "addressing": "zpg",
     "assembler": "SBC oper",
     "opc": "E5",
     "bytes": "2",
     "cycles": "3"
   },
   {
-    "addressing": "zeropage",
+    "addressing": "zpg",
     "assembler": "INC oper",
     "opc": "E6",
     "bytes": "2",
     "cycles": "5"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "INX",
     "opc": "E8",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "immediate",
+    "addressing": "#",
     "assembler": "SBC #oper",
     "opc": "E9",
     "bytes": "2",
     "cycles": "2"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "NOP",
     "opc": "EA",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "CPX oper",
     "opc": "EC",
     "bytes": "3",
     "cycles": "4"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "SBC oper",
     "opc": "ED",
     "bytes": "3",
     "cycles": "4"
   },
   {
-    "addressing": "absolute",
+    "addressing": "abs",
     "assembler": "INC oper",
     "opc": "EE",
     "bytes": "3",
     "cycles": "6"
   },
   {
-    "addressing": "relative",
+    "addressing": "rel",
     "assembler": "BEQ oper",
     "opc": "F0",
     "bytes": "2",
     "cycles": "2**"
   },
   {
-    "addressing": "(indirect),Y",
+    "addressing": "(ind),Y",
     "assembler": "SBC (oper),Y",
     "opc": "F1",
     "bytes": "2",
     "cycles": "5*"
   },
   {
-    "addressing": "zeropage,X",
+    "addressing": "zpg,X",
     "assembler": "SBC oper,X",
     "opc": "F5",
     "bytes": "2",
     "cycles": "4"
   },
   {
-    "addressing": "zeropage,X",
+    "addressing": "zpg,X",
     "assembler": "INC oper,X",
     "opc": "F6",
     "bytes": "2",
     "cycles": "6"
   },
   {
-    "addressing": "implied",
+    "addressing": "impl",
     "assembler": "SED",
     "opc": "F8",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "absolute,Y",
+    "addressing": "abs,Y",
     "assembler": "SBC oper,Y",
     "opc": "F9",
     "bytes": "3",
     "cycles": "4*"
   },
   {
-    "addressing": "absolute,X",
+    "addressing": "abs,X",
     "assembler": "SBC oper,X",
     "opc": "FD",
     "bytes": "3",
     "cycles": "4*"
   },
   {
-    "addressing": "absolute,X",
+    "addressing": "abs,X",
     "assembler": "INC oper,X",
     "opc": "FE",
     "bytes": "3",
     "cycles": "7"
   }
 ]
+

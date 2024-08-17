@@ -5,11 +5,11 @@ pub fn dump_registers(cpu: &cpu::MCS6502, mem: &mem::Memory) {
     let (_, bytes_str, instr_str, instr_len, addr_mode) =
         disassemble_one_instruction(pc_lo, pc_hi, mem);
 
-    println!("┌────────────────┬────────────┬─────────────┬───────────────┬─────────────────┐");
-    println!("│ PC             │ OP         │ A  X  Y  S  │ N V B D I Z C │                 │");
-    println!("╞════════════════╪════════════╪═════════════╪═══════════════╪════╤════════════╡");
+    println!("┌────────────────┬────────────┬─────────────┬───────────────┬──────────────┐");
+    println!("│ PC             │ OP         │ A  X  Y  S  │ N V B D I Z C │              │");
+    println!("╞════════════════╪════════════╪═════════════╪═══════════════╪════╤═════════╡");
     println!(
-        "│ {} │ {: <10} │ {:02x} {:02x} {:02x} {:02x} │ {} {} {} {} {} {} {} │ {: >2x} │ {: >10} │",
+        "│ {} │ {: <10} │ {:02x} {:02x} {:02x} {:02x} │ {} {} {} {} {} {} {} │ {: >2x} │ {: >7} │",
         bytes_str,
         instr_str,
         cpu.a(),
@@ -26,7 +26,7 @@ pub fn dump_registers(cpu: &cpu::MCS6502, mem: &mem::Memory) {
         instr_len,
         addr_mode,
     );
-    println!("└────────────────┴────────────┴─────────────┴───────────────┴────┴────────────┘");
+    println!("└────────────────┴────────────┴─────────────┴───────────────┴────┴─────────┘");
 }
 
 pub fn dump_memory(mem: &mem::Memory, start: &Option<String>) {
@@ -74,7 +74,7 @@ pub fn disassemble(cpu: &cpu::MCS6502, mem: &mem::Memory, start: &Option<String>
             disassemble_one_instruction(pc.0, pc.1, mem);
         instr_len = hw_dbg::ALL_OPCODE_INFO[opc as usize].bytes as u16;
         println!(
-            "{} | {} | {: >2x} │ {: >10}",
+            "{} | {} | {: >2x} │ {: >7}",
             bytes_str, instr_str, instr_len, addr_mode
         )
     }

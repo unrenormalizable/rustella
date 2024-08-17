@@ -41,6 +41,8 @@ pub struct MCS6502 {
     P: PSR,
 }
 
+type HwDebuggerCallback = fn(opc: u8, cpu: &mut MCS6502, mem: &mut mem::Memory) -> bool;
+
 impl MCS6502 {
     pub fn new(pc_lo: u8, pc_hi: u8) -> Self {
         Self {
@@ -59,11 +61,7 @@ impl MCS6502 {
     /// - Instruction set: https://www.masswerk.at/6502/6502_instruction_set.html
     ///
     /// NOTE: Remove the callback once we find a better signalling mechanism to indicate hw breakpoint.
-    pub fn fetch_decode_execute(
-        &mut self,
-        mem: &mut mem::Memory,
-        callback: fn(opc: u8, cpu: &mut Self, mem: &mut mem::Memory) -> bool,
-    ) {
+    pub fn fetch_decode_execute(&mut self, mem: &mut mem::Memory, callback: HwDebuggerCallback) {
         loop {
             let opc = mem.get(self.PC_lo, self.PC_hi);
             if !callback(opc, self, mem) {
