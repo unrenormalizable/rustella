@@ -7,40 +7,40 @@ use super::{cmn, cpu::*, hw_dbg, mem::Memory};
 /// References (use multiple to cross check implementation):
 /// - https://www.masswerk.at/6502/6502_instruction_set.html
 /// - https://www.pagetable.com/c64ref/6502/
-type OpCode = dyn Fn(u8, u8, u8, &mut MCS6502, &mut Memory) -> Option<(u8, u8)>;
+type OpCode = dyn Fn(u8, u8, u8, &mut MOS6502, &mut Memory) -> Option<(u8, u8)>;
 
-fn illegal(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn illegal(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     panic!("Illegal opcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn BRK_impl(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn BRK_impl(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ORA_ind_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ORA_ind_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ORA_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ORA_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ASL_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ASL_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn PHP_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn PHP_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let p = cpu.p();
     _push(cpu, mem, p);
 
     None
 }
 
-fn ORA_imme(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ORA_imme(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ASL_A(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ASL_A(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     let old_a = cpu.a();
     let new_a = old_a << 1;
 
@@ -53,49 +53,49 @@ fn ASL_A(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u8, 
     None
 }
 
-fn ORA_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ORA_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ASL_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ASL_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn BPL_rel(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn BPL_rel(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ORA_ind_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ORA_ind_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ORA_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ORA_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ASL_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ASL_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn CLC_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn CLC_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     cpu.clr_psr_bit(PSR::C);
 
     None
 }
 
-fn ORA_abs_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ORA_abs_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ORA_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ORA_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ASL_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ASL_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn JSR_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn JSR_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let pc = cmn::addr_u16_to_u8(cmn::offset_addr(pc_lo, pc_hi, 2));
     _push(cpu, mem, pc.1);
     _push(cpu, mem, pc.0);
@@ -103,111 +103,111 @@ fn JSR_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> 
     Some(_get_2_ops_args(pc_lo, pc_hi, mem))
 }
 
-fn AND_ind_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn AND_ind_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn BIT_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn BIT_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn AND_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn AND_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ROL_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ROL_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn PLP_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn PLP_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = _pop(cpu, mem);
     cpu.set_p(val);
 
     None
 }
 
-fn AND_imme(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn AND_imme(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ROL_A(_: u8, _: u8, _: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ROL_A(_: u8, _: u8, _: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!();
 }
 
-fn BIT_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn BIT_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn AND_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn AND_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ROL_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ROL_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn BMI_rel(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn BMI_rel(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn AND_ind_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn AND_ind_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn AND_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn AND_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ROL_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ROL_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn SEC_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn SEC_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     cpu.set_psr_bit(PSR::C);
 
     None
 }
 
-fn AND_abs_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn AND_abs_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn AND_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn AND_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ROL_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ROL_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn RTI_impl(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn RTI_impl(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn EOR_ind_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn EOR_ind_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn EOR_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn EOR_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn LSR_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn LSR_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn PHA_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn PHA_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let a = cpu.a();
     _push(cpu, mem, a);
 
     None
 }
 
-fn EOR_imme(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn EOR_imme(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn LSR_A(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn LSR_A(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     let old_a = cpu.a();
     let new_a = old_a >> 1;
 
@@ -220,69 +220,69 @@ fn LSR_A(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u8, 
     None
 }
 
-fn JMP_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn JMP_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn EOR_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn EOR_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn LSR_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn LSR_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn BVC_rel(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn BVC_rel(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn EOR_ind_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn EOR_ind_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn EOR_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn EOR_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn LSR_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn LSR_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn CLI_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn CLI_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     cpu.clr_psr_bit(PSR::I);
 
     None
 }
 
-fn EOR_abs_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn EOR_abs_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn EOR_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn EOR_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn LSR_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn LSR_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn RTS_impl(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn RTS_impl(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ADC_ind_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ADC_ind_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ADC_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ADC_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ROR_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ROR_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn PLA_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn PLA_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = _pop(cpu, mem);
     cpu.set_a(val);
 
@@ -292,86 +292,86 @@ fn PLA_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<
     None
 }
 
-fn ADC_imme(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ADC_imme(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ROR_A(_: u8, _: u8, _: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ROR_A(_: u8, _: u8, _: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!();
 }
 
-fn JMP_ind(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn JMP_ind(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ADC_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ADC_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ROR_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ROR_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn BVS_rel(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn BVS_rel(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ADC_ind_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ADC_ind_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ADC_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ADC_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ROR_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ROR_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn SEI_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn SEI_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     cpu.set_psr_bit(PSR::I);
 
     None
 }
 
-fn ADC_abs_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ADC_abs_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ADC_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ADC_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn ROR_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn ROR_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn STA_ind_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn STA_ind_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn STY_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn STY_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = cpu.y();
     _store_zero_paged(pc_lo, pc_hi, mem, 0, val);
 
     None
 }
 
-fn STA_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn STA_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = cpu.a();
     _store_zero_paged(pc_lo, pc_hi, mem, 0, val);
 
     None
 }
 
-fn STX_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn STX_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = cpu.x();
     _store_zero_paged(pc_lo, pc_hi, mem, 0, val);
 
     None
 }
 
-fn DEY_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn DEY_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     let val = cmn::safe_sub(cpu.y(), 1).0;
     cpu.set_y(val);
 
@@ -381,7 +381,7 @@ fn DEY_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u
     None
 }
 
-fn TXA_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn TXA_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     let x = cpu.x();
     cpu.set_a(x);
 
@@ -391,36 +391,36 @@ fn TXA_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u
     None
 }
 
-fn STY_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn STY_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = cpu.y();
     _store_absolute_indexed(pc_lo, pc_hi, mem, 0, val);
 
     None
 }
 
-fn STA_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn STA_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = cpu.a();
     _store_absolute_indexed(pc_lo, pc_hi, mem, 0, val);
 
     None
 }
 
-fn STX_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn STX_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = cpu.x();
     _store_absolute_indexed(pc_lo, pc_hi, mem, 0, val);
 
     None
 }
 
-fn BCC_rel(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn BCC_rel(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn STA_ind_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn STA_ind_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn STY_zpg_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn STY_zpg_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = cpu.y();
     let off = cpu.x();
     _store_zero_paged(pc_lo, pc_hi, mem, off, val);
@@ -428,7 +428,7 @@ fn STY_zpg_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -
     None
 }
 
-fn STA_zpg_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn STA_zpg_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = cpu.a();
     let off = cpu.x();
     _store_zero_paged(pc_lo, pc_hi, mem, off, val);
@@ -436,7 +436,7 @@ fn STA_zpg_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -
     None
 }
 
-fn STX_zpg_Y(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn STX_zpg_Y(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = cpu.x();
     let off = cpu.y();
     _store_zero_paged(pc_lo, pc_hi, mem, off, val);
@@ -444,7 +444,7 @@ fn STX_zpg_Y(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -
     None
 }
 
-fn TYA_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn TYA_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     let y = cpu.y();
     cpu.set_a(y);
 
@@ -454,7 +454,7 @@ fn TYA_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u
     None
 }
 
-fn STA_abs_Y(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn STA_abs_Y(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = cpu.a();
     let off = cpu.y();
     _store_absolute_indexed(pc_lo, pc_hi, mem, off, val);
@@ -462,14 +462,14 @@ fn STA_abs_Y(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -
     None
 }
 
-fn TXS_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn TXS_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     let x = cpu.x();
     cpu.set_s(x);
 
     None
 }
 
-fn STA_abs_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn STA_abs_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = cpu.a();
     let off = cpu.x();
     _store_absolute_indexed(pc_lo, pc_hi, mem, off, val);
@@ -477,7 +477,7 @@ fn STA_abs_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -
     None
 }
 
-fn LDY_imme(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn LDY_imme(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = _get_1_ops_args(pc_lo, pc_hi, mem);
     cpu.set_y(val);
 
@@ -487,7 +487,7 @@ fn LDY_imme(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) ->
     None
 }
 
-fn LDA_ind_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn LDA_ind_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let off = cpu.x();
     let val = _load_indexed_zero_page_indirect(pc_lo, pc_hi, mem, off);
     cpu.set_a(val);
@@ -498,7 +498,7 @@ fn LDA_ind_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -
     None
 }
 
-fn LDX_imme(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn LDX_imme(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = _get_1_ops_args(pc_lo, pc_hi, mem);
     cpu.set_x(val);
 
@@ -508,7 +508,7 @@ fn LDX_imme(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) ->
     None
 }
 
-fn LDY_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn LDY_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = _load_zero_paged(pc_lo, pc_hi, mem, 0);
     cpu.set_y(val);
 
@@ -518,7 +518,7 @@ fn LDY_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> 
     None
 }
 
-fn LDA_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn LDA_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = _load_zero_paged(pc_lo, pc_hi, mem, 0);
     cpu.set_a(val);
 
@@ -528,7 +528,7 @@ fn LDA_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> 
     None
 }
 
-fn LDX_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn LDX_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = _load_zero_paged(pc_lo, pc_hi, mem, 0);
     cpu.set_x(val);
 
@@ -538,7 +538,7 @@ fn LDX_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> 
     None
 }
 
-fn TAY_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn TAY_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     let a = cpu.a();
     cpu.set_y(a);
 
@@ -548,7 +548,7 @@ fn TAY_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u
     None
 }
 
-fn LDA_imme(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn LDA_imme(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = _get_1_ops_args(pc_lo, pc_hi, mem);
     cpu.set_a(val);
 
@@ -558,7 +558,7 @@ fn LDA_imme(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) ->
     None
 }
 
-fn TAX_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn TAX_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     let a = cpu.a();
     cpu.set_x(a);
 
@@ -568,7 +568,7 @@ fn TAX_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u
     None
 }
 
-fn LDY_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn LDY_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = _load_absolute_indexed(pc_lo, pc_hi, mem, 0);
 
     cpu.set_y(val);
@@ -579,7 +579,7 @@ fn LDY_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> 
     None
 }
 
-fn LDA_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn LDA_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = _load_absolute_indexed(pc_lo, pc_hi, mem, 0);
 
     cpu.set_a(val);
@@ -590,7 +590,7 @@ fn LDA_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> 
     None
 }
 
-fn LDX_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn LDX_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = _load_absolute_indexed(pc_lo, pc_hi, mem, 0);
 
     cpu.set_x(val);
@@ -601,15 +601,15 @@ fn LDX_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> 
     None
 }
 
-fn BCS_rel(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn BCS_rel(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn LDA_ind_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn LDA_ind_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn LDY_zpg_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn LDY_zpg_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let off = cpu.x();
     let val = _load_zero_paged(pc_lo, pc_hi, mem, off);
     cpu.set_y(val);
@@ -620,7 +620,7 @@ fn LDY_zpg_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -
     None
 }
 
-fn LDA_zpg_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn LDA_zpg_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let off = cpu.x();
     let val = _load_zero_paged(pc_lo, pc_hi, mem, off);
     cpu.set_a(val);
@@ -631,7 +631,7 @@ fn LDA_zpg_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -
     None
 }
 
-fn LDX_zpg_Y(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn LDX_zpg_Y(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let off = cpu.y();
     let val = _load_zero_paged(pc_lo, pc_hi, mem, off);
     cpu.set_x(val);
@@ -642,13 +642,13 @@ fn LDX_zpg_Y(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -
     None
 }
 
-fn CLV_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn CLV_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     cpu.clr_psr_bit(PSR::V);
 
     None
 }
 
-fn LDA_abs_Y(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn LDA_abs_Y(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let off = cpu.y();
     let val = _load_absolute_indexed(pc_lo, pc_hi, mem, off);
 
@@ -660,7 +660,7 @@ fn LDA_abs_Y(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -
     None
 }
 
-fn TSX_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn TSX_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     let s = cpu.s();
     cpu.set_x(s);
 
@@ -670,7 +670,7 @@ fn TSX_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u
     None
 }
 
-fn LDY_abs_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn LDY_abs_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let off = cpu.x();
     let val = _load_absolute_indexed(pc_lo, pc_hi, mem, off);
 
@@ -682,7 +682,7 @@ fn LDY_abs_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -
     None
 }
 
-fn LDA_abs_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn LDA_abs_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let off = cpu.x();
     let val = _load_absolute_indexed(pc_lo, pc_hi, mem, off);
 
@@ -694,7 +694,7 @@ fn LDA_abs_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -
     None
 }
 
-fn LDX_abs_Y(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn LDX_abs_Y(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let off = cpu.y();
     let val = _load_absolute_indexed(pc_lo, pc_hi, mem, off);
 
@@ -706,27 +706,27 @@ fn LDX_abs_Y(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -
     None
 }
 
-fn CPY_imme(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn CPY_imme(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn CMP_ind_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn CMP_ind_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn CPY_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn CPY_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn CMP_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn CMP_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn DEC_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn DEC_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn INY_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn INY_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     let val = cmn::safe_add(cpu.y(), 1).0;
     cpu.set_y(val);
 
@@ -736,11 +736,11 @@ fn INY_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u
     None
 }
 
-fn CMP_imme(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn CMP_imme(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn DEX_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn DEX_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     let val = cmn::safe_sub(cpu.x(), 1).0;
     cpu.set_x(val);
 
@@ -750,19 +750,19 @@ fn DEX_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u
     None
 }
 
-fn CPY_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn CPY_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn CMP_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn CMP_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn DEC_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn DEC_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn BNE_rel(opc: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+fn BNE_rel(opc: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     if cpu.tst_psr_bit(PSR::Z) {
         return None;
     }
@@ -776,57 +776,57 @@ fn BNE_rel(opc: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) -
     Some((pc_lo, pc_hi))
 }
 
-fn CMP_ind_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn CMP_ind_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn CMP_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn CMP_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn DEC_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn DEC_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn CLD_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn CLD_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     cpu.clr_psr_bit(PSR::D);
 
     None
 }
 
-fn CMP_abs_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn CMP_abs_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn CMP_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn CMP_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn DEC_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn DEC_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn CPX_imme(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn CPX_imme(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn SBC_ind_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn SBC_ind_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn CPX_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn CPX_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn SBC_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn SBC_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn INC_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn INC_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn INX_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn INX_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     let val = cmn::safe_add(cpu.x(), 1).0;
     cpu.set_x(val);
 
@@ -836,57 +836,57 @@ fn INX_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u
     None
 }
 
-fn SBC_imme(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn SBC_imme(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn NOP_impl(_: u8, _: u8, _: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn NOP_impl(_: u8, _: u8, _: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     None
 }
 
-fn CPX_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn CPX_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn SBC_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn SBC_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn INC_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn INC_abs(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn BEQ_rel(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn BEQ_rel(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn SBC_ind_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn SBC_ind_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn SBC_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn SBC_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn INC_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn INC_zpg_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn SED_impl(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn SED_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     cpu.set_psr_bit(PSR::D);
 
     None
 }
 
-fn SBC_abs_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn SBC_abs_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn SBC_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn SBC_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn INC_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {
+fn INC_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
@@ -960,21 +960,21 @@ fn _store_absolute_indexed(pc_lo: u8, pc_hi: u8, mem: &mut Memory, off: u8, val:
     mem.set(addr.0, addr.1, 0, val);
 }
 
-fn _push(cpu: &mut MCS6502, mem: &mut Memory, val: u8) {
+fn _push(cpu: &mut MOS6502, mem: &mut Memory, val: u8) {
     mem.set(cpu.s(), 0x00, 0, val);
 
     let s = cmn::safe_sub(cpu.s(), 1).0;
     cpu.set_s(s);
 }
 
-fn _pop(cpu: &mut MCS6502, mem: &mut Memory) -> u8 {
+fn _pop(cpu: &mut MOS6502, mem: &mut Memory) -> u8 {
     let s = cmn::safe_add(cpu.s(), 1).0;
     cpu.set_s(s);
 
     mem.get(s, 0x00, 0)
 }
 
-fn __sync_pcr_c(cpu: &mut MCS6502, val: u8, bit_selector: u8) {
+fn __sync_pcr_c(cpu: &mut MOS6502, val: u8, bit_selector: u8) {
     if tst_bit(val, bit_selector) {
         cpu.set_psr_bit(PSR::C)
     } else {
@@ -982,15 +982,15 @@ fn __sync_pcr_c(cpu: &mut MCS6502, val: u8, bit_selector: u8) {
     }
 }
 
-fn _sync_pcr_c_lsb(cpu: &mut MCS6502, val: u8) {
+fn _sync_pcr_c_lsb(cpu: &mut MOS6502, val: u8) {
     __sync_pcr_c(cpu, val, 0b0000_0001);
 }
 
-fn _sync_pcr_c_msb(cpu: &mut MCS6502, val: u8) {
+fn _sync_pcr_c_msb(cpu: &mut MOS6502, val: u8) {
     __sync_pcr_c(cpu, val, 0b1000_0000);
 }
 
-fn _sync_pcr_z(cpu: &mut MCS6502, val: u8) {
+fn _sync_pcr_z(cpu: &mut MOS6502, val: u8) {
     if val == 0 {
         cpu.set_psr_bit(PSR::Z)
     } else {
@@ -998,7 +998,7 @@ fn _sync_pcr_z(cpu: &mut MCS6502, val: u8) {
     }
 }
 
-fn _sync_pcr_n(cpu: &mut MCS6502, val: u8) {
+fn _sync_pcr_n(cpu: &mut MOS6502, val: u8) {
     if tst_bit(val, 0b1000_0000) {
         cpu.set_psr_bit(PSR::N)
     } else {
@@ -1283,7 +1283,7 @@ mod tests {
 
     #[test]
     fn test_push_pop() {
-        let mut cpu = MCS6502::new(0x00, 0x00);
+        let mut cpu = MOS6502::new(0x00, 0x00);
         let mut mem = Memory::new(&[0b01010101; 0x1000], true);
 
         const SP: u8 = 0xff;

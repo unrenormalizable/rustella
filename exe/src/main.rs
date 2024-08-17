@@ -16,7 +16,7 @@ fn main() -> Result<(), String> {
     let buffer = read_cartridge_rom();
     let mut mem = mem::Memory::new(&buffer, true);
     let (pc_lo, pc_hi) = mem.get_pc_from_reset_vector();
-    let mut cpu = cpu::MCS6502::new(pc_lo, pc_hi);
+    let mut cpu = cpu::MOS6502::new(pc_lo, pc_hi);
     cpu.fetch_decode_execute(&mut mem, hw_debugger_callback);
 
     Ok(())
@@ -30,7 +30,7 @@ fn read_cartridge_rom() -> Vec<u8> {
     buffer
 }
 
-fn hw_debugger_callback(_: u8, cpu: &mut cpu::MCS6502, mem: &mut mem::Memory) -> (bool, usize) {
+fn hw_debugger_callback(_: u8, cpu: &mut cpu::MOS6502, mem: &mut mem::Memory) -> (bool, usize) {
     cmds::dump_registers(cpu, mem);
     loop {
         match repl::get_cmdline().command() {

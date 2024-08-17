@@ -37,7 +37,7 @@ impl Default for PSR {
 
 #[allow(non_snake_case)]
 /// Refer: https://www.princeton.edu/~mae412/HANDOUTS/Datasheets/6502.pdf
-pub struct MCS6502 {
+pub struct MOS6502 {
     A: u8,
     Y: u8,
     X: u8,
@@ -47,9 +47,9 @@ pub struct MCS6502 {
     P: PSR,
 }
 
-type HwDebuggerCallback = fn(opc: u8, cpu: &mut MCS6502, mem: &mut mem::Memory) -> (bool, usize);
+type HwDebuggerCallback = fn(opc: u8, cpu: &mut MOS6502, mem: &mut mem::Memory) -> (bool, usize);
 
-impl MCS6502 {
+impl MOS6502 {
     pub fn new(pc_lo: u8, pc_hi: u8) -> Self {
         Self {
             A: 0xde,

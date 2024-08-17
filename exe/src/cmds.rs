@@ -1,6 +1,6 @@
 use a2600::{cmn, cpu, hw_dbg, mem};
 
-pub fn dump_registers(cpu: &cpu::MCS6502, mem: &mem::Memory) {
+pub fn dump_registers(cpu: &cpu::MOS6502, mem: &mem::Memory) {
     let (pc_lo, pc_hi) = cpu.pc();
     let (_, bytes_str, instr_str, instr_len, addr_mode) =
         disassemble_one_instruction(pc_lo, pc_hi, mem);
@@ -58,7 +58,7 @@ pub fn dump_memory(mem: &mem::Memory, start: &Option<String>) {
     }
 }
 
-pub fn disassemble(cpu: &cpu::MCS6502, mem: &mem::Memory, start: &Option<String>) {
+pub fn disassemble(cpu: &cpu::MOS6502, mem: &mem::Memory, start: &Option<String>) {
     let mut pc = match start {
         Some(start) => {
             let start = u128::from_str_radix(start, 16).unwrap_or_default();
@@ -119,7 +119,7 @@ fn disassemble_one_instruction(
     )
 }
 
-fn bit_value(cpu: &cpu::MCS6502, bit: cpu::PSR, val: &str) -> String {
+fn bit_value(cpu: &cpu::MOS6502, bit: cpu::PSR, val: &str) -> String {
     if cpu::tst_bit(cpu.p(), bit.bits()) {
         val.to_string()
     } else {
