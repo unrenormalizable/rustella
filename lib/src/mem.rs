@@ -1,3 +1,4 @@
+use super::cmn;
 use core::mem;
 
 pub const ADDRESSABLE_MEMORY_SIZE: usize = 0x1_0000;
@@ -48,7 +49,7 @@ pub struct Memory {
 /// - https://forums.atariage.com/topic/27190-session-5-memory-architecture/#comment-442653
 /// - https://wilsonminesco.com/6502primer/MemMapReqs.html
 pub fn resolve_addr(lo: u8, hi: u8) -> u16 {
-    let mut addr = addr_u8_to_u16(lo, hi);
+    let mut addr = cmn::addr_u8_to_u16(lo, hi);
     // Step 0. Turn off A13-A15 pins.
     addr &= 0b0001_1111_1111_1111;
 
@@ -61,20 +62,6 @@ pub fn resolve_addr(lo: u8, hi: u8) -> u16 {
     // TODO.
 
     addr
-}
-
-pub fn offset_addr(lo: u8, hi: u8, off: u16) -> u16 {
-    let addr = (addr_u8_to_u16(lo, hi) as u32) + off as u32;
-
-    addr as u16
-}
-
-pub fn addr_u8_to_u16(lo: u8, hi: u8) -> u16 {
-    ((hi as u16) << 8) + lo as u16
-}
-
-pub fn addr_u16_to_u8(addr: u16) -> (u8, u8) {
-    (addr as u8, (addr >> 8) as u8)
 }
 
 // TODO: Implement memory map & checks.
@@ -136,24 +123,6 @@ mod tests {
     fn test_resolve_addr(lo: u8, hi: u8, addr: u16) {
         let ret = resolve_addr(lo, hi);
         assert_eq!(ret, addr);
-    }
-
-    #[test_case(0x00, 0x00, 0x0000, 0x0000)]
-    #[test_case(0xf0, 0x00, 0x0010, 0x0100)]
-    #[test_case(0xff, 0xff, 0x0002, 0x0001)]
-    fn test_offset_addr(lo: u8, hi: u8, off: u16, exp: u16) {
-        let ret = offset_addr(lo, hi, off);
-        assert_eq!(ret, exp);
-    }
-
-    #[test_case(0x00, 0x00, 0x0000)]
-    #[test_case(0xf0, 0x00, 0x00f0)]
-    #[test_case(0xff, 0xff, 0xffff)]
-    fn test_addr_formats(lo: u8, hi: u8, exp: u16) {
-        let ret = addr_u8_to_u16(lo, hi);
-        assert_eq!(ret, exp);
-        let addru8 = addr_u16_to_u8(ret);
-        assert_eq!(addru8, (lo, hi));
     }
 
     #[test]

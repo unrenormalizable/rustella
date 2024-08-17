@@ -29,6 +29,12 @@ bitflags! {
     }
 }
 
+impl Default for PSR {
+    fn default() -> Self {
+        PSR::N | PSR::V | PSR::B | PSR::I | PSR::Z | PSR::C
+    }
+}
+
 #[allow(non_snake_case)]
 /// Refer: https://www.princeton.edu/~mae412/HANDOUTS/Datasheets/6502.pdf
 pub struct MCS6502 {
@@ -52,7 +58,7 @@ impl MCS6502 {
             PC_lo: pc_lo,
             PC_hi: pc_hi,
             S: 0xef,
-            P: PSR::from_bits_truncate(0),
+            P: PSR::default(),
         }
     }
 
@@ -72,8 +78,15 @@ impl MCS6502 {
                     break;
                 }
             }
-            opcode::ALL_OPCODE_ROUTINES[opc as usize](opc, self.PC_lo, self.PC_hi, self, mem);
-            self.pc_incr(hw_dbg::ALL_OPCODE_INFO[opc as usize].bytes);
+
+            let res =
+                opcode::ALL_OPCODE_ROUTINES[opc as usize](opc, self.PC_lo, self.PC_hi, self, mem);
+            if let Some((lo, hi)) = res {
+                self.PC_lo = lo;
+                self.PC_hi = hi;
+            } else {
+                self.pc_incr(hw_dbg::ALL_OPCODE_INFO[opc as usize].bytes);
+            }
             call_dbg_after -= 1;
         }
     }
@@ -135,6 +148,7 @@ impl MCS6502 {
     }
 
     fn pc_incr(&mut self, incr: u8) {
+        // TODO: safe add
         self.PC_lo += incr;
     }
 }

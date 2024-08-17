@@ -14,6 +14,20 @@ pub fn safe_sub(val1: u8, val2: u8) -> (u8, bool) {
     (res as u8, v)
 }
 
+pub fn offset_addr(lo: u8, hi: u8, off: u8) -> u16 {
+    let addr = (addr_u8_to_u16(lo, hi) as u32) + off as u32;
+
+    addr as u16
+}
+
+pub fn addr_u8_to_u16(lo: u8, hi: u8) -> u16 {
+    ((hi as u16) << 8) + lo as u16
+}
+
+pub fn addr_u16_to_u8(addr: u16) -> (u8, u8) {
+    (addr as u8, (addr >> 8) as u8)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -34,5 +48,23 @@ mod tests {
     fn test_safe_sub(v1: u8, v2: u8, exp: (u8, bool)) {
         let obt = safe_sub(v1, v2);
         assert_eq!(exp, obt);
+    }
+
+    #[test_case(0x00, 0x00, 0x0000, 0x0000)]
+    #[test_case(0xf0, 0x00, 0x0010, 0x0100)]
+    #[test_case(0xff, 0xff, 0x0002, 0x0001)]
+    fn test_offset_addr(lo: u8, hi: u8, off: u8, exp: u16) {
+        let ret = offset_addr(lo, hi, off);
+        assert_eq!(ret, exp);
+    }
+
+    #[test_case(0x00, 0x00, 0x0000)]
+    #[test_case(0xf0, 0x00, 0x00f0)]
+    #[test_case(0xff, 0xff, 0xffff)]
+    fn test_addr_formats(lo: u8, hi: u8, exp: u16) {
+        let ret = addr_u8_to_u16(lo, hi);
+        assert_eq!(ret, exp);
+        let addru8 = addr_u16_to_u8(ret);
+        assert_eq!(addru8, (lo, hi));
     }
 }

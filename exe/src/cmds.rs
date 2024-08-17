@@ -1,39 +1,39 @@
-use a2600::{cpu, hw_dbg, mem};
+use a2600::{cmn, cpu, hw_dbg, mem};
 
 pub fn dump_registers(cpu: &cpu::MCS6502, mem: &mem::Memory) {
     let (pc_lo, pc_hi) = cpu.pc();
     let (_, bytes_str, instr_str, instr_len, addr_mode) =
         disassemble_one_instruction(pc_lo, pc_hi, mem);
 
-    println!("┌────────────────┬────────────┬─────────────┬───────────────┬──────────────┐");
-    println!("│ PC             │ OP         │ A  X  Y  S  │ N V B D I Z C │              │");
-    println!("╞════════════════╪════════════╪═════════════╪═══════════════╪════╤═════════╡");
+    println!("┌────────────────┬────────────┬─────────────┬─────────────────┬──────────────┐");
+    println!("│ PC             │ OP         │ A  X  Y  S  │       PSR       │              │");
+    println!("╞════════════════╪════════════╪═════════════╪═════════════════╪════╤═════════╡");
     println!(
-        "│ {} │ {: <10} │ {:02x} {:02x} {:02x} {:02x} │ {} {} {} {} {} {} {} │ {: >2x} │ {: >7} │",
+        "│ {} │ {: <10} │ {:02x} {:02x} {:02x} {:02x} │ {} {} - {} {} {} {} {} │ {: >2x} │ {: >7} │",
         bytes_str,
         instr_str,
         cpu.a(),
         cpu.x(),
         cpu.y(),
         cpu.s(),
-        bit_value(cpu, cpu::PSR::N),
-        bit_value(cpu, cpu::PSR::V),
-        bit_value(cpu, cpu::PSR::B),
-        bit_value(cpu, cpu::PSR::D),
-        bit_value(cpu, cpu::PSR::I),
-        bit_value(cpu, cpu::PSR::Z),
-        bit_value(cpu, cpu::PSR::C),
+        bit_value(cpu, cpu::PSR::N, "N"),
+        bit_value(cpu, cpu::PSR::V, "V"),
+        bit_value(cpu, cpu::PSR::B, "B"),
+        bit_value(cpu, cpu::PSR::D, "D"),
+        bit_value(cpu, cpu::PSR::I, "I"),
+        bit_value(cpu, cpu::PSR::Z, "Z"),
+        bit_value(cpu, cpu::PSR::C, "C"),
         instr_len,
         addr_mode,
     );
-    println!("└────────────────┴────────────┴─────────────┴───────────────┴────┴─────────┘");
+    println!("└────────────────┴────────────┴─────────────┴─────────────────┴────┴─────────┘");
 }
 
 pub fn dump_memory(mem: &mem::Memory, start: &Option<String>) {
     let (start_lo, start_hi) = match start {
         Some(start) => {
             let start = u128::from_str_radix(start, 16).unwrap_or_default();
-            mem::addr_u16_to_u8(start as u16)
+            cmn::addr_u16_to_u8(start as u16)
         }
         None => (mem::RAM_START_LO, mem::RAM_START_HI),
     };
@@ -62,17 +62,17 @@ pub fn disassemble(cpu: &cpu::MCS6502, mem: &mem::Memory, start: &Option<String>
     let mut pc = match start {
         Some(start) => {
             let start = u128::from_str_radix(start, 16).unwrap_or_default();
-            mem::addr_u16_to_u8(start as u16)
+            cmn::addr_u16_to_u8(start as u16)
         }
         None => cpu.pc(),
     };
 
-    let mut instr_len = 0u16;
+    let mut instr_len = 0u8;
     for _ in 0..16 {
-        pc = mem::addr_u16_to_u8(mem::offset_addr(pc.0, pc.1, instr_len));
+        pc = cmn::addr_u16_to_u8(cmn::offset_addr(pc.0, pc.1, instr_len));
         let (opc, bytes_str, instr_str, _, addr_mode) =
             disassemble_one_instruction(pc.0, pc.1, mem);
-        instr_len = hw_dbg::ALL_OPCODE_INFO[opc as usize].bytes as u16;
+        instr_len = hw_dbg::ALL_OPCODE_INFO[opc as usize].bytes;
         println!(
             "{} | {} | {: >2x} │ {: >7}",
             bytes_str, instr_str, instr_len, addr_mode
@@ -107,7 +107,7 @@ fn disassemble_one_instruction(
         "{: <10}",
         opc_info
             .assembler
-            .replace("oper", (instr_b1_str.to_string() + instr_b2_str).as_str())
+            .replace("oper", (instr_b2_str.to_string() + instr_b1_str).as_str())
     );
 
     (
@@ -119,10 +119,10 @@ fn disassemble_one_instruction(
     )
 }
 
-fn bit_value(cpu: &cpu::MCS6502, bit: cpu::PSR) -> &str {
+fn bit_value(cpu: &cpu::MCS6502, bit: cpu::PSR, val: &str) -> String {
     if cpu::tst_bit(cpu.p(), bit.bits()) {
-        "1"
+        val.to_string()
     } else {
-        "0"
+        val.to_lowercase()
     }
 }
