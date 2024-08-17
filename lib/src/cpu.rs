@@ -1,4 +1,4 @@
-use super::{mem, opcode};
+use super::{hw_dbg, mem, opcode};
 use bitflags::bitflags;
 
 bitflags! {
@@ -26,8 +26,6 @@ bitflags! {
 
         /// Negative.
         const N = 1 << 7;
-
-        const ALL = 0b_1111_0011;
     }
 }
 
@@ -52,7 +50,7 @@ impl MCS6502 {
             PC_lo: pc_lo,
             PC_hi: pc_hi,
             S: 0xef,
-            P: !PSR::ALL,
+            P: PSR::from_bits_truncate(0),
         }
     }
 
@@ -72,6 +70,7 @@ impl MCS6502 {
                 break;
             }
             opcode::ALL_OPCODE_ROUTINES[opc as usize](opc, self.PC_lo, self.PC_hi, self, mem);
+            self.pc_incr(hw_dbg::ALL_OPCODE_INFO[opc as usize].bytes)
         }
     }
 
@@ -87,7 +86,7 @@ impl MCS6502 {
         clr_bit(&mut self.P, bit)
     }
 
-    pub fn a(&mut self) -> u8 {
+    pub fn a(&self) -> u8 {
         self.A
     }
 
@@ -95,7 +94,7 @@ impl MCS6502 {
         self.A = a;
     }
 
-    pub fn x(&mut self) -> u8 {
+    pub fn x(&self) -> u8 {
         self.X
     }
 
@@ -103,7 +102,7 @@ impl MCS6502 {
         self.X = x;
     }
 
-    pub fn y(&mut self) -> u8 {
+    pub fn y(&self) -> u8 {
         self.Y
     }
 
@@ -111,7 +110,7 @@ impl MCS6502 {
         self.Y = y;
     }
 
-    pub fn s(&mut self) -> u8 {
+    pub fn s(&self) -> u8 {
         self.S
     }
 
@@ -131,7 +130,7 @@ impl MCS6502 {
         (self.PC_lo, self.PC_hi)
     }
 
-    pub fn pc_incr(&mut self, incr: u8) {
+    fn pc_incr(&mut self, incr: u8) {
         self.PC_lo += incr;
     }
 }
@@ -161,7 +160,7 @@ mod tests {
 
     #[test]
     fn test_set_bit() {
-        let mut bits: PSR = !PSR::ALL;
+        let mut bits: PSR = !PSR::from_bits_truncate(0);
         set_bit(&mut bits, PSR::B);
 
         assert!(tst_bit(bits.bits(), PSR::B.bits()));
@@ -169,7 +168,7 @@ mod tests {
 
     #[test]
     fn test_clr_bit() {
-        let mut bits: PSR = PSR::ALL;
+        let mut bits: PSR = PSR::from_bits_truncate(0);
         clr_bit(&mut bits, PSR::B);
 
         assert!(!tst_bit(bits.bits(), PSR::B.bits()));

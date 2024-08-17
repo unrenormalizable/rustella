@@ -1,4 +1,6 @@
-use super::{cpu::*, mem::Memory};
+#![allow(non_snake_case)]
+
+use super::{cmn, cpu::*, mem::Memory};
 
 // TODO: Safe + and - ops.
 
@@ -15,59 +17,48 @@ fn illegal(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) {
     panic!("Illegal opcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn nop(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
-    cpu.pc_incr(1)
-}
+fn nop(_: u8, _: u8, _: u8, _: &mut MCS6502, _: &mut Memory) {}
 
 fn sei(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
     cpu.set_psr_bit(PSR::I);
-    cpu.pc_incr(1)
 }
 
 fn cld(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
     cpu.clr_psr_bit(PSR::D);
-    cpu.pc_incr(1)
 }
 
 fn ldx_imme(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) {
+    // TODO: SAFE ADD here and all other places by using mandatory offset.
     let val = mem.get(pc_lo + 1, pc_hi);
     cpu.set_x(val);
 
     _sync_pcr_n(cpu, val);
     _sync_pcr_z(cpu, val);
-
-    cpu.pc_incr(2)
 }
 
 fn txs(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
     let x = cpu.x();
     cpu.set_s(x);
-    cpu.pc_incr(1)
 }
 
 fn sec(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
     cpu.set_psr_bit(PSR::C);
-    cpu.pc_incr(1)
 }
 
 fn sed(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
     cpu.set_psr_bit(PSR::D);
-    cpu.pc_incr(1)
 }
 
 fn clc(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
     cpu.clr_psr_bit(PSR::C);
-    cpu.pc_incr(1)
 }
 
 fn cli(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
     cpu.clr_psr_bit(PSR::I);
-    cpu.pc_incr(1)
 }
 
 fn clv(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
     cpu.clr_psr_bit(PSR::V);
-    cpu.pc_incr(1)
 }
 
 fn txa(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
@@ -76,8 +67,6 @@ fn txa(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
 
     _sync_pcr_n(cpu, x);
     _sync_pcr_z(cpu, x);
-
-    cpu.pc_incr(1);
 }
 
 fn tsx(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
@@ -86,8 +75,6 @@ fn tsx(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
 
     _sync_pcr_n(cpu, s);
     _sync_pcr_z(cpu, s);
-
-    cpu.pc_incr(1);
 }
 
 fn tya(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
@@ -96,8 +83,6 @@ fn tya(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
 
     _sync_pcr_n(cpu, y);
     _sync_pcr_z(cpu, y);
-
-    cpu.pc_incr(1);
 }
 
 fn tax(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
@@ -106,8 +91,6 @@ fn tax(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
 
     _sync_pcr_n(cpu, a);
     _sync_pcr_z(cpu, a);
-
-    cpu.pc_incr(1);
 }
 
 fn tay(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
@@ -116,22 +99,16 @@ fn tay(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
 
     _sync_pcr_n(cpu, a);
     _sync_pcr_z(cpu, a);
-
-    cpu.pc_incr(1);
 }
 
 fn pha(_: u8, _: u8, _: u8, cpu: &mut MCS6502, mem: &mut Memory) {
     let a = cpu.a();
     _push(cpu, mem, a);
-
-    cpu.pc_incr(1);
 }
 
 fn php(_: u8, _: u8, _: u8, cpu: &mut MCS6502, mem: &mut Memory) {
     let p = cpu.p();
     _push(cpu, mem, p);
-
-    cpu.pc_incr(1);
 }
 
 fn pla(_: u8, _: u8, _: u8, cpu: &mut MCS6502, mem: &mut Memory) {
@@ -140,15 +117,11 @@ fn pla(_: u8, _: u8, _: u8, cpu: &mut MCS6502, mem: &mut Memory) {
 
     _sync_pcr_n(cpu, val);
     _sync_pcr_z(cpu, val);
-
-    cpu.pc_incr(1);
 }
 
 fn plp(_: u8, _: u8, _: u8, cpu: &mut MCS6502, mem: &mut Memory) {
     let val = _pop(cpu, mem);
     cpu.set_p(val);
-
-    cpu.pc_incr(1);
 }
 
 fn asl_a(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
@@ -160,8 +133,6 @@ fn asl_a(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
     _sync_pcr_c_msb(cpu, old_a);
 
     cpu.set_a(new_a);
-
-    cpu.pc_incr(1);
 }
 
 fn lsr_a(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
@@ -173,98 +144,74 @@ fn lsr_a(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
     _sync_pcr_c_lsb(cpu, old_a);
 
     cpu.set_a(new_a);
-
-    cpu.pc_incr(1);
 }
 
-fn rol(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
-    cpu.pc_incr(1);
+fn sta_zpg_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MCS6502, mem: &mut Memory) {
+    let val = mem.get(pc_lo + 1, pc_hi);
+    let lo = cmn::safe_add(val, cpu.x()).0;
+    mem.set(lo, 0x00, cpu.a());
+}
+
+fn rol(_: u8, _: u8, _: u8, _: &mut MCS6502, _: &mut Memory) {
     todo!();
 }
 
-fn ror(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
-    cpu.pc_incr(1);
+fn ror(_: u8, _: u8, _: u8, _: &mut MCS6502, _: &mut Memory) {
     todo!();
 }
 
-fn rti(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
-    cpu.pc_incr(1);
+fn rti(_: u8, _: u8, _: u8, _: &mut MCS6502, _: &mut Memory) {
     todo!();
 }
 
-fn rts(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
-    cpu.pc_incr(1);
+fn rts(_: u8, _: u8, _: u8, _: &mut MCS6502, _: &mut Memory) {
     todo!();
 }
 
 fn dey(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
-    let val = _safe_sub(cpu.y(), 1).0;
+    let val = cmn::safe_sub(cpu.y(), 1).0;
     cpu.set_y(val);
 
     _sync_pcr_n(cpu, val);
     _sync_pcr_z(cpu, val);
-
-    cpu.pc_incr(1);
 }
 
 fn iny(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
-    let val = _safe_add(cpu.y(), 1).0;
+    let val = cmn::safe_add(cpu.y(), 1).0;
     cpu.set_y(val);
 
     _sync_pcr_n(cpu, val);
     _sync_pcr_z(cpu, val);
-
-    cpu.pc_incr(1);
 }
 
 fn dex(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
-    let val = _safe_sub(cpu.x(), 1).0;
+    let val = cmn::safe_sub(cpu.x(), 1).0;
     cpu.set_x(val);
 
     _sync_pcr_n(cpu, val);
     _sync_pcr_z(cpu, val);
-
-    cpu.pc_incr(1);
 }
 
 fn inx(_: u8, _: u8, _: u8, cpu: &mut MCS6502, _: &mut Memory) {
-    let val = _safe_add(cpu.x(), 1).0;
+    let val = cmn::safe_add(cpu.x(), 1).0;
     cpu.set_x(val);
 
     _sync_pcr_n(cpu, val);
     _sync_pcr_z(cpu, val);
-
-    cpu.pc_incr(1);
 }
 
 fn _push(cpu: &mut MCS6502, mem: &mut Memory, val: u8) {
     mem.set(cpu.s(), 0x00, val);
 
-    let s = _safe_sub(cpu.s(), 1).0;
+    let s = cmn::safe_sub(cpu.s(), 1).0;
     cpu.set_s(s);
 }
 
 fn _pop(cpu: &mut MCS6502, mem: &mut Memory) -> u8 {
-    let s = _safe_add(cpu.s(), 1).0;
+    let s = cmn::safe_add(cpu.s(), 1).0;
     cpu.set_s(s);
 
     mem.get(s, 0x00)
-}
-
-fn _safe_add(val1: u8, val2: u8) -> (u8, bool) {
-    let res = val1 as u16 + val2 as u16;
-
-    let v = res & 0b1_0000_0000 != 0;
-
-    (res as u8, v)
-}
-
-fn _safe_sub(val1: u8, val2: u8) -> (u8, bool) {
-    let res = val1 as i16 - val2 as i16;
-
-    let v = res & 0b1_0000_0000 != 0;
-
-    (res as u8, v)
 }
 
 fn __sync_pcr_c(cpu: &mut MCS6502, val: u8, bit_selector: u8) {
@@ -307,7 +254,10 @@ fn _rotate_right(val: u8) -> u8 {
     val.rotate_right(1)
 }
 
-/// NOTE: See opc.json
+/// NOTE: See opcodes.json
+/// TODO: Regenerate this table
+/// - consistent fn names
+/// - Add all other info
 #[rustfmt::skip]
 pub const ALL_OPCODE_ROUTINES: &[&OpCode; 0x1_00] = &[
     /* 0x00 */ &todo,
@@ -459,7 +409,7 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCode; 0x1_00] = &[
     /* 0x92 */ &illegal,
     /* 0x93 */ &illegal,
     /* 0x94 */ &todo,
-    /* 0x95 */ &todo,
+    /* 0x95 */ &sta_zpg_X,
     /* 0x96 */ &todo,
     /* 0x97 */ &illegal,
     /* 0x98 */ &tya,
@@ -572,23 +522,6 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCode; 0x1_00] = &[
 mod tests {
     use super::*;
     use test_case::test_case;
-
-    #[test_case(0x10, 0x50, (0x60, false))]
-    #[test_case(0xfe, 0x01, (0xff, false))]
-    #[test_case(0xff, 0x01, (0x00, true))]
-    #[test_case(0xfe, 0x11, (0x0f, true))]
-    fn test_safe_add(v1: u8, v2: u8, exp: (u8, bool)) {
-        let obt = _safe_add(v1, v2);
-        assert_eq!(exp, obt);
-    }
-
-    #[test_case(0x10, 0x10, (0x00, false))]
-    #[test_case(0x00, 0x01, (0xFF, true))]
-    #[test_case(0x10, 0x20, (0xF0, true))]
-    fn test_safe_sub(v1: u8, v2: u8, exp: (u8, bool)) {
-        let obt = _safe_sub(v1, v2);
-        assert_eq!(exp, obt);
-    }
 
     #[test_case(0b0000_0000, 0b0000_0000)]
     #[test_case(0b0100_0000, 0b1000_0000)]

@@ -26,8 +26,14 @@ pub enum Commands {
     #[command(name = "r")]
     Registers,
 
+    #[command(name = "m")]
+    MemoryDump {
+        #[arg(index = 1)]
+        start: Option<String>,
+    },
+
     #[command(name = "d")]
-    DumpMem {
+    Disassemble {
         #[arg(index = 1)]
         start: Option<String>,
     },

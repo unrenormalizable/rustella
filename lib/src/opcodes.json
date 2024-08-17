@@ -1,7 +1,7 @@
 /*
 NOTE: To generate json data, run the following on https://www.masswerk.at/6502/6502_instruction_set.html
 JSON.stringify([...document.querySelectorAll("dl[class='opcodes'] [aria-label='details'] tbody")].flatMap(x => [...x.querySelectorAll("tr")].slice(1).map(e => { const fields = [...e.childNodes].map(c => c.innerText); const obj = {}; obj["addressing"] = fields[0].trim(); obj["assembler"] = fields[1].trim(); obj["opc"] = fields[2].trim(); obj["bytes"] = fields[3].trim(); obj["cycles"] = fields[4].trim(); return obj })))
-gc -Raw D:\src\delme\opc.json | ConvertFrom-Json | sort -Property opc | ConvertTo-Json
+gc -Raw "D:\src\u\a2600\lib\src\opcodes.json" | ConvertFrom-Json | sort -Property opc | ConvertTo-Json
 */
 [
   {

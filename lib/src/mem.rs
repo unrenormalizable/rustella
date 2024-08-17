@@ -47,8 +47,8 @@ pub struct Memory {
 /// - https://forums.atariage.com/topic/192418-mirrored-memory/#comment-2439795
 /// - https://forums.atariage.com/topic/27190-session-5-memory-architecture/#comment-442653
 /// - https://wilsonminesco.com/6502primer/MemMapReqs.html
-pub fn make_addr(lo: u8, hi: u8) -> u16 {
-    let mut addr = ((hi as u16) << 8) + lo as u16;
+pub fn resolve_addr(lo: u8, hi: u8) -> u16 {
+    let mut addr = addr_u8_to_u16(lo, hi);
     // Step 0. Turn off A13-A15 pins.
     addr &= 0b0001_1111_1111_1111;
 
@@ -61,6 +61,16 @@ pub fn make_addr(lo: u8, hi: u8) -> u16 {
     // TODO.
 
     addr
+}
+
+pub fn offset_addr(lo: u8, hi: u8, off: u16) -> u16 {
+    let addr = (addr_u8_to_u16(lo, hi) as u32) + off as u32;
+
+    addr as u16
+}
+
+pub fn addr_u8_to_u16(lo: u8, hi: u8) -> u16 {
+    ((hi as u16) << 8) + lo as u16
 }
 
 pub fn addr_u16_to_u8(addr: u16) -> (u8, u8) {
@@ -87,11 +97,12 @@ impl Memory {
     }
 
     pub fn get(&self, lo: u8, hi: u8) -> u8 {
-        self.data[make_addr(lo, hi) as usize]
+        // TODO: Turn this into offset + resolve
+        self.data[resolve_addr(lo, hi) as usize]
     }
 
     pub fn set(&mut self, lo: u8, hi: u8, value: u8) {
-        self.data[make_addr(lo, hi) as usize] = value;
+        self.data[resolve_addr(lo, hi) as usize] = value;
     }
 
     fn fill_with_pattern(data: &mut [u8], pattern: u64) {
@@ -122,9 +133,27 @@ mod tests {
     #[test_case(0xfe, 0x07, 0x3fe; "TIA-RAM-RIOT mirror - 1")]
     #[test_case(0x01, 0x08, 0x001; "TIA-RAM-RIOT mirror - 2")]
     #[test_case(0x80, 0x0d, 0x180; "TIA-RAM-RIOT mirror - 3")]
-    fn test_make_addr(lo: u8, hi: u8, addr: u16) {
-        let ret = make_addr(lo, hi);
+    fn test_resolve_addr(lo: u8, hi: u8, addr: u16) {
+        let ret = resolve_addr(lo, hi);
         assert_eq!(ret, addr);
+    }
+
+    #[test_case(0x00, 0x00, 0x0000, 0x0000)]
+    #[test_case(0xf0, 0x00, 0x0010, 0x0100)]
+    #[test_case(0xff, 0xff, 0x0002, 0x0001)]
+    fn test_offset_addr(lo: u8, hi: u8, off: u16, exp: u16) {
+        let ret = offset_addr(lo, hi, off);
+        assert_eq!(ret, exp);
+    }
+
+    #[test_case(0x00, 0x00, 0x0000)]
+    #[test_case(0xf0, 0x00, 0x00f0)]
+    #[test_case(0xff, 0xff, 0xffff)]
+    fn test_addr_formats(lo: u8, hi: u8, exp: u16) {
+        let ret = addr_u8_to_u16(lo, hi);
+        assert_eq!(ret, exp);
+        let addru8 = addr_u16_to_u8(ret);
+        assert_eq!(addru8, (lo, hi));
     }
 
     #[test]
