@@ -30,15 +30,15 @@ fn read_cartridge_rom() -> Vec<u8> {
     buffer
 }
 
-fn hw_debugger_callback(_: u8, cpu: &mut cpu::MCS6502, mem: &mut mem::Memory) -> bool {
+fn hw_debugger_callback(_: u8, cpu: &mut cpu::MCS6502, mem: &mut mem::Memory) -> (bool, usize) {
     cmds::dump_registers(cpu, mem);
     loop {
         match repl::get_cmdline().command() {
             Some(repl::Commands::Quit) => {
-                return false;
+                return (false, 0);
             }
-            Some(repl::Commands::Go) => {
-                break;
+            Some(repl::Commands::Go { count }) => {
+                return (true, count.unwrap_or(1));
             }
             Some(repl::Commands::Registers) => {
                 cmds::dump_registers(cpu, mem);
@@ -52,6 +52,4 @@ fn hw_debugger_callback(_: u8, cpu: &mut cpu::MCS6502, mem: &mut mem::Memory) ->
             None => {}
         }
     }
-
-    true
 }

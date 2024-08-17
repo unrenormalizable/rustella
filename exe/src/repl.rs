@@ -21,7 +21,10 @@ pub enum Commands {
     Quit,
 
     #[command(name = "g")]
-    Go,
+    Go {
+        #[arg(index = 1)]
+        count: Option<usize>,
+    },
 
     #[command(name = "r")]
     Registers,

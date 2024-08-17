@@ -41,7 +41,7 @@ pub struct MCS6502 {
     P: PSR,
 }
 
-type HwDebuggerCallback = fn(opc: u8, cpu: &mut MCS6502, mem: &mut mem::Memory) -> bool;
+type HwDebuggerCallback = fn(opc: u8, cpu: &mut MCS6502, mem: &mut mem::Memory) -> (bool, usize);
 
 impl MCS6502 {
     pub fn new(pc_lo: u8, pc_hi: u8) -> Self {
@@ -60,15 +60,21 @@ impl MCS6502 {
     /// - Patterns: https://llx.com/Neil/a2/opcodes.html
     /// - Instruction set: https://www.masswerk.at/6502/6502_instruction_set.html
     ///
-    /// NOTE: Remove the callback once we find a better signalling mechanism to indicate hw breakpoint.
+    /// TODO: Remove the callback once we find a better signalling mechanism to indicate hw breakpoint.
     pub fn fetch_decode_execute(&mut self, mem: &mut mem::Memory, callback: HwDebuggerCallback) {
+        let mut call_dbg_after = 0;
         loop {
             let opc = mem.get(self.PC_lo, self.PC_hi);
-            if !callback(opc, self, mem) {
-                break;
+            if call_dbg_after == 0 {
+                let cb_res = callback(opc, self, mem);
+                call_dbg_after = cb_res.1;
+                if !cb_res.0 {
+                    break;
+                }
             }
             opcode::ALL_OPCODE_ROUTINES[opc as usize](opc, self.PC_lo, self.PC_hi, self, mem);
-            self.pc_incr(hw_dbg::ALL_OPCODE_INFO[opc as usize].bytes)
+            self.pc_incr(hw_dbg::ALL_OPCODE_INFO[opc as usize].bytes);
+            call_dbg_after -= 1;
         }
     }
 
