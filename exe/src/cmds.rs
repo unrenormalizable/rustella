@@ -48,7 +48,7 @@ pub fn dump_memory(mem: &mem::Memory, start: &Option<String>) {
             let addr = (safe_incr(start_lo, r, e), start_hi);
             acc + format!(
                 "{:02x} {}",
-                mem.get(addr.0, addr.1),
+                mem.get(addr.0, addr.1, 0),
                 if e == 7 { "- " } else { "" }
             )
             .as_str()
@@ -85,15 +85,15 @@ fn disassemble_one_instruction(
     start_hi: u8,
     mem: &mem::Memory,
 ) -> (u8, String, String, u8, &str) {
-    let opc = mem.get(start_lo, start_hi);
+    let opc = mem.get(start_lo, start_hi, 0);
     let opc_info = &hw_dbg::ALL_OPCODE_INFO[opc as usize];
     let instr_b1_str = if opc_info.bytes > 1 {
-        &format!("{:02x}", mem.get(start_lo + 1, start_hi))
+        &format!("{:02x}", mem.get(start_lo, start_hi, 1))
     } else {
         ""
     };
     let instr_b2_str = if opc_info.bytes > 2 {
-        &format!("{:02x}", mem.get(start_lo + 2, start_hi))
+        &format!("{:02x}", mem.get(start_lo, start_hi, 2))
     } else {
         ""
     };

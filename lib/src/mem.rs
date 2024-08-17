@@ -83,13 +83,14 @@ impl Memory {
         Self { data }
     }
 
-    pub fn get(&self, lo: u8, hi: u8) -> u8 {
-        // TODO: Turn this into offset + resolve
-        self.data[resolve_addr(lo, hi) as usize]
+    pub fn get(&self, lo: u8, hi: u8, off: u8) -> u8 {
+        let addr = cmn::addr_u16_to_u8(cmn::offset_addr(lo, hi, off));
+        self.data[resolve_addr(addr.0, addr.1) as usize]
     }
 
-    pub fn set(&mut self, lo: u8, hi: u8, value: u8) {
-        self.data[resolve_addr(lo, hi) as usize] = value;
+    pub fn set(&mut self, lo: u8, hi: u8, off: u8, value: u8) {
+        let addr = cmn::addr_u16_to_u8(cmn::offset_addr(lo, hi, off));
+        self.data[resolve_addr(addr.0, addr.1) as usize] = value;
     }
 
     fn fill_with_pattern(data: &mut [u8], pattern: u64) {
@@ -101,8 +102,8 @@ impl Memory {
     }
 
     pub fn get_pc_from_reset_vector(&self) -> (u8, u8) {
-        let pc_lo = self.get(RESET_VECTOR_LO, RESET_VECTOR_HI);
-        let pc_hi = self.get(RESET_VECTOR_LO + 1, RESET_VECTOR_HI);
+        let pc_lo = self.get(RESET_VECTOR_LO, RESET_VECTOR_HI, 0);
+        let pc_hi = self.get(RESET_VECTOR_LO, RESET_VECTOR_HI, 1);
 
         (pc_lo, pc_hi)
     }
@@ -128,8 +129,8 @@ mod tests {
     #[test]
     fn test_mem_get_set() {
         let mut mem = Memory::new(&[0b01010101; 0x1000], true);
-        assert_eq!(mem.get(0x00, 0x11), 0b01010101);
-        mem.set(0xA0, 0x00, 0xFE);
-        assert_eq!(mem.get(0xA0, 0x00), 0xFE);
+        assert_eq!(mem.get(0x00, 0x11, 0), 0b01010101);
+        mem.set(0xA0, 0x00, 0, 0xFE);
+        assert_eq!(mem.get(0xA0, 0x00, 0), 0xFE);
     }
 }

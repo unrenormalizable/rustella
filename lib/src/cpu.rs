@@ -70,7 +70,7 @@ impl MCS6502 {
     pub fn fetch_decode_execute(&mut self, mem: &mut mem::Memory, callback: HwDebuggerCallback) {
         let mut call_dbg_after = 0;
         loop {
-            let opc = mem.get(self.PC_lo, self.PC_hi);
+            let opc = mem.get(self.PC_lo, self.PC_hi, 0);
             if call_dbg_after == 0 {
                 let cb_res = callback(opc, self, mem);
                 call_dbg_after = cb_res.1;
