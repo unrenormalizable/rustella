@@ -35,14 +35,17 @@ Why not?
 ## References
 
 - [2600 Tech specs](https://problemkaputt.de/2k6specs.htm)
-- [6502 Instruction set](https://www.masswerk.at/6502/6502_instruction_set.html)
-- [The 6502/65C02/65C816 Instruction Set Decoded](https://llx.com/Neil/a2/opcodes.html)
-- [The 6502 Microprocessor Resource](http://www.6502.org/)
-- [6502 datasheet](https://www.princeton.edu/~mae412/HANDOUTS/Datasheets/6502.pdf)
-- [2600 Memory layout](https://forums.atariage.com/topic/192418-mirrored-memory/#comment-2439795)
-- [6502 Memory map requirements](https://wilsonminesco.com/6502primer/MemMapReqs.html)
-- [Stella reference emulator](https://stella-emu.github.io/docs/index.html#ROMInfo)
-- [Easy 6502](https://skilldrick.github.io/easy6502/)
+- CPU
+  - [6502 datasheet](https://www.princeton.edu/~mae412/HANDOUTS/Datasheets/6502.pdf)
+  - [6502 Instruction set](https://www.masswerk.at/6502/6502_instruction_set.html)
+  - [The 6502/65C02/65C816 Instruction Set Decoded](https://llx.com/Neil/a2/opcodes.html)
+  - [The 6502 Microprocessor Resource](http://www.6502.org/)
+- Memory
+  - [2600 Memory layout](https://forums.atariage.com/topic/192418-mirrored-memory/#comment-2439795)
+  - [6502 Memory map requirements](https://wilsonminesco.com/6502primer/MemMapReqs.html)
 - Tests
   - [6502 CPU tests](https://codegolf.stackexchange.com/questions/12844/emulate-a-mos-6502-cpu)
-- ROMS: Open AI Gym: &lt;user&gt;\\.conda\envs\rlenvs\Lib\site-packages\AutoROM\roms
+  - [6502_65C02_functional_tests](https://github.com/Klaus2m5/6502_65C02_functional_tests)
+- References
+  - ROMS: Open AI Gym: &lt;user&gt;\\.conda\envs\rlenvs\Lib\site-packages\AutoROM\roms
+  - [Stella reference emulator](https://stella-emu.github.io/docs/index.html#ROMInfo)
