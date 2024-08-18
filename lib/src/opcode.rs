@@ -1069,8 +1069,8 @@ fn _relative_addr(mem: &Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> (u8, u8) {
 
 /*
 To regenerated this run
-$map = @{}; gc -Raw "D:\src\u\a2600\lib\src\opcodes.json" | ConvertFrom-Json | sort -Property opc | % { $map[$_.opc] = '/* 0x{0:x2} */ &{1}_{2},' -f ($_.opc, $_.assembler.split(" ")[0], $_.addressing.replace("(", "").replace(")", "").replace(",", "_").replace("#", "imme")) }
-0..0xff | % { $opc = "{0:X2}" -f $_; if ($map.Contains($opc)) { "    {0}" -f $map[$opc] } else { '    /* 0x{0} */ &illegal,' -f $opc } }
+$map = @{}; gc -Raw "D:\src\u\a2600\lib\src\opcodes.json" | ConvertFrom-Json | sort -Property opc | % { $map[$_.opc] = '/* 0x{0:x2} */ &{1}_{2} // {3} | {4}' -f ($_.opc, $_.assembler.split(" ")[0], ($_.addressing.replace("(", "").replace(")", "").replace(",", "_").replace("#", "imme") + ",").PadRight(11, " "), $_.addressing, $_.assembler) }
+0..0xff | % { $opc = "{0:X2}" -f $_; if ($map.Contains($opc)) { "    {0}" -f $map[$opc] } else { '    /* 0x{0} */ &illegal,        //' -f $opc } }
 
 To regenerate the function stubs run
 $opc_fns = 0..0xff | % { $opc = "{0:X2}" -f $_; if ($map.Contains($opc)) { "    {0}" -f $map[$opc] } else { '    /* 0x{0} */ &illegal,' -f $opc } }
@@ -1079,262 +1079,262 @@ $opc_fns | ? { !$_.EndsWith("&illegal,") } | % { $_.Substring(16).replace(",", "
 /// NOTE: See opcodes.json
 #[rustfmt::skip]
 pub const ALL_OPCODE_ROUTINES: &[&OpCode; 0x1_00] = &[
-    /* 0x00 */ &BRK_impl,
-    /* 0x01 */ &ORA_ind_X,
-    /* 0x02 */ &illegal,
-    /* 0x03 */ &illegal,
-    /* 0x04 */ &illegal,
-    /* 0x05 */ &ORA_zpg,
-    /* 0x06 */ &ASL_zpg,
-    /* 0x07 */ &illegal,
-    /* 0x08 */ &PHP_impl,
-    /* 0x09 */ &ORA_imme,
-    /* 0x0A */ &ASL_A,
-    /* 0x0B */ &illegal,
-    /* 0x0C */ &illegal,
-    /* 0x0D */ &ORA_abs,
-    /* 0x0E */ &ASL_abs,
-    /* 0x0F */ &illegal,
-    /* 0x10 */ &BPL_rel,
-    /* 0x11 */ &ORA_ind_Y,
-    /* 0x12 */ &illegal,
-    /* 0x13 */ &illegal,
-    /* 0x14 */ &illegal,
-    /* 0x15 */ &ORA_zpg_X,
-    /* 0x16 */ &ASL_zpg_X,
-    /* 0x17 */ &illegal,
-    /* 0x18 */ &CLC_impl,
-    /* 0x19 */ &ORA_abs_Y,
-    /* 0x1A */ &illegal,
-    /* 0x1B */ &illegal,
-    /* 0x1C */ &illegal,
-    /* 0x1D */ &ORA_abs_X,
-    /* 0x1E */ &ASL_abs_X,
-    /* 0x1F */ &illegal,
-    /* 0x20 */ &JSR_abs,
-    /* 0x21 */ &AND_ind_X,
-    /* 0x22 */ &illegal,
-    /* 0x23 */ &illegal,
-    /* 0x24 */ &BIT_zpg,
-    /* 0x25 */ &AND_zpg,
-    /* 0x26 */ &ROL_zpg,
-    /* 0x27 */ &illegal,
-    /* 0x28 */ &PLP_impl,
-    /* 0x29 */ &AND_imme,
-    /* 0x2A */ &ROL_A,
-    /* 0x2B */ &illegal,
-    /* 0x2C */ &BIT_abs,
-    /* 0x2D */ &AND_abs,
-    /* 0x2E */ &ROL_abs,
-    /* 0x2F */ &illegal,
-    /* 0x30 */ &BMI_rel,
-    /* 0x31 */ &AND_ind_Y,
-    /* 0x32 */ &illegal,
-    /* 0x33 */ &illegal,
-    /* 0x34 */ &illegal,
-    /* 0x35 */ &AND_zpg_X,
-    /* 0x36 */ &ROL_zpg_X,
-    /* 0x37 */ &illegal,
-    /* 0x38 */ &SEC_impl,
-    /* 0x39 */ &AND_abs_Y,
-    /* 0x3A */ &illegal,
-    /* 0x3B */ &illegal,
-    /* 0x3C */ &illegal,
-    /* 0x3D */ &AND_abs_X,
-    /* 0x3E */ &ROL_abs_X,
-    /* 0x3F */ &illegal,
-    /* 0x40 */ &RTI_impl,
-    /* 0x41 */ &EOR_ind_X,
-    /* 0x42 */ &illegal,
-    /* 0x43 */ &illegal,
-    /* 0x44 */ &illegal,
-    /* 0x45 */ &EOR_zpg,
-    /* 0x46 */ &LSR_zpg,
-    /* 0x47 */ &illegal,
-    /* 0x48 */ &PHA_impl,
-    /* 0x49 */ &EOR_imme,
-    /* 0x4A */ &LSR_A,
-    /* 0x4B */ &illegal,
-    /* 0x4C */ &JMP_abs,
-    /* 0x4D */ &EOR_abs,
-    /* 0x4E */ &LSR_abs,
-    /* 0x4F */ &illegal,
-    /* 0x50 */ &BVC_rel,
-    /* 0x51 */ &EOR_ind_Y,
-    /* 0x52 */ &illegal,
-    /* 0x53 */ &illegal,
-    /* 0x54 */ &illegal,
-    /* 0x55 */ &EOR_zpg_X,
-    /* 0x56 */ &LSR_zpg_X,
-    /* 0x57 */ &illegal,
-    /* 0x58 */ &CLI_impl,
-    /* 0x59 */ &EOR_abs_Y,
-    /* 0x5A */ &illegal,
-    /* 0x5B */ &illegal,
-    /* 0x5C */ &illegal,
-    /* 0x5D */ &EOR_abs_X,
-    /* 0x5E */ &LSR_abs_X,
-    /* 0x5F */ &illegal,
-    /* 0x60 */ &RTS_impl,
-    /* 0x61 */ &ADC_ind_X,
-    /* 0x62 */ &illegal,
-    /* 0x63 */ &illegal,
-    /* 0x64 */ &illegal,
-    /* 0x65 */ &ADC_zpg,
-    /* 0x66 */ &ROR_zpg,
-    /* 0x67 */ &illegal,
-    /* 0x68 */ &PLA_impl,
-    /* 0x69 */ &ADC_imme,
-    /* 0x6A */ &ROR_A,
-    /* 0x6B */ &illegal,
-    /* 0x6C */ &JMP_ind,
-    /* 0x6D */ &ADC_abs,
-    /* 0x6E */ &ROR_abs,
-    /* 0x6F */ &illegal,
-    /* 0x70 */ &BVS_rel,
-    /* 0x71 */ &ADC_ind_Y,
-    /* 0x72 */ &illegal,
-    /* 0x73 */ &illegal,
-    /* 0x74 */ &illegal,
-    /* 0x75 */ &ADC_zpg_X,
-    /* 0x76 */ &ROR_zpg_X,
-    /* 0x77 */ &illegal,
-    /* 0x78 */ &SEI_impl,
-    /* 0x79 */ &ADC_abs_Y,
-    /* 0x7A */ &illegal,
-    /* 0x7B */ &illegal,
-    /* 0x7C */ &illegal,
-    /* 0x7D */ &ADC_abs_X,
-    /* 0x7E */ &ROR_abs_X,
-    /* 0x7F */ &illegal,
-    /* 0x80 */ &illegal,
-    /* 0x81 */ &STA_ind_X,
-    /* 0x82 */ &illegal,
-    /* 0x83 */ &illegal,
-    /* 0x84 */ &STY_zpg,
-    /* 0x85 */ &STA_zpg,
-    /* 0x86 */ &STX_zpg,
-    /* 0x87 */ &illegal,
-    /* 0x88 */ &DEY_impl,
-    /* 0x89 */ &illegal,
-    /* 0x8A */ &TXA_impl,
-    /* 0x8B */ &illegal,
-    /* 0x8C */ &STY_abs,
-    /* 0x8D */ &STA_abs,
-    /* 0x8E */ &STX_abs,
-    /* 0x8F */ &illegal,
-    /* 0x90 */ &BCC_rel,
-    /* 0x91 */ &STA_ind_Y,
-    /* 0x92 */ &illegal,
-    /* 0x93 */ &illegal,
-    /* 0x94 */ &STY_zpg_X,
-    /* 0x95 */ &STA_zpg_X,
-    /* 0x96 */ &STX_zpg_Y,
-    /* 0x97 */ &illegal,
-    /* 0x98 */ &TYA_impl,
-    /* 0x99 */ &STA_abs_Y,
-    /* 0x9A */ &TXS_impl,
-    /* 0x9B */ &illegal,
-    /* 0x9C */ &illegal,
-    /* 0x9D */ &STA_abs_X,
-    /* 0x9E */ &illegal,
-    /* 0x9F */ &illegal,
-    /* 0xA0 */ &LDY_imme,
-    /* 0xA1 */ &LDA_ind_X,
-    /* 0xA2 */ &LDX_imme,
-    /* 0xA3 */ &illegal,
-    /* 0xA4 */ &LDY_zpg,
-    /* 0xA5 */ &LDA_zpg,
-    /* 0xA6 */ &LDX_zpg,
-    /* 0xA7 */ &illegal,
-    /* 0xA8 */ &TAY_impl,
-    /* 0xA9 */ &LDA_imme,
-    /* 0xAA */ &TAX_impl,
-    /* 0xAB */ &illegal,
-    /* 0xAC */ &LDY_abs,
-    /* 0xAD */ &LDA_abs,
-    /* 0xAE */ &LDX_abs,
-    /* 0xAF */ &illegal,
-    /* 0xB0 */ &BCS_rel,
-    /* 0xB1 */ &LDA_ind_Y,
-    /* 0xB2 */ &illegal,
-    /* 0xB3 */ &illegal,
-    /* 0xB4 */ &LDY_zpg_X,
-    /* 0xB5 */ &LDA_zpg_X,
-    /* 0xB6 */ &LDX_zpg_Y,
-    /* 0xB7 */ &illegal,
-    /* 0xB8 */ &CLV_impl,
-    /* 0xB9 */ &LDA_abs_Y,
-    /* 0xBA */ &TSX_impl,
-    /* 0xBB */ &illegal,
-    /* 0xBC */ &LDY_abs_X,
-    /* 0xBD */ &LDA_abs_X,
-    /* 0xBE */ &LDX_abs_Y,
-    /* 0xBF */ &illegal,
-    /* 0xC0 */ &CPY_imme,
-    /* 0xC1 */ &CMP_ind_X,
-    /* 0xC2 */ &illegal,
-    /* 0xC3 */ &illegal,
-    /* 0xC4 */ &CPY_zpg,
-    /* 0xC5 */ &CMP_zpg,
-    /* 0xC6 */ &DEC_zpg,
-    /* 0xC7 */ &illegal,
-    /* 0xC8 */ &INY_impl,
-    /* 0xC9 */ &CMP_imme,
-    /* 0xCA */ &DEX_impl,
-    /* 0xCB */ &illegal,
-    /* 0xCC */ &CPY_abs,
-    /* 0xCD */ &CMP_abs,
-    /* 0xCE */ &DEC_abs,
-    /* 0xCF */ &illegal,
-    /* 0xD0 */ &BNE_rel,
-    /* 0xD1 */ &CMP_ind_Y,
-    /* 0xD2 */ &illegal,
-    /* 0xD3 */ &illegal,
-    /* 0xD4 */ &illegal,
-    /* 0xD5 */ &CMP_zpg_X,
-    /* 0xD6 */ &DEC_zpg_X,
-    /* 0xD7 */ &illegal,
-    /* 0xD8 */ &CLD_impl,
-    /* 0xD9 */ &CMP_abs_Y,
-    /* 0xDA */ &illegal,
-    /* 0xDB */ &illegal,
-    /* 0xDC */ &illegal,
-    /* 0xDD */ &CMP_abs_X,
-    /* 0xDE */ &DEC_abs_X,
-    /* 0xDF */ &illegal,
-    /* 0xE0 */ &CPX_imme,
-    /* 0xE1 */ &SBC_ind_X,
-    /* 0xE2 */ &illegal,
-    /* 0xE3 */ &illegal,
-    /* 0xE4 */ &CPX_zpg,
-    /* 0xE5 */ &SBC_zpg,
-    /* 0xE6 */ &INC_zpg,
-    /* 0xE7 */ &illegal,
-    /* 0xE8 */ &INX_impl,
-    /* 0xE9 */ &SBC_imme,
-    /* 0xEA */ &NOP_impl,
-    /* 0xEB */ &illegal,
-    /* 0xEC */ &CPX_abs,
-    /* 0xED */ &SBC_abs,
-    /* 0xEE */ &INC_abs,
-    /* 0xEF */ &illegal,
-    /* 0xF0 */ &BEQ_rel,
-    /* 0xF1 */ &SBC_ind_Y,
-    /* 0xF2 */ &illegal,
-    /* 0xF3 */ &illegal,
-    /* 0xF4 */ &illegal,
-    /* 0xF5 */ &SBC_zpg_X,
-    /* 0xF6 */ &INC_zpg_X,
-    /* 0xF7 */ &illegal,
-    /* 0xF8 */ &SED_impl,
-    /* 0xF9 */ &SBC_abs_Y,
-    /* 0xFA */ &illegal,
-    /* 0xFB */ &illegal,
-    /* 0xFC */ &illegal,
-    /* 0xFD */ &SBC_abs_X,
-    /* 0xFE */ &INC_abs_X,
-    /* 0xFF */ &illegal,
+    /* 0x00 */ &BRK_impl,       // impl | BRK
+    /* 0x01 */ &ORA_ind_X,      // (ind,X) | ORA (oper,X)
+    /* 0x02 */ &illegal,        //
+    /* 0x03 */ &illegal,        //
+    /* 0x04 */ &illegal,        //
+    /* 0x05 */ &ORA_zpg,        // zpg | ORA oper
+    /* 0x06 */ &ASL_zpg,        // zpg | ASL oper
+    /* 0x07 */ &illegal,        //
+    /* 0x08 */ &PHP_impl,       // impl | PHP
+    /* 0x09 */ &ORA_imme,       // # | ORA #oper
+    /* 0x0A */ &ASL_A,          // A | ASL A
+    /* 0x0B */ &illegal,        //
+    /* 0x0C */ &illegal,        //
+    /* 0x0D */ &ORA_abs,        // abs | ORA oper
+    /* 0x0E */ &ASL_abs,        // abs | ASL oper
+    /* 0x0F */ &illegal,        //
+    /* 0x10 */ &BPL_rel,        // rel | BPL oper
+    /* 0x11 */ &ORA_ind_Y,      // (ind),Y | ORA (oper),Y
+    /* 0x12 */ &illegal,        //
+    /* 0x13 */ &illegal,        //
+    /* 0x14 */ &illegal,        //
+    /* 0x15 */ &ORA_zpg_X,      // zpg,X | ORA oper,X
+    /* 0x16 */ &ASL_zpg_X,      // zpg,X | ASL oper,X
+    /* 0x17 */ &illegal,        //
+    /* 0x18 */ &CLC_impl,       // impl | CLC
+    /* 0x19 */ &ORA_abs_Y,      // abs,Y | ORA oper,Y
+    /* 0x1A */ &illegal,        //
+    /* 0x1B */ &illegal,        //
+    /* 0x1C */ &illegal,        //
+    /* 0x1D */ &ORA_abs_X,      // abs,X | ORA oper,X
+    /* 0x1E */ &ASL_abs_X,      // abs,X | ASL oper,X
+    /* 0x1F */ &illegal,        //
+    /* 0x20 */ &JSR_abs,        // abs | JSR oper
+    /* 0x21 */ &AND_ind_X,      // (ind,X) | AND (oper,X)
+    /* 0x22 */ &illegal,        //
+    /* 0x23 */ &illegal,        //
+    /* 0x24 */ &BIT_zpg,        // zpg | BIT oper
+    /* 0x25 */ &AND_zpg,        // zpg | AND oper
+    /* 0x26 */ &ROL_zpg,        // zpg | ROL oper
+    /* 0x27 */ &illegal,        //
+    /* 0x28 */ &PLP_impl,       // impl | PLP
+    /* 0x29 */ &AND_imme,       // # | AND #oper
+    /* 0x2A */ &ROL_A,          // A | ROL A
+    /* 0x2B */ &illegal,        //
+    /* 0x2C */ &BIT_abs,        // abs | BIT oper
+    /* 0x2D */ &AND_abs,        // abs | AND oper
+    /* 0x2E */ &ROL_abs,        // abs | ROL oper
+    /* 0x2F */ &illegal,        //
+    /* 0x30 */ &BMI_rel,        // rel | BMI oper
+    /* 0x31 */ &AND_ind_Y,      // (ind),Y | AND (oper),Y
+    /* 0x32 */ &illegal,        //
+    /* 0x33 */ &illegal,        //
+    /* 0x34 */ &illegal,        //
+    /* 0x35 */ &AND_zpg_X,      // zpg,X | AND oper,X
+    /* 0x36 */ &ROL_zpg_X,      // zpg,X | ROL oper,X
+    /* 0x37 */ &illegal,        //
+    /* 0x38 */ &SEC_impl,       // impl | SEC
+    /* 0x39 */ &AND_abs_Y,      // abs,Y | AND oper,Y
+    /* 0x3A */ &illegal,        //
+    /* 0x3B */ &illegal,        //
+    /* 0x3C */ &illegal,        //
+    /* 0x3D */ &AND_abs_X,      // abs,X | AND oper,X
+    /* 0x3E */ &ROL_abs_X,      // abs,X | ROL oper,X
+    /* 0x3F */ &illegal,        //
+    /* 0x40 */ &RTI_impl,       // impl | RTI
+    /* 0x41 */ &EOR_ind_X,      // (ind,X) | EOR (oper,X)
+    /* 0x42 */ &illegal,        //
+    /* 0x43 */ &illegal,        //
+    /* 0x44 */ &illegal,        //
+    /* 0x45 */ &EOR_zpg,        // zpg | EOR oper
+    /* 0x46 */ &LSR_zpg,        // zpg | LSR oper
+    /* 0x47 */ &illegal,        //
+    /* 0x48 */ &PHA_impl,       // impl | PHA
+    /* 0x49 */ &EOR_imme,       // # | EOR #oper
+    /* 0x4A */ &LSR_A,          // A | LSR A
+    /* 0x4B */ &illegal,        //
+    /* 0x4C */ &JMP_abs,        // abs | JMP oper
+    /* 0x4D */ &EOR_abs,        // abs | EOR oper
+    /* 0x4E */ &LSR_abs,        // abs | LSR oper
+    /* 0x4F */ &illegal,        //
+    /* 0x50 */ &BVC_rel,        // rel | BVC oper
+    /* 0x51 */ &EOR_ind_Y,      // (ind),Y | EOR (oper),Y
+    /* 0x52 */ &illegal,        //
+    /* 0x53 */ &illegal,        //
+    /* 0x54 */ &illegal,        //
+    /* 0x55 */ &EOR_zpg_X,      // zpg,X | EOR oper,X
+    /* 0x56 */ &LSR_zpg_X,      // zpg,X | LSR oper,X
+    /* 0x57 */ &illegal,        //
+    /* 0x58 */ &CLI_impl,       // impl | CLI
+    /* 0x59 */ &EOR_abs_Y,      // abs,Y | EOR oper,Y
+    /* 0x5A */ &illegal,        //
+    /* 0x5B */ &illegal,        //
+    /* 0x5C */ &illegal,        //
+    /* 0x5D */ &EOR_abs_X,      // abs,X | EOR oper,X
+    /* 0x5E */ &LSR_abs_X,      // abs,X | LSR oper,X
+    /* 0x5F */ &illegal,        //
+    /* 0x60 */ &RTS_impl,       // impl | RTS
+    /* 0x61 */ &ADC_ind_X,      // (ind,X) | ADC (oper,X)
+    /* 0x62 */ &illegal,        //
+    /* 0x63 */ &illegal,        //
+    /* 0x64 */ &illegal,        //
+    /* 0x65 */ &ADC_zpg,        // zpg | ADC oper
+    /* 0x66 */ &ROR_zpg,        // zpg | ROR oper
+    /* 0x67 */ &illegal,        //
+    /* 0x68 */ &PLA_impl,       // impl | PLA
+    /* 0x69 */ &ADC_imme,       // # | ADC #oper
+    /* 0x6A */ &ROR_A,          // A | ROR A
+    /* 0x6B */ &illegal,        //
+    /* 0x6C */ &JMP_ind,        // ind | JMP (oper)
+    /* 0x6D */ &ADC_abs,        // abs | ADC oper
+    /* 0x6E */ &ROR_abs,        // abs | ROR oper
+    /* 0x6F */ &illegal,        //
+    /* 0x70 */ &BVS_rel,        // rel | BVS oper
+    /* 0x71 */ &ADC_ind_Y,      // (ind),Y | ADC (oper),Y
+    /* 0x72 */ &illegal,        //
+    /* 0x73 */ &illegal,        //
+    /* 0x74 */ &illegal,        //
+    /* 0x75 */ &ADC_zpg_X,      // zpg,X | ADC oper,X
+    /* 0x76 */ &ROR_zpg_X,      // zpg,X | ROR oper,X
+    /* 0x77 */ &illegal,        //
+    /* 0x78 */ &SEI_impl,       // impl | SEI
+    /* 0x79 */ &ADC_abs_Y,      // abs,Y | ADC oper,Y
+    /* 0x7A */ &illegal,        //
+    /* 0x7B */ &illegal,        //
+    /* 0x7C */ &illegal,        //
+    /* 0x7D */ &ADC_abs_X,      // abs,X | ADC oper,X
+    /* 0x7E */ &ROR_abs_X,      // abs,X | ROR oper,X
+    /* 0x7F */ &illegal,        //
+    /* 0x80 */ &illegal,        //
+    /* 0x81 */ &STA_ind_X,      // (ind,X) | STA (oper,X)
+    /* 0x82 */ &illegal,        //
+    /* 0x83 */ &illegal,        //
+    /* 0x84 */ &STY_zpg,        // zpg | STY oper
+    /* 0x85 */ &STA_zpg,        // zpg | STA oper
+    /* 0x86 */ &STX_zpg,        // zpg | STX oper
+    /* 0x87 */ &illegal,        //
+    /* 0x88 */ &DEY_impl,       // impl | DEY
+    /* 0x89 */ &illegal,        //
+    /* 0x8A */ &TXA_impl,       // impl | TXA
+    /* 0x8B */ &illegal,        //
+    /* 0x8C */ &STY_abs,        // abs | STY oper
+    /* 0x8D */ &STA_abs,        // abs | STA oper
+    /* 0x8E */ &STX_abs,        // abs | STX oper
+    /* 0x8F */ &illegal,        //
+    /* 0x90 */ &BCC_rel,        // rel | BCC oper
+    /* 0x91 */ &STA_ind_Y,      // (ind),Y | STA (oper),Y
+    /* 0x92 */ &illegal,        //
+    /* 0x93 */ &illegal,        //
+    /* 0x94 */ &STY_zpg_X,      // zpg,X | STY oper,X
+    /* 0x95 */ &STA_zpg_X,      // zpg,X | STA oper,X
+    /* 0x96 */ &STX_zpg_Y,      // zpg,Y | STX oper,Y
+    /* 0x97 */ &illegal,        //
+    /* 0x98 */ &TYA_impl,       // impl | TYA
+    /* 0x99 */ &STA_abs_Y,      // abs,Y | STA oper,Y
+    /* 0x9A */ &TXS_impl,       // impl | TXS
+    /* 0x9B */ &illegal,        //
+    /* 0x9C */ &illegal,        //
+    /* 0x9D */ &STA_abs_X,      // abs,X | STA oper,X
+    /* 0x9E */ &illegal,        //
+    /* 0x9F */ &illegal,        //
+    /* 0xA0 */ &LDY_imme,       // # | LDY #oper
+    /* 0xA1 */ &LDA_ind_X,      // (ind,X) | LDA (oper,X)
+    /* 0xA2 */ &LDX_imme,       // # | LDX #oper
+    /* 0xA3 */ &illegal,        //
+    /* 0xA4 */ &LDY_zpg,        // zpg | LDY oper
+    /* 0xA5 */ &LDA_zpg,        // zpg | LDA oper
+    /* 0xA6 */ &LDX_zpg,        // zpg | LDX oper
+    /* 0xA7 */ &illegal,        //
+    /* 0xA8 */ &TAY_impl,       // impl | TAY
+    /* 0xA9 */ &LDA_imme,       // # | LDA #oper
+    /* 0xAA */ &TAX_impl,       // impl | TAX
+    /* 0xAB */ &illegal,        //
+    /* 0xAC */ &LDY_abs,        // abs | LDY oper
+    /* 0xAD */ &LDA_abs,        // abs | LDA oper
+    /* 0xAE */ &LDX_abs,        // abs | LDX oper
+    /* 0xAF */ &illegal,        //
+    /* 0xB0 */ &BCS_rel,        // rel | BCS oper
+    /* 0xB1 */ &LDA_ind_Y,      // (ind),Y | LDA (oper),Y
+    /* 0xB2 */ &illegal,        //
+    /* 0xB3 */ &illegal,        //
+    /* 0xB4 */ &LDY_zpg_X,      // zpg,X | LDY oper,X
+    /* 0xB5 */ &LDA_zpg_X,      // zpg,X | LDA oper,X
+    /* 0xB6 */ &LDX_zpg_Y,      // zpg,Y | LDX oper,Y
+    /* 0xB7 */ &illegal,        //
+    /* 0xB8 */ &CLV_impl,       // impl | CLV
+    /* 0xB9 */ &LDA_abs_Y,      // abs,Y | LDA oper,Y
+    /* 0xBA */ &TSX_impl,       // impl | TSX
+    /* 0xBB */ &illegal,        //
+    /* 0xBC */ &LDY_abs_X,      // abs,X | LDY oper,X
+    /* 0xBD */ &LDA_abs_X,      // abs,X | LDA oper,X
+    /* 0xBE */ &LDX_abs_Y,      // abs,Y | LDX oper,Y
+    /* 0xBF */ &illegal,        //
+    /* 0xC0 */ &CPY_imme,       // # | CPY #oper
+    /* 0xC1 */ &CMP_ind_X,      // (ind,X) | CMP (oper,X)
+    /* 0xC2 */ &illegal,        //
+    /* 0xC3 */ &illegal,        //
+    /* 0xC4 */ &CPY_zpg,        // zpg | CPY oper
+    /* 0xC5 */ &CMP_zpg,        // zpg | CMP oper
+    /* 0xC6 */ &DEC_zpg,        // zpg | DEC oper
+    /* 0xC7 */ &illegal,        //
+    /* 0xC8 */ &INY_impl,       // impl | INY
+    /* 0xC9 */ &CMP_imme,       // # | CMP #oper
+    /* 0xCA */ &DEX_impl,       // impl | DEX
+    /* 0xCB */ &illegal,        //
+    /* 0xCC */ &CPY_abs,        // abs | CPY oper
+    /* 0xCD */ &CMP_abs,        // abs | CMP oper
+    /* 0xCE */ &DEC_abs,        // abs | DEC oper
+    /* 0xCF */ &illegal,        //
+    /* 0xD0 */ &BNE_rel,        // rel | BNE oper
+    /* 0xD1 */ &CMP_ind_Y,      // (ind),Y | CMP (oper),Y
+    /* 0xD2 */ &illegal,        //
+    /* 0xD3 */ &illegal,        //
+    /* 0xD4 */ &illegal,        //
+    /* 0xD5 */ &CMP_zpg_X,      // zpg,X | CMP oper,X
+    /* 0xD6 */ &DEC_zpg_X,      // zpg,X | DEC oper,X
+    /* 0xD7 */ &illegal,        //
+    /* 0xD8 */ &CLD_impl,       // impl | CLD
+    /* 0xD9 */ &CMP_abs_Y,      // abs,Y | CMP oper,Y
+    /* 0xDA */ &illegal,        //
+    /* 0xDB */ &illegal,        //
+    /* 0xDC */ &illegal,        //
+    /* 0xDD */ &CMP_abs_X,      // abs,X | CMP oper,X
+    /* 0xDE */ &DEC_abs_X,      // abs,X | DEC oper,X
+    /* 0xDF */ &illegal,        //
+    /* 0xE0 */ &CPX_imme,       // # | CPX #oper
+    /* 0xE1 */ &SBC_ind_X,      // (ind,X) | SBC (oper,X)
+    /* 0xE2 */ &illegal,        //
+    /* 0xE3 */ &illegal,        //
+    /* 0xE4 */ &CPX_zpg,        // zpg | CPX oper
+    /* 0xE5 */ &SBC_zpg,        // zpg | SBC oper
+    /* 0xE6 */ &INC_zpg,        // zpg | INC oper
+    /* 0xE7 */ &illegal,        //
+    /* 0xE8 */ &INX_impl,       // impl | INX
+    /* 0xE9 */ &SBC_imme,       // # | SBC #oper
+    /* 0xEA */ &NOP_impl,       // impl | NOP
+    /* 0xEB */ &illegal,        //
+    /* 0xEC */ &CPX_abs,        // abs | CPX oper
+    /* 0xED */ &SBC_abs,        // abs | SBC oper
+    /* 0xEE */ &INC_abs,        // abs | INC oper
+    /* 0xEF */ &illegal,        //
+    /* 0xF0 */ &BEQ_rel,        // rel | BEQ oper
+    /* 0xF1 */ &SBC_ind_Y,      // (ind),Y | SBC (oper),Y
+    /* 0xF2 */ &illegal,        //
+    /* 0xF3 */ &illegal,        //
+    /* 0xF4 */ &illegal,        //
+    /* 0xF5 */ &SBC_zpg_X,      // zpg,X | SBC oper,X
+    /* 0xF6 */ &INC_zpg_X,      // zpg,X | INC oper,X
+    /* 0xF7 */ &illegal,        //
+    /* 0xF8 */ &SED_impl,       // impl | SED
+    /* 0xF9 */ &SBC_abs_Y,      // abs,Y | SBC oper,Y
+    /* 0xFA */ &illegal,        //
+    /* 0xFB */ &illegal,        //
+    /* 0xFC */ &illegal,        //
+    /* 0xFD */ &SBC_abs_X,      // abs,X | SBC oper,X
+    /* 0xFE */ &INC_abs_X,      // abs,X | INC oper,X
+    /* 0xFF */ &illegal,        //
 ];
 
 #[cfg(test)]
