@@ -28,6 +28,14 @@ pub fn addr_u16_to_u8(addr: u16) -> (u8, u8) {
     (addr as u8, (addr >> 8) as u8)
 }
 
+pub fn indexed(lo: u8, hi: u8, index: u8) -> (u8, u8) {
+    if index == 0 {
+        (lo, hi)
+    } else {
+        addr_u16_to_u8(offset_addr(lo, hi, index))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

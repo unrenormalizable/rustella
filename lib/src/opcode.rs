@@ -1,8 +1,6 @@
 #![allow(non_snake_case)]
 
-use super::{cmn, cpu::*, hw_dbg, mem::Memory};
-
-// TODO: Safe + and - ops.
+use super::{addr, cmn, cpu::*, hw_dbg, mem::Memory};
 
 /// References (use multiple to cross check implementation):
 /// - https://www.masswerk.at/6502/6502_instruction_set.html
@@ -100,7 +98,7 @@ fn JSR_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> 
     _push(cpu, mem, pc.1);
     _push(cpu, mem, pc.0);
 
-    Some(_get_2_ops_args(pc_lo, pc_hi, mem))
+    Some(addr::load_immediate_2(mem, pc_lo, pc_hi))
 }
 
 fn AND_ind_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
@@ -352,21 +350,21 @@ fn STA_ind_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> 
 
 fn STY_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = cpu.y();
-    _store_zero_paged(pc_lo, pc_hi, mem, 0, val);
+    addr::store_zero_page(mem, pc_lo, pc_hi, val);
 
     None
 }
 
 fn STA_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = cpu.a();
-    _store_zero_paged(pc_lo, pc_hi, mem, 0, val);
+    addr::store_zero_page(mem, pc_lo, pc_hi, val);
 
     None
 }
 
 fn STX_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = cpu.x();
-    _store_zero_paged(pc_lo, pc_hi, mem, 0, val);
+    addr::store_zero_page(mem, pc_lo, pc_hi, val);
 
     None
 }
@@ -393,21 +391,21 @@ fn TXA_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u
 
 fn STY_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = cpu.y();
-    _store_absolute_indexed(pc_lo, pc_hi, mem, 0, val);
+    addr::store_absolute(mem, pc_lo, pc_hi, val);
 
     None
 }
 
 fn STA_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = cpu.a();
-    _store_absolute_indexed(pc_lo, pc_hi, mem, 0, val);
+    addr::store_absolute(mem, pc_lo, pc_hi, val);
 
     None
 }
 
 fn STX_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
     let val = cpu.x();
-    _store_absolute_indexed(pc_lo, pc_hi, mem, 0, val);
+    addr::store_absolute(mem, pc_lo, pc_hi, val);
 
     None
 }
@@ -421,25 +419,25 @@ fn STA_ind_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> 
 }
 
 fn STY_zpg_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+    let index = cpu.x();
     let val = cpu.y();
-    let off = cpu.x();
-    _store_zero_paged(pc_lo, pc_hi, mem, off, val);
+    addr::store_zero_page_indexed(mem, pc_lo, pc_hi, index, val);
 
     None
 }
 
 fn STA_zpg_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+    let index = cpu.x();
     let val = cpu.a();
-    let off = cpu.x();
-    _store_zero_paged(pc_lo, pc_hi, mem, off, val);
+    addr::store_zero_page_indexed(mem, pc_lo, pc_hi, index, val);
 
     None
 }
 
 fn STX_zpg_Y(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+    let index = cpu.y();
     let val = cpu.x();
-    let off = cpu.y();
-    _store_zero_paged(pc_lo, pc_hi, mem, off, val);
+    addr::store_zero_page_indexed(mem, pc_lo, pc_hi, index, val);
 
     None
 }
@@ -455,9 +453,9 @@ fn TYA_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u
 }
 
 fn STA_abs_Y(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+    let index = cpu.y();
     let val = cpu.a();
-    let off = cpu.y();
-    _store_absolute_indexed(pc_lo, pc_hi, mem, off, val);
+    addr::store_absolute_indexed(mem, pc_lo, pc_hi, index, val);
 
     None
 }
@@ -470,15 +468,15 @@ fn TXS_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u
 }
 
 fn STA_abs_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
+    let index = cpu.x();
     let val = cpu.a();
-    let off = cpu.x();
-    _store_absolute_indexed(pc_lo, pc_hi, mem, off, val);
+    addr::store_absolute_indexed(mem, pc_lo, pc_hi, index, val);
 
     None
 }
 
 fn LDY_imme(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
-    let val = _get_1_ops_args(pc_lo, pc_hi, mem);
+    let val = addr::load_immediate(mem, pc_lo, pc_hi);
     cpu.set_y(val);
 
     _sync_pcr_n(cpu, val);
@@ -488,8 +486,8 @@ fn LDY_imme(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) ->
 }
 
 fn LDA_ind_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
-    let off = cpu.x();
-    let val = _load_indexed_zero_page_indirect(pc_lo, pc_hi, mem, off);
+    let index = cpu.x();
+    let val = addr::load_pre_indexed_indirect(mem, pc_lo, pc_hi, index);
     cpu.set_a(val);
 
     _sync_pcr_n(cpu, val);
@@ -499,7 +497,7 @@ fn LDA_ind_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -
 }
 
 fn LDX_imme(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
-    let val = _get_1_ops_args(pc_lo, pc_hi, mem);
+    let val = addr::load_immediate(mem, pc_lo, pc_hi);
     cpu.set_x(val);
 
     _sync_pcr_n(cpu, val);
@@ -509,7 +507,7 @@ fn LDX_imme(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) ->
 }
 
 fn LDY_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
-    let val = _load_zero_paged(pc_lo, pc_hi, mem, 0);
+    let val = addr::load_zero_page(mem, pc_lo, pc_hi);
     cpu.set_y(val);
 
     _sync_pcr_n(cpu, val);
@@ -519,7 +517,7 @@ fn LDY_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> 
 }
 
 fn LDA_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
-    let val = _load_zero_paged(pc_lo, pc_hi, mem, 0);
+    let val = addr::load_zero_page(mem, pc_lo, pc_hi);
     cpu.set_a(val);
 
     _sync_pcr_n(cpu, val);
@@ -529,7 +527,7 @@ fn LDA_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> 
 }
 
 fn LDX_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
-    let val = _load_zero_paged(pc_lo, pc_hi, mem, 0);
+    let val = addr::load_zero_page(mem, pc_lo, pc_hi);
     cpu.set_x(val);
 
     _sync_pcr_n(cpu, val);
@@ -549,7 +547,7 @@ fn TAY_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u
 }
 
 fn LDA_imme(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
-    let val = _get_1_ops_args(pc_lo, pc_hi, mem);
+    let val = addr::load_immediate(mem, pc_lo, pc_hi);
     cpu.set_a(val);
 
     _sync_pcr_n(cpu, val);
@@ -569,7 +567,7 @@ fn TAX_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u
 }
 
 fn LDY_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
-    let val = _load_absolute_indexed(pc_lo, pc_hi, mem, 0);
+    let val = addr::load_absolute(mem, pc_lo, pc_hi);
 
     cpu.set_y(val);
 
@@ -580,7 +578,7 @@ fn LDY_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> 
 }
 
 fn LDA_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
-    let val = _load_absolute_indexed(pc_lo, pc_hi, mem, 0);
+    let val = addr::load_absolute(mem, pc_lo, pc_hi);
 
     cpu.set_a(val);
 
@@ -591,7 +589,7 @@ fn LDA_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> 
 }
 
 fn LDX_abs(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
-    let val = _load_absolute_indexed(pc_lo, pc_hi, mem, 0);
+    let val = addr::load_absolute(mem, pc_lo, pc_hi);
 
     cpu.set_x(val);
 
@@ -610,8 +608,8 @@ fn LDA_ind_Y(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> 
 }
 
 fn LDY_zpg_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
-    let off = cpu.x();
-    let val = _load_zero_paged(pc_lo, pc_hi, mem, off);
+    let index = cpu.x();
+    let val = addr::load_zero_page_indexed(mem, pc_lo, pc_hi, index);
     cpu.set_y(val);
 
     _sync_pcr_n(cpu, val);
@@ -621,8 +619,8 @@ fn LDY_zpg_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -
 }
 
 fn LDA_zpg_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
-    let off = cpu.x();
-    let val = _load_zero_paged(pc_lo, pc_hi, mem, off);
+    let index = cpu.x();
+    let val = addr::load_zero_page_indexed(mem, pc_lo, pc_hi, index);
     cpu.set_a(val);
 
     _sync_pcr_n(cpu, val);
@@ -632,8 +630,8 @@ fn LDA_zpg_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -
 }
 
 fn LDX_zpg_Y(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
-    let off = cpu.y();
-    let val = _load_zero_paged(pc_lo, pc_hi, mem, off);
+    let index = cpu.y();
+    let val = addr::load_zero_page_indexed(mem, pc_lo, pc_hi, index);
     cpu.set_x(val);
 
     _sync_pcr_n(cpu, val);
@@ -649,8 +647,8 @@ fn CLV_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u
 }
 
 fn LDA_abs_Y(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
-    let off = cpu.y();
-    let val = _load_absolute_indexed(pc_lo, pc_hi, mem, off);
+    let index = cpu.y();
+    let val = addr::load_absolute_indexed(mem, pc_lo, pc_hi, index);
 
     cpu.set_a(val);
 
@@ -671,8 +669,8 @@ fn TSX_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u
 }
 
 fn LDY_abs_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
-    let off = cpu.x();
-    let val = _load_absolute_indexed(pc_lo, pc_hi, mem, off);
+    let index = cpu.x();
+    let val = addr::load_absolute_indexed(mem, pc_lo, pc_hi, index);
 
     cpu.set_y(val);
 
@@ -683,8 +681,8 @@ fn LDY_abs_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -
 }
 
 fn LDA_abs_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
-    let off = cpu.x();
-    let val = _load_absolute_indexed(pc_lo, pc_hi, mem, off);
+    let index = cpu.x();
+    let val = addr::load_absolute_indexed(mem, pc_lo, pc_hi, index);
 
     cpu.set_a(val);
 
@@ -695,8 +693,8 @@ fn LDA_abs_X(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -
 }
 
 fn LDX_abs_Y(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> Option<(u8, u8)> {
-    let off = cpu.y();
-    let val = _load_absolute_indexed(pc_lo, pc_hi, mem, off);
+    let index = cpu.y();
+    let val = addr::load_absolute_indexed(mem, pc_lo, pc_hi, index);
 
     cpu.set_x(val);
 
@@ -890,76 +888,6 @@ fn INC_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> 
     todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
 
-fn _get_1_ops_args(pc_lo: u8, pc_hi: u8, mem: &Memory) -> u8 {
-    // TODO: SAFE ADD here and all other places by using mandatory offset.
-    mem.get(pc_lo, pc_hi, 1)
-}
-
-fn _load_zero_paged(pc_lo: u8, pc_hi: u8, mem: &Memory, off: u8) -> u8 {
-    let abs_args = _get_1_ops_args(pc_lo, pc_hi, mem);
-    let addr = cmn::addr_u16_to_u8(cmn::offset_addr(abs_args, 0, off));
-    mem.get(addr.0, 0, 0)
-}
-
-fn _store_zero_paged(pc_lo: u8, pc_hi: u8, mem: &mut Memory, off: u8, val: u8) {
-    let abs_args = _get_1_ops_args(pc_lo, pc_hi, mem);
-    let addr = cmn::addr_u16_to_u8(cmn::offset_addr(abs_args, 0, off));
-    mem.set(addr.0, 0, 0, val)
-}
-
-fn _get_2_ops_args(pc_lo: u8, pc_hi: u8, mem: &Memory) -> (u8, u8) {
-    // TODO: SAFE ADD here and all other places by using mandatory offset.
-    (mem.get(pc_lo, pc_hi, 1), mem.get(pc_lo, pc_hi, 2))
-}
-
-/// Example: LDA ($70,X): load the contents of the location given in addresses "$0070+X" and "$0070+1+X" into A
-fn _load_indexed_zero_page_indirect(pc_lo: u8, pc_hi: u8, mem: &Memory, off: u8) -> u8 {
-    let lo = _load_zero_paged(pc_lo, pc_hi, mem, off);
-    let hi = _load_zero_paged(pc_lo, pc_hi, mem, cmn::safe_add(off, 1).0);
-
-    mem.get(lo, hi, 0)
-}
-
-/// Example: STA ($A2,X): store the contents of A in the location given in addresses "$00A2+X" and "$00A3+X"
-fn _store_indexed_zero_page_indirect(pc_lo: u8, pc_hi: u8, mem: &mut Memory, off: u8, val: u8) {
-    let lo = _load_zero_paged(pc_lo, pc_hi, mem, off);
-    let hi = _load_zero_paged(pc_lo, pc_hi, mem, cmn::safe_add(off, 1).0);
-
-    mem.set(lo, hi, 0, val)
-}
-
-/// Example: LDA ($70),Y: add the contents of the Y-register to the pointer provided in "$0070" and "$0071" and load the contents of this address into A
-fn _load_zero_page_indirect_indexed(pc_lo: u8, pc_hi: u8, mem: &Memory, off: u8) -> u8 {
-    let lo = _load_zero_paged(pc_lo, pc_hi, mem, 0);
-    let hi = _load_zero_paged(pc_lo, pc_hi, mem, 1);
-
-    let addr = cmn::addr_u16_to_u8(cmn::offset_addr(lo, hi, off));
-
-    mem.get(addr.0, addr.1, 0)
-}
-
-/// Example: STA ($A2),Y: store the contents of A in the location given by the pointer in "$00A2" and "$00A3" plus the contents of the Y-register
-fn _store_zero_page_indirect_indexed(pc_lo: u8, pc_hi: u8, mem: &mut Memory, off: u8, val: u8) {
-    let lo = _load_zero_paged(pc_lo, pc_hi, mem, 0);
-    let hi = _load_zero_paged(pc_lo, pc_hi, mem, 1);
-
-    let addr = cmn::addr_u16_to_u8(cmn::offset_addr(lo, hi, off));
-
-    mem.set(addr.0, addr.1, 0, val)
-}
-
-fn _load_absolute_indexed(pc_lo: u8, pc_hi: u8, mem: &Memory, off: u8) -> u8 {
-    let abs_args = _get_2_ops_args(pc_lo, pc_hi, mem);
-    let addr = cmn::addr_u16_to_u8(cmn::offset_addr(abs_args.0, abs_args.1, off));
-    mem.get(addr.0, addr.1, 0)
-}
-
-fn _store_absolute_indexed(pc_lo: u8, pc_hi: u8, mem: &mut Memory, off: u8, val: u8) {
-    let abs_args = _get_2_ops_args(pc_lo, pc_hi, mem);
-    let addr = cmn::addr_u16_to_u8(cmn::offset_addr(abs_args.0, abs_args.1, off));
-    mem.set(addr.0, addr.1, 0, val);
-}
-
 fn _push(cpu: &mut MOS6502, mem: &mut Memory, val: u8) {
     mem.set(cpu.s(), 0x00, 0, val);
 
@@ -1013,7 +941,7 @@ $map = @{}; gc -Raw "D:\src\u\a2600\lib\src\opcodes.json" | ConvertFrom-Json | s
 
 To regenerate the function stubs run
 $opc_fns = 0..0xff | % { $opc = "{0:X2}" -f $_; if ($map.Contains($opc)) { "    {0}" -f $map[$opc] } else { '    /* 0x{0} */ &illegal,' -f $opc } }
-$opc_fns | ? { !$_.EndsWith("&illegal,") } | % { $_.Substring(16).replace(",", "") } | % { "fn CLI_impl(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MCS6502, _: &mut Memory) -> Option<(u8, u8)> {`n    todo!(`"TBD: pcode {} @ {}{}`", opc, pc_hi, pc_lo)`n}`n" }
+$opc_fns | ? { !$_.EndsWith("&illegal,") } | % { $_.Substring(16).replace(",", "") } | % { "`nfn CLI_impl(_opc: u8, _pc_lo: u8, _pc_hi: u8, _cpu: &mut MCS6502, _mem: &mut Memory) -> Option<(u8, u8)> {`n" }
 */
 /// NOTE: See opcodes.json
 #[rustfmt::skip]
@@ -1279,7 +1207,6 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCode; 0x1_00] = &[
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_case::test_case;
 
     #[test]
     fn test_push_pop() {
@@ -1297,61 +1224,5 @@ mod tests {
         let val = _pop(&mut cpu, &mut mem);
         assert_eq!(val, 0x55);
         assert_eq!(cpu.s(), SP);
-    }
-
-    #[test_case(0x10, 0xf0, 0x05, 0xA5)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
-    #[test_case(0xff, 0xff, 0x05, 0xA5)]
-    #[test_case(0x00, 0xff, 0x05, 0xA5)]
-    fn test_load_indexed_zero_page_indirect(pc_lo: u8, pc_hi: u8, off: u8, exp: u8) {
-        let mut mem = Memory::new(&[0b00000000; 0x1000], false);
-        mem.set(pc_lo, pc_hi, 1, 0x70);
-        mem.set(0x75, 0x00, 0, 0x23);
-        mem.set(0x75, 0x00, 1, 0x30);
-        mem.set(0x23, 0x30, 0, 0xA5);
-        let obt = _load_indexed_zero_page_indirect(pc_lo, pc_hi, &mem, off);
-
-        assert_eq!(obt, exp);
-    }
-
-    #[test_case(0x10, 0xf0, 0x05, 0xA5)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
-    #[test_case(0xff, 0xff, 0x05, 0xA5)]
-    #[test_case(0x00, 0xff, 0x05, 0xA5)]
-    fn test_store_indexed_zero_page_indirect(pc_lo: u8, pc_hi: u8, off: u8, exp: u8) {
-        let mut mem = Memory::new(&[0b00000000; 0x1000], false);
-        mem.set(pc_lo, pc_hi, 1, 0x70);
-        mem.set(0x75, 0x00, 0, 0x23);
-        mem.set(0x75, 0x00, 1, 0x30);
-        _store_indexed_zero_page_indirect(pc_lo, pc_hi, &mut mem, off, 0xA5);
-        let obt = mem.get(0x23, 0x30, 0);
-
-        assert_eq!(obt, exp);
-    }
-
-    #[test_case(0x10, 0xf0, 0x10, 0x23)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
-    #[test_case(0xff, 0xff, 0x10, 0x23)]
-    #[test_case(0x00, 0xff, 0x10, 0x23)]
-    fn test_load_zero_page_indirect_indexed(pc_lo: u8, pc_hi: u8, off: u8, exp: u8) {
-        let mut mem = Memory::new(&[0b00000000; 0x1000], false);
-        mem.set(pc_lo, pc_hi, 1, 0x70);
-        mem.set(0x70, 0x00, 0, 0x43);
-        mem.set(0x70, 0x00, 1, 0x35);
-        mem.set(0x53, 0x35, 0, 0x23);
-        let obt = _load_zero_page_indirect_indexed(pc_lo, pc_hi, &mem, off);
-
-        assert_eq!(obt, exp);
-    }
-
-    #[test_case(0x10, 0xf0, 0x10, 0x23)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
-    #[test_case(0xff, 0xff, 0x10, 0x23)]
-    #[test_case(0x00, 0xff, 0x10, 0x23)]
-    fn test_store_zero_page_indirect_indexed(pc_lo: u8, pc_hi: u8, off: u8, exp: u8) {
-        let mut mem = Memory::new(&[0b00000000; 0x1000], false);
-        mem.set(pc_lo, pc_hi, 1, 0x70);
-        mem.set(0x70, 0x00, 0, 0x43);
-        mem.set(0x70, 0x00, 1, 0x35);
-        _store_zero_page_indirect_indexed(pc_lo, pc_hi, &mut mem, off, 0x23);
-        let obt = mem.get(0x53, 0x35, 0);
-
-        assert_eq!(obt, exp);
     }
 }

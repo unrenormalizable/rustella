@@ -44,26 +44,6 @@ pub struct Memory {
     data: [u8; TOTAL_MEMORY_SIZE],
 }
 
-/// Refer:
-/// - https://forums.atariage.com/topic/192418-mirrored-memory/#comment-2439795
-/// - https://forums.atariage.com/topic/27190-session-5-memory-architecture/#comment-442653
-/// - https://wilsonminesco.com/6502primer/MemMapReqs.html
-pub fn resolve_addr(lo: u8, hi: u8) -> u16 {
-    let mut addr = cmn::addr_u8_to_u16(lo, hi);
-    // Step 0. Turn off A13-A15 pins.
-    addr &= 0b0001_1111_1111_1111;
-
-    // Step 1. If not in cartridge ROM, turn off
-    if addr < CARTRIDGE_ROM_START as u16 {
-        addr &= 0b0011_1111_1111;
-    }
-
-    // Step 2. Implement mirrors in 0000-03FF range
-    // TODO.
-
-    addr
-}
-
 // TODO: Implement memory map & checks.
 // TODO: Implement mirroring.
 // TODO: Implement 2K cartridges
@@ -83,14 +63,14 @@ impl Memory {
         Self { data }
     }
 
-    pub fn get(&self, lo: u8, hi: u8, off: u8) -> u8 {
-        let addr = cmn::addr_u16_to_u8(cmn::offset_addr(lo, hi, off));
-        self.data[resolve_addr(addr.0, addr.1) as usize]
+    pub fn get(&self, lo: u8, hi: u8, index: u8) -> u8 {
+        let addr = cmn::indexed(lo, hi, index);
+        self.data[Self::resolve_addr(addr.0, addr.1) as usize]
     }
 
-    pub fn set(&mut self, lo: u8, hi: u8, off: u8, value: u8) {
-        let addr = cmn::addr_u16_to_u8(cmn::offset_addr(lo, hi, off));
-        self.data[resolve_addr(addr.0, addr.1) as usize] = value;
+    pub fn set(&mut self, lo: u8, hi: u8, index: u8, value: u8) {
+        let addr = cmn::indexed(lo, hi, index);
+        self.data[Self::resolve_addr(addr.0, addr.1) as usize] = value;
     }
 
     fn fill_with_pattern(data: &mut [u8], pattern: u64) {
@@ -107,6 +87,26 @@ impl Memory {
 
         (pc_lo, pc_hi)
     }
+
+    /// Refer:
+    /// - https://forums.atariage.com/topic/192418-mirrored-memory/#comment-2439795
+    /// - https://forums.atariage.com/topic/27190-session-5-memory-architecture/#comment-442653
+    /// - https://wilsonminesco.com/6502primer/MemMapReqs.html
+    fn resolve_addr(lo: u8, hi: u8) -> u16 {
+        let mut addr = cmn::addr_u8_to_u16(lo, hi);
+        // Step 0. Turn off A13-A15 pins.
+        addr &= 0b0001_1111_1111_1111;
+
+        // Step 1. If not in cartridge ROM, turn off
+        if addr < CARTRIDGE_ROM_START as u16 {
+            addr &= 0b0011_1111_1111;
+        }
+
+        // Step 2. Implement mirrors in 0000-03FF range
+        // TODO.
+
+        addr
+    }
 }
 
 #[cfg(test)]
@@ -122,7 +122,7 @@ mod tests {
     #[test_case(0x01, 0x08, 0x001; "TIA-RAM-RIOT mirror - 2")]
     #[test_case(0x80, 0x0d, 0x180; "TIA-RAM-RIOT mirror - 3")]
     fn test_resolve_addr(lo: u8, hi: u8, addr: u16) {
-        let ret = resolve_addr(lo, hi);
+        let ret = Memory::resolve_addr(lo, hi);
         assert_eq!(ret, addr);
     }
 
