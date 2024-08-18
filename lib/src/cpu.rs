@@ -80,7 +80,7 @@ impl MOS6502 {
             }
 
             let res =
-                opcode::ALL_OPCODE_ROUTINES[opc as usize](opc, self.PC_lo, self.PC_hi, self, mem);
+                opcode::ALL_OPCODE_ROUTINES[opc as usize](self, mem, opc, self.PC_lo, self.PC_hi);
             if let Some((lo, hi)) = res {
                 self.PC_lo = lo;
                 self.PC_hi = hi;
