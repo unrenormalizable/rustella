@@ -370,7 +370,7 @@ fn STX_zpg(_: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -> 
 }
 
 fn DEY_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
-    let val = cmn::safe_sub(cpu.y(), 1).0;
+    let val = cmn::safe_sub(cpu.y(), 1);
     cpu.set_y(val);
 
     _sync_pcr_n(cpu, val);
@@ -725,7 +725,7 @@ fn DEC_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Op
 }
 
 fn INY_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
-    let val = cmn::safe_add(cpu.y(), 1).0;
+    let val = cmn::safe_add(cpu.y(), 1);
     cpu.set_y(val);
 
     _sync_pcr_n(cpu, val);
@@ -739,7 +739,7 @@ fn CMP_imme(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> O
 }
 
 fn DEX_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
-    let val = cmn::safe_sub(cpu.x(), 1).0;
+    let val = cmn::safe_sub(cpu.x(), 1);
     cpu.set_x(val);
 
     _sync_pcr_n(cpu, val);
@@ -765,11 +765,10 @@ fn BNE_rel(opc: u8, pc_lo: u8, pc_hi: u8, cpu: &mut MOS6502, mem: &mut Memory) -
         return None;
     }
 
-    // TODO: SAFE ADD here and all other places by using mandatory offset.
     let off = mem.get(pc_lo, pc_hi, 1);
     let instr_len = hw_dbg::ALL_OPCODE_INFO[opc as usize].bytes;
 
-    let pc_lo = cmn::safe_add(cmn::safe_add(pc_lo, instr_len).0, off).0;
+    let pc_lo = cmn::safe_add2(pc_lo, instr_len, off);
 
     Some((pc_lo, pc_hi))
 }
@@ -825,7 +824,7 @@ fn INC_zpg(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> Op
 }
 
 fn INX_impl(_: u8, _: u8, _: u8, cpu: &mut MOS6502, _: &mut Memory) -> Option<(u8, u8)> {
-    let val = cmn::safe_add(cpu.x(), 1).0;
+    let val = cmn::safe_add(cpu.x(), 1);
     cpu.set_x(val);
 
     _sync_pcr_n(cpu, val);
@@ -891,12 +890,12 @@ fn INC_abs_X(opc: u8, pc_lo: u8, pc_hi: u8, _: &mut MOS6502, _: &mut Memory) -> 
 fn _push(cpu: &mut MOS6502, mem: &mut Memory, val: u8) {
     mem.set(cpu.s(), 0x00, 0, val);
 
-    let s = cmn::safe_sub(cpu.s(), 1).0;
+    let s = cmn::safe_sub(cpu.s(), 1);
     cpu.set_s(s);
 }
 
 fn _pop(cpu: &mut MOS6502, mem: &mut Memory) -> u8 {
-    let s = cmn::safe_add(cpu.s(), 1).0;
+    let s = cmn::safe_add(cpu.s(), 1);
     cpu.set_s(s);
 
     mem.get(s, 0x00, 0)

@@ -67,7 +67,7 @@ pub fn load_indirect(mem: &Memory, pc_lo: u8, pc_hi: u8) -> (u8, u8) {
 /// Example: LDA ($70,X): load the contents of the location given in addresses "$0070+X" and "$0070+1+X" into A
 pub fn load_pre_indexed_indirect(mem: &Memory, pc_lo: u8, pc_hi: u8, index: u8) -> u8 {
     let lo = load_zero_page_indexed(mem, pc_lo, pc_hi, index);
-    let hi = load_zero_page_indexed(mem, pc_lo, pc_hi, cmn::safe_add(index, 1).0);
+    let hi = load_zero_page_indexed(mem, pc_lo, pc_hi, cmn::safe_add(index, 1));
 
     mem.get(lo, hi, 0)
 }
@@ -75,7 +75,7 @@ pub fn load_pre_indexed_indirect(mem: &Memory, pc_lo: u8, pc_hi: u8, index: u8) 
 /// Example: STA ($A2,X): store the contents of A in the location given in addresses "$00A2+X" and "$00A3+X"
 pub fn store_pre_indexed_indirect(mem: &mut Memory, pc_lo: u8, pc_hi: u8, index: u8, val: u8) {
     let lo = load_zero_page_indexed(mem, pc_lo, pc_hi, index);
-    let hi = load_zero_page_indexed(mem, pc_lo, pc_hi, cmn::safe_add(index, 1).0);
+    let hi = load_zero_page_indexed(mem, pc_lo, pc_hi, cmn::safe_add(index, 1));
 
     mem.set(lo, hi, 0, val)
 }

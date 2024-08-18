@@ -1,4 +1,4 @@
-pub fn safe_add(val1: u8, val2: u8) -> (u8, bool) {
+pub fn safe_add_checked(val1: u8, val2: u8) -> (u8, bool) {
     let res = val1 as u16 + val2 as u16;
 
     let v = res & 0b1_0000_0000 != 0;
@@ -6,12 +6,28 @@ pub fn safe_add(val1: u8, val2: u8) -> (u8, bool) {
     (res as u8, v)
 }
 
-pub fn safe_sub(val1: u8, val2: u8) -> (u8, bool) {
+pub fn safe_add(val1: u8, val2: u8) -> u8 {
+    let res = val1 as u16 + val2 as u16;
+
+    res as u8
+}
+
+pub fn safe_add2(val1: u8, val2: u8, val3: u8) -> u8 {
+    safe_add(safe_add(val1, val2), val3)
+}
+
+pub fn safe_sub_checked(val1: u8, val2: u8) -> (u8, bool) {
     let res = val1 as i16 - val2 as i16;
 
     let v = res & 0b1_0000_0000 != 0;
 
     (res as u8, v)
+}
+
+pub fn safe_sub(val1: u8, val2: u8) -> u8 {
+    let res = val1 as i16 - val2 as i16;
+
+    res as u8
 }
 
 pub fn offset_addr(lo: u8, hi: u8, off: u8) -> u16 {
@@ -46,7 +62,7 @@ mod tests {
     #[test_case(0xff, 0x01, (0x00, true))]
     #[test_case(0xfe, 0x11, (0x0f, true))]
     fn test_safe_add(v1: u8, v2: u8, exp: (u8, bool)) {
-        let obt = safe_add(v1, v2);
+        let obt = safe_add_checked(v1, v2);
         assert_eq!(exp, obt);
     }
 
@@ -54,7 +70,7 @@ mod tests {
     #[test_case(0x00, 0x01, (0xFF, true))]
     #[test_case(0x10, 0x20, (0xF0, true))]
     fn test_safe_sub(v1: u8, v2: u8, exp: (u8, bool)) {
-        let obt = safe_sub(v1, v2);
+        let obt = safe_sub_checked(v1, v2);
         assert_eq!(exp, obt);
     }
 
