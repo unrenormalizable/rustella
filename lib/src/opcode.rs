@@ -3,9 +3,7 @@
 use super::{addr, cmn, cpu::*, hw_dbg, mem::Memory};
 
 // TODO
-// - regenerate function signatures will all info + cpu & mem first
-// - pre-post bug fixup in function name
-// - debugger enhancements
+// - debugger enhancements: #bp | #stats | #modify | #last command | #show stats - count, speed | 
 // - test cases of
 //   - extremes of jmp
 //   - cmp core from stella
