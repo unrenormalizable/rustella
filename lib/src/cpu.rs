@@ -91,7 +91,7 @@ impl MOS6502 {
         }
     }
 
-    pub fn tst_psr_bit(&mut self, bit: PSR) -> bool {
+    pub fn tst_psr_bit(&self, bit: PSR) -> bool {
         tst_bit(self.P.bits(), bit.bits())
     }
 
