@@ -882,36 +882,29 @@ fn ROR_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -
 }
 
 /// 0x81 | (ind,X) | STA (oper,X)
-fn STA_idx_ind_X(
-    _: &mut MOS6502,
-    _: &mut Memory,
-    opc: u8,
-    pc_lo: u8,
-    pc_hi: u8,
-) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn STA_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    addr::store_pre_indexed_indirect(mem, pc_lo, pc_hi, cpu.x(), cpu.a());
+
+    None
 }
 
 /// 0x84 | zpg | STY oper
 fn STY_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    let val = cpu.y();
-    addr::store_zero_page(mem, pc_lo, pc_hi, val);
+    addr::store_zero_page(mem, pc_lo, pc_hi, cpu.y());
 
     None
 }
 
 /// 0x85 | zpg | STA oper
 fn STA_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    let val = cpu.a();
-    addr::store_zero_page(mem, pc_lo, pc_hi, val);
+    addr::store_zero_page(mem, pc_lo, pc_hi, cpu.a());
 
     None
 }
 
 /// 0x86 | zpg | STX oper
 fn STX_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    let val = cpu.x();
-    addr::store_zero_page(mem, pc_lo, pc_hi, val);
+    addr::store_zero_page(mem, pc_lo, pc_hi, cpu.x());
 
     None
 }
@@ -940,24 +933,21 @@ fn TXA_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: u8, _: u8) -> Option<(u
 
 /// 0x8C | abs | STY oper
 fn STY_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    let val = cpu.y();
-    addr::store_absolute(mem, pc_lo, pc_hi, val);
+    addr::store_absolute(mem, pc_lo, pc_hi, cpu.y());
 
     None
 }
 
 /// 0x8D | abs | STA oper
 fn STA_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    let val = cpu.a();
-    addr::store_absolute(mem, pc_lo, pc_hi, val);
+    addr::store_absolute(mem, pc_lo, pc_hi, cpu.a());
 
     None
 }
 
 /// 0x8E | abs | STX oper
 fn STX_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    let val = cpu.x();
-    addr::store_absolute(mem, pc_lo, pc_hi, val);
+    addr::store_absolute(mem, pc_lo, pc_hi, cpu.x());
 
     None
 }
@@ -972,39 +962,29 @@ fn BCC_rel(cpu: &mut MOS6502, mem: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -
 }
 
 /// 0x91 | (ind),Y | STA (oper),Y
-fn STA_ind_Y_idx(
-    _: &mut MOS6502,
-    _: &mut Memory,
-    opc: u8,
-    pc_lo: u8,
-    pc_hi: u8,
-) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn STA_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    addr::store_post_indexed_indirect(mem, pc_lo, pc_hi, cpu.y(), cpu.a());
+
+    None
 }
 
 /// 0x94 | zpg,X | STY oper,X
 fn STY_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    let index = cpu.x();
-    let val = cpu.y();
-    addr::store_zero_page_indexed(mem, pc_lo, pc_hi, index, val);
+    addr::store_zero_page_indexed(mem, pc_lo, pc_hi, cpu.x(), cpu.y());
 
     None
 }
 
 /// 0x95 | zpg,X | STA oper,X
 fn STA_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    let index = cpu.x();
-    let val = cpu.a();
-    addr::store_zero_page_indexed(mem, pc_lo, pc_hi, index, val);
+    addr::store_zero_page_indexed(mem, pc_lo, pc_hi, cpu.x(), cpu.a());
 
     None
 }
 
 /// 0x96 | zpg,Y | STX oper,Y
 fn STX_zpg_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    let index = cpu.y();
-    let val = cpu.x();
-    addr::store_zero_page_indexed(mem, pc_lo, pc_hi, index, val);
+    addr::store_zero_page_indexed(mem, pc_lo, pc_hi, cpu.y(), cpu.x());
 
     None
 }
@@ -1022,9 +1002,7 @@ fn TYA_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: u8, _: u8) -> Option<(u
 
 /// 0x99 | abs,Y | STA oper,Y
 fn STA_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    let index = cpu.y();
-    let val = cpu.a();
-    addr::store_absolute_indexed(mem, pc_lo, pc_hi, index, val);
+    addr::store_absolute_indexed(mem, pc_lo, pc_hi, cpu.y(), cpu.a());
 
     None
 }
@@ -1039,9 +1017,7 @@ fn TXS_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: u8, _: u8) -> Option<(u
 
 /// 0x9D | abs,X | STA oper,X
 fn STA_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    let index = cpu.x();
-    let val = cpu.a();
-    addr::store_absolute_indexed(mem, pc_lo, pc_hi, index, val);
+    addr::store_absolute_indexed(mem, pc_lo, pc_hi, cpu.x(), cpu.a());
 
     None
 }
@@ -1198,14 +1174,15 @@ fn BCS_rel(cpu: &mut MOS6502, mem: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -
 }
 
 /// 0xB1 | (ind),Y | LDA (oper),Y
-fn LDA_ind_Y_idx(
-    _: &mut MOS6502,
-    _: &mut Memory,
-    opc: u8,
-    pc_lo: u8,
-    pc_hi: u8,
-) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn LDA_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    let index = cpu.y();
+    let val = addr::load_zero_page_indexed(mem, pc_lo, pc_hi, index);
+    cpu.set_a(val);
+
+    pcr::sync_pcr_n(cpu, val);
+    pcr::sync_pcr_z(cpu, val);
+
+    None
 }
 
 /// 0xB4 | zpg,X | LDY oper,X
