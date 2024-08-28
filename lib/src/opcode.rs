@@ -882,7 +882,13 @@ fn ROR_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -
 }
 
 /// 0x81 | (ind,X) | STA (oper,X)
-fn STA_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+fn STA_idx_ind_X(
+    cpu: &mut MOS6502,
+    mem: &mut Memory,
+    _: u8,
+    pc_lo: u8,
+    pc_hi: u8,
+) -> Option<(u8, u8)> {
     addr::store_pre_indexed_indirect(mem, pc_lo, pc_hi, cpu.x(), cpu.a());
 
     None
@@ -962,7 +968,13 @@ fn BCC_rel(cpu: &mut MOS6502, mem: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -
 }
 
 /// 0x91 | (ind),Y | STA (oper),Y
-fn STA_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+fn STA_ind_Y_idx(
+    cpu: &mut MOS6502,
+    mem: &mut Memory,
+    _: u8,
+    pc_lo: u8,
+    pc_hi: u8,
+) -> Option<(u8, u8)> {
     addr::store_post_indexed_indirect(mem, pc_lo, pc_hi, cpu.y(), cpu.a());
 
     None
@@ -1174,7 +1186,13 @@ fn BCS_rel(cpu: &mut MOS6502, mem: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -
 }
 
 /// 0xB1 | (ind),Y | LDA (oper),Y
-fn LDA_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+fn LDA_ind_Y_idx(
+    cpu: &mut MOS6502,
+    mem: &mut Memory,
+    _: u8,
+    pc_lo: u8,
+    pc_hi: u8,
+) -> Option<(u8, u8)> {
     let index = cpu.y();
     let val = addr::load_zero_page_indexed(mem, pc_lo, pc_hi, index);
     cpu.set_a(val);
