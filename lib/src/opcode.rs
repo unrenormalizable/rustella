@@ -3,7 +3,7 @@
 use super::{addr, cmn, cpu::*, hw_dbg, mem::Memory};
 
 // TODO
-// - debugger enhancements: #bp | #stats | #modify | #last command | #show stats - count, speed | 
+// - debugger enhancements: #bp | #stats | #modify | #last command | #show stats - count, speed |
 // - test cases of
 //   - extremes of jmp
 //   - cmp core from stella
@@ -24,18 +24,36 @@ fn BRK_impl(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> O
 
 /// 0x01 | (ind,X) | ORA (oper,X)
 fn ORA_idx_ind_X(
-    _: &mut MOS6502,
-    _: &mut Memory,
-    opc: u8,
+    cpu: &mut MOS6502,
+    mem: &mut Memory,
+    _: u8,
     pc_lo: u8,
     pc_hi: u8,
 ) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+    let v1 = cpu.a();
+    let v2 = addr::load_pre_indexed_indirect(mem, pc_lo, pc_hi, cpu.x());
+
+    let res = v1 | v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x05 | zpg | ORA oper
-fn ORA_zpg(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn ORA_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    let v1 = cpu.a();
+    let v2 = addr::load_zero_page(mem, pc_lo, pc_hi);
+
+    let res = v1 | v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x06 | zpg | ASL oper
@@ -52,8 +70,17 @@ fn PHP_impl(cpu: &mut MOS6502, mem: &mut Memory, _: u8, _: u8, _: u8) -> Option<
 }
 
 /// 0x09 | # | ORA #oper
-fn ORA_imme(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn ORA_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    let v1 = cpu.a();
+    let v2 = addr::load_immediate(mem, pc_lo, pc_hi);
+
+    let res = v1 | v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x0A | A | ASL A
@@ -71,8 +98,17 @@ fn ASL_A(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: u8, _: u8) -> Option<(u8, 
 }
 
 /// 0x0D | abs | ORA oper
-fn ORA_abs(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn ORA_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    let v1 = cpu.a();
+    let v2 = addr::load_absolute(mem, pc_lo, pc_hi);
+
+    let res = v1 | v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x0E | abs | ASL oper
@@ -91,18 +127,36 @@ fn BPL_rel(cpu: &mut MOS6502, mem: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -
 
 /// 0x11 | (ind),Y | ORA (oper),Y
 fn ORA_ind_Y_idx(
-    _: &mut MOS6502,
-    _: &mut Memory,
-    opc: u8,
+    cpu: &mut MOS6502,
+    mem: &mut Memory,
+    _: u8,
     pc_lo: u8,
     pc_hi: u8,
 ) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+    let v1 = cpu.a();
+    let v2 = addr::load_post_indexed_indirect(mem, pc_lo, pc_hi, cpu.y());
+
+    let res = v1 | v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x15 | zpg,X | ORA oper,X
-fn ORA_zpg_X(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn ORA_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    let v1 = cpu.a();
+    let v2 = addr::load_zero_page_indexed(mem, pc_lo, pc_hi, cpu.x());
+
+    let res = v1 | v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x16 | zpg,X | ASL oper,X
@@ -118,13 +172,31 @@ fn CLC_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: u8, _: u8) -> Option<(u
 }
 
 /// 0x19 | abs,Y | ORA oper,Y
-fn ORA_abs_Y(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn ORA_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    let v1 = cpu.a();
+    let v2 = addr::load_absolute_indexed(mem, pc_lo, pc_hi, cpu.y());
+
+    let res = v1 | v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x1D | abs,X | ORA oper,X
-fn ORA_abs_X(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn ORA_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    let v1 = cpu.a();
+    let v2 = addr::load_absolute_indexed(mem, pc_lo, pc_hi, cpu.x());
+
+    let res = v1 | v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x1E | abs,X | ASL oper,X
@@ -143,23 +215,50 @@ fn JSR_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> 
 
 /// 0x21 | (ind,X) | AND (oper,X)
 fn AND_idx_ind_X(
-    _: &mut MOS6502,
-    _: &mut Memory,
-    opc: u8,
+    cpu: &mut MOS6502,
+    mem: &mut Memory,
+    _: u8,
     pc_lo: u8,
     pc_hi: u8,
 ) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+    let v1 = cpu.a();
+    let v2 = addr::load_pre_indexed_indirect(mem, pc_lo, pc_hi, cpu.x());
+
+    let res = v1 & v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x24 | zpg | BIT oper
-fn BIT_zpg(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn BIT_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    let v1 = cpu.a();
+    let v2 = addr::load_zero_page(mem, pc_lo, pc_hi);
+
+    let res = v1 & v2;
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_v_BIT(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x25 | zpg | AND oper
-fn AND_zpg(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn AND_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    let v1 = cpu.a();
+    let v2 = addr::load_zero_page(mem, pc_lo, pc_hi);
+
+    let res = v1 & v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x26 | zpg | ROL oper
@@ -176,8 +275,17 @@ fn PLP_impl(cpu: &mut MOS6502, mem: &mut Memory, _: u8, _: u8, _: u8) -> Option<
 }
 
 /// 0x29 | # | AND #oper
-fn AND_imme(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn AND_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    let v1 = cpu.a();
+    let v2 = addr::load_immediate(mem, pc_lo, pc_hi);
+
+    let res = v1 & v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x2A | A | ROL A
@@ -186,13 +294,31 @@ fn ROL_A(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Opti
 }
 
 /// 0x2C | abs | BIT oper
-fn BIT_abs(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn BIT_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    let v1 = cpu.a();
+    let v2 = addr::load_absolute(mem, pc_lo, pc_hi);
+
+    let res = v1 & v2;
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_v_BIT(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x2D | abs | AND oper
-fn AND_abs(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn AND_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    let v1 = cpu.a();
+    let v2 = addr::load_absolute(mem, pc_lo, pc_hi);
+
+    let res = v1 & v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x2E | abs | ROL oper
@@ -211,18 +337,36 @@ fn BMI_rel(cpu: &mut MOS6502, mem: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -
 
 /// 0x31 | (ind),Y | AND (oper),Y
 fn AND_ind_Y_idx(
-    _: &mut MOS6502,
-    _: &mut Memory,
-    opc: u8,
+    cpu: &mut MOS6502,
+    mem: &mut Memory,
+    _: u8,
     pc_lo: u8,
     pc_hi: u8,
 ) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+    let v1 = cpu.a();
+    let v2 = addr::load_post_indexed_indirect(mem, pc_lo, pc_hi, cpu.y());
+
+    let res = v1 & v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x35 | zpg,X | AND oper,X
-fn AND_zpg_X(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn AND_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    let v1 = cpu.a();
+    let v2 = addr::load_zero_page_indexed(mem, pc_lo, pc_hi, cpu.x());
+
+    let res = v1 & v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x36 | zpg,X | ROL oper,X
@@ -238,13 +382,31 @@ fn SEC_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: u8, _: u8) -> Option<(u
 }
 
 /// 0x39 | abs,Y | AND oper,Y
-fn AND_abs_Y(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn AND_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    let v1 = cpu.a();
+    let v2 = addr::load_absolute_indexed(mem, pc_lo, pc_hi, cpu.y());
+
+    let res = v1 & v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x3D | abs,X | AND oper,X
-fn AND_abs_X(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn AND_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    let v1 = cpu.a();
+    let v2 = addr::load_absolute_indexed(mem, pc_lo, pc_hi, cpu.x());
+
+    let res = v1 & v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x3E | abs,X | ROL oper,X
@@ -259,18 +421,36 @@ fn RTI_impl(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> O
 
 /// 0x41 | (ind,X) | EOR (oper,X)
 fn EOR_idx_ind_X(
-    _: &mut MOS6502,
-    _: &mut Memory,
-    opc: u8,
+    cpu: &mut MOS6502,
+    mem: &mut Memory,
+    _: u8,
     pc_lo: u8,
     pc_hi: u8,
 ) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+    let v1 = cpu.a();
+    let v2 = addr::load_pre_indexed_indirect(mem, pc_lo, pc_hi, cpu.x());
+
+    let res = v1 ^ v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x45 | zpg | EOR oper
-fn EOR_zpg(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn EOR_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    let v1 = cpu.a();
+    let v2 = addr::load_zero_page(mem, pc_lo, pc_hi);
+
+    let res = v1 ^ v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x46 | zpg | LSR oper
@@ -287,8 +467,17 @@ fn PHA_impl(cpu: &mut MOS6502, mem: &mut Memory, _: u8, _: u8, _: u8) -> Option<
 }
 
 /// 0x49 | # | EOR #oper
-fn EOR_imme(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn EOR_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    let v1 = cpu.a();
+    let v2 = addr::load_immediate(mem, pc_lo, pc_hi);
+
+    let res = v1 ^ v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x4A | A | LSR A
@@ -311,8 +500,17 @@ fn JMP_abs(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Op
 }
 
 /// 0x4D | abs | EOR oper
-fn EOR_abs(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn EOR_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    let v1 = cpu.a();
+    let v2 = addr::load_absolute(mem, pc_lo, pc_hi);
+
+    let res = v1 ^ v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x4E | abs | LSR oper
@@ -331,18 +529,36 @@ fn BVC_rel(cpu: &mut MOS6502, mem: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -
 
 /// 0x51 | (ind),Y | EOR (oper),Y
 fn EOR_ind_Y_idx(
-    _: &mut MOS6502,
-    _: &mut Memory,
-    opc: u8,
+    cpu: &mut MOS6502,
+    mem: &mut Memory,
+    _: u8,
     pc_lo: u8,
     pc_hi: u8,
 ) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+    let v1 = cpu.a();
+    let v2 = addr::load_post_indexed_indirect(mem, pc_lo, pc_hi, cpu.y());
+
+    let res = v1 ^ v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x55 | zpg,X | EOR oper,X
-fn EOR_zpg_X(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn EOR_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    let v1 = cpu.a();
+    let v2 = addr::load_zero_page_indexed(mem, pc_lo, pc_hi, cpu.x());
+
+    let res = v1 ^ v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x56 | zpg,X | LSR oper,X
@@ -358,13 +574,31 @@ fn CLI_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: u8, _: u8) -> Option<(u
 }
 
 /// 0x59 | abs,Y | EOR oper,Y
-fn EOR_abs_Y(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn EOR_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    let v1 = cpu.a();
+    let v2 = addr::load_absolute_indexed(mem, pc_lo, pc_hi, cpu.y());
+
+    let res = v1 ^ v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x5D | abs,X | EOR oper,X
-fn EOR_abs_X(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
-    todo!("TBD: pcode {} @ {}{}", opc, pc_hi, pc_lo)
+fn EOR_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
+    let v1 = cpu.a();
+    let v2 = addr::load_absolute_indexed(mem, pc_lo, pc_hi, cpu.x());
+
+    let res = v1 ^ v2;
+    cpu.set_a(res);
+
+    pcr::sync_pcr_n(cpu, res);
+    pcr::sync_pcr_z(cpu, res);
+
+    None
 }
 
 /// 0x5E | abs,X | LSR oper,X
@@ -1634,6 +1868,14 @@ mod pcr {
             cpu.set_psr_bit(PSR::N)
         } else {
             cpu.clr_psr_bit(PSR::N)
+        }
+    }
+
+    pub fn sync_pcr_v_BIT(cpu: &mut MOS6502, val: u8) {
+        if tst_bit(val, 0b0100_0000) {
+            cpu.set_psr_bit(PSR::V)
+        } else {
+            cpu.clr_psr_bit(PSR::V)
         }
     }
 }
