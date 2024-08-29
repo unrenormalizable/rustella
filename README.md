@@ -34,6 +34,7 @@ Why not?
 
 ## References
 
+- [6502 primer](https://wilsonminesco.com/6502primer/)
 - [2600 Tech specs](https://problemkaputt.de/2k6specs.htm)
 - CPU
   - [6502 datasheet](https://www.princeton.edu/~mae412/HANDOUTS/Datasheets/6502.pdf)

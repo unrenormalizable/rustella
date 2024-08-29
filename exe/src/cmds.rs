@@ -1,4 +1,4 @@
-use a2600::{cmn, cpu, hw_dbg, mem};
+use a2600::{am, cmn, cpu, mem, opc_info};
 
 pub fn dump_registers(cpu: &cpu::MOS6502, mem: &mem::Memory) {
     let (pc_lo, pc_hi) = cpu.pc();
@@ -33,15 +33,12 @@ pub fn dump_memory(mem: &mem::Memory, start: &Option<String>) {
     let (start_lo, start_hi) = match start {
         Some(start) => {
             let start = u128::from_str_radix(start, 16).unwrap_or_default();
-            cmn::addr_u16_to_u8(start as u16)
+            am::utils::u16_to_u8(start as u16)
         }
-        None => (mem::RAM_START_LO, mem::RAM_START_HI),
+        None => (cmn::RAM_START_LO, cmn::RAM_START_HI),
     };
 
-    let safe_incr = |s: u8, r: u8, o: u8| {
-        // TODO: Potential crash. Change it to use mem:: functions
-        ((s as u16) + 16u16 * (r as u16) + (o as u16)) as u8
-    };
+    let safe_incr = |s: u8, r: u8, o: u8| ((s as u16) + 16u16 * (r as u16) + (o as u16)) as u8;
 
     for r in 0..8 {
         let line = (0..16).fold(String::new(), |acc, e| {
@@ -62,17 +59,17 @@ pub fn disassemble(cpu: &cpu::MOS6502, mem: &mem::Memory, start: &Option<String>
     let mut pc = match start {
         Some(start) => {
             let start = u128::from_str_radix(start, 16).unwrap_or_default();
-            cmn::addr_u16_to_u8(start as u16)
+            am::utils::u16_to_u8(start as u16)
         }
         None => cpu.pc(),
     };
 
     let mut instr_len = 0u8;
     for _ in 0..16 {
-        pc = cmn::addr_u16_to_u8(cmn::offset_addr(pc.0, pc.1, instr_len));
+        pc = am::utils::u16_to_u8(am::utils::u8_to_u16_indexed(pc.0, pc.1, instr_len));
         let (opc, bytes_str, instr_str, _, addr_mode) =
             disassemble_one_instruction(pc.0, pc.1, mem);
-        instr_len = hw_dbg::ALL_OPCODE_INFO[opc as usize].bytes;
+        instr_len = opc_info::ALL[opc as usize].bytes;
         println!(
             "{} | {} | {: >2x} │ {: >7}",
             bytes_str, instr_str, instr_len, addr_mode
@@ -86,7 +83,7 @@ fn disassemble_one_instruction(
     mem: &mem::Memory,
 ) -> (u8, String, String, u8, &str) {
     let opc = mem.get(start_lo, start_hi, 0);
-    let opc_info = &hw_dbg::ALL_OPCODE_INFO[opc as usize];
+    let opc_info = &opc_info::ALL[opc as usize];
     let instr_b1_str = if opc_info.bytes > 1 {
         &format!("{:02x}", mem.get(start_lo, start_hi, 1))
     } else {

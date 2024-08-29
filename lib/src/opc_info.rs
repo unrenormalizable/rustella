@@ -1,19 +1,13 @@
-pub struct OpCodeInfo<'a> {
-    pub addressing: &'a str,
-    pub assembler: &'a str,
-    pub bytes: u8,
-    pub cycles: &'a str,
-}
+use super::cmn::OpCodeInfo;
 
 /*
 To regenerate this run
 $map = @{}; gc -Raw "D:\src\u\a2600\lib\src\opcodes.json" | ConvertFrom-Json | sort -Property opc | % { $map[$_.opc] = '/* 0x{0:x2} */ OpCodeInfo {{ addressing: "{1}", assembler: "{2}", bytes: {3}, cycles: "{4}", }},' -f ($_.opc, $_.addressing, $_.assembler, $_.bytes, $_.cycles) }
 0..0xff | % { $opc = "{0:X2}" -f $_; if ($map.Contains($opc)) { "    {0}" -f $map[$opc] } else { '    /* 0x{0} */ OpCodeInfo {{ addressing: "?", assembler: "???", bytes: 1, cycles: "0", }},' -f $opc } }
-TODO: Regenerate this table:
 */
 /// NOTE: See opcodes.json
 #[rustfmt::skip]
-pub const ALL_OPCODE_INFO: &[OpCodeInfo; 0x1_00] = &[
+pub const ALL: &[OpCodeInfo; 0x1_00] = &[
     /* 0x00 */ OpCodeInfo { addressing: "impl", assembler: "BRK", bytes: 1, cycles: "7", },
     /* 0x01 */ OpCodeInfo { addressing: "(ind,X)", assembler: "ORA (oper,X)", bytes: 2, cycles: "6", },
     /* 0x02 */ OpCodeInfo { addressing: "?", assembler: "???", bytes: 1, cycles: "0", },

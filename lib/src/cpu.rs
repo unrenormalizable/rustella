@@ -1,4 +1,4 @@
-use super::{hw_dbg, mem, opcode};
+use super::{mem, opc_impl, opc_info};
 use bitflags::bitflags;
 
 bitflags! {
@@ -80,12 +80,12 @@ impl MOS6502 {
             }
 
             let res =
-                opcode::ALL_OPCODE_ROUTINES[opc as usize](self, mem, opc, self.PC_lo, self.PC_hi);
+                opc_impl::ALL_OPCODE_ROUTINES[opc as usize](self, mem, opc, self.PC_lo, self.PC_hi);
             if let Some((lo, hi)) = res {
                 self.PC_lo = lo;
                 self.PC_hi = hi;
             } else {
-                self.pc_incr(hw_dbg::ALL_OPCODE_INFO[opc as usize].bytes);
+                self.pc_incr(opc_info::ALL[opc as usize].bytes);
             }
             call_dbg_after -= 1;
         }
@@ -147,9 +147,8 @@ impl MOS6502 {
         (self.PC_lo, self.PC_hi)
     }
 
-    fn pc_incr(&mut self, incr: u8) {
-        // TODO: safe add
-        self.PC_lo += incr;
+    fn pc_incr(&mut self, index: u8) {
+        self.PC_lo = opc_impl::adder::safe_add(self.PC_lo, index)
     }
 }
 

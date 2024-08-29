@@ -1,8 +1,9 @@
 #![no_std]
 
-pub mod addr;
+pub mod am;
 pub mod cmn;
 pub mod cpu;
-pub mod hw_dbg;
 pub mod mem;
-pub mod opcode;
+pub mod mmaps;
+pub mod opc_impl;
+pub mod opc_info;

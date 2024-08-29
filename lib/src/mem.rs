@@ -1,76 +1,36 @@
-use super::cmn;
+use super::{am, cmn::*, mmaps};
 use core::mem;
 
-pub const ADDRESSABLE_MEMORY_SIZE: usize = 0x1_0000;
-pub const TOTAL_MEMORY_SIZE: usize = 0x2000;
-pub const RESET_VECTOR_LO: u8 = 0xFC;
-pub const RESET_VECTOR_HI: u8 = 0xFF;
-pub const RAM_START_LO: u8 = 0x80;
-pub const RAM_START_HI: u8 = 0x00;
-pub const RAM_SIZE: usize = 0x0080;
-pub const CARTRIDGE_ROM_START: usize = 0x1000;
-
-/// 2600 Memory map:
-///
-/// 0000-002C TIA (Write)
-/// 0030-003D TIA (Read)
-/// 0080-00FF RIOT RAM
-/// 0280-0297 RIOT I/O, TIMER
-/// ... Mirrored (see details below)
-/// 1000-1FFF Cartridge ROM
-///
-/// Details:
-/// 0000-003F = TIA Addresses $00-$3F   (zero page)
-/// 0040-007F = TIA Addresses $00-$3F   (mirror)
-/// 0080-00FF = RIOT RAM                (zero page)
-/// 0100-013F = TIA Addresses $00-$3F   (mirror)
-/// 0140-017F = TIA Addresses $00-$3F   (mirror)
-/// 0180-01FF = RIOT RAM                (mirror)
-/// 0200-023F = TIA Addresses $00-$3F   (mirror)
-/// 0240-027F = TIA Addresses $00-$3F   (mirror)
-/// 0280-029F = RIOT Addresses $00-$1F
-/// 02A0-02BF = RIOT Addresses $00-$1F  (mirror)
-/// 02C0-02DF = RIOT Addresses $00-$1F  (mirror)
-/// 02E0-02FF = RIOT Addresses $00-$1F  (mirror)
-/// 0300-033F = TIA Addresses $00-$3F   (mirror)
-/// 0340-037F = TIA Addresses $00-$3F   (mirror)
-/// 0380-039F = RIOT Addresses $00-$1F  (mirror)
-/// 03A0-03BF = RIOT Addresses $00-$1F  (mirror)
-/// 03C0-03DF = RIOT Addresses $00-$1F  (mirror)
-/// 03E0-03FF = RIOT Addresses $00-$1F  (mirror)
-///
-/// Pins A12-A15 disabled, so 0300-FFFF mirrored as per https://forums.atariage.com/topic/192418-mirrored-memory/#comment-2439795
+/// 6502 Memory map: https://wilsonminesco.com/6502primer/MemMapReqs.html
 pub struct Memory {
     data: [u8; TOTAL_MEMORY_SIZE],
+    mmap_fn: MemMapFn,
 }
 
-// TODO: Implement memory map & checks.
-// TODO: Implement mirroring.
-// TODO: Implement 2K cartridges
 impl Memory {
-    pub fn new(cartridge: &[u8], init: bool) -> Self {
-        if cartridge.len() != 0x1000 {
-            unimplemented!("Cartridges other than 4K haven't been implemented yet.")
-        }
+    pub fn new(init: bool) -> Self {
+        Self::new_with_rom(&[], 0, mmaps::nop, init)
+    }
 
-        let mut data = [0u8; TOTAL_MEMORY_SIZE]; // TODO: Initialize to baadf00d and deadbeef.
+    pub fn new_with_rom(rom: &[u8], rom_start: usize, mmap_fn: MemMapFn, init: bool) -> Self {
+        let mut data = [0u8; TOTAL_MEMORY_SIZE];
         if init {
             Self::fill_with_pattern(&mut data, 0xdeadbeef_baadf00d)
         }
 
-        data[CARTRIDGE_ROM_START..CARTRIDGE_ROM_START + cartridge.len()].copy_from_slice(cartridge);
+        data[rom_start..rom_start + rom.len()].copy_from_slice(rom);
 
-        Self { data }
+        Self { data, mmap_fn }
     }
 
     pub fn get(&self, lo: u8, hi: u8, index: u8) -> u8 {
-        let addr = cmn::indexed(lo, hi, index);
-        self.data[Self::resolve_addr(addr.0, addr.1) as usize]
+        let addr = am::utils::u8_to_u8_indexed(lo, hi, index);
+        self.data[(self.mmap_fn)(addr)]
     }
 
     pub fn set(&mut self, lo: u8, hi: u8, index: u8, value: u8) {
-        let addr = cmn::indexed(lo, hi, index);
-        self.data[Self::resolve_addr(addr.0, addr.1) as usize] = value;
+        let addr = am::utils::u8_to_u8_indexed(lo, hi, index);
+        self.data[(self.mmap_fn)(addr)] = value;
     }
 
     fn fill_with_pattern(data: &mut [u8], pattern: u64) {
@@ -87,49 +47,16 @@ impl Memory {
 
         (pc_lo, pc_hi)
     }
-
-    /// Refer:
-    /// - https://forums.atariage.com/topic/192418-mirrored-memory/#comment-2439795
-    /// - https://forums.atariage.com/topic/27190-session-5-memory-architecture/#comment-442653
-    /// - https://wilsonminesco.com/6502primer/MemMapReqs.html
-    fn resolve_addr(lo: u8, hi: u8) -> u16 {
-        let mut addr = cmn::addr_u8_to_u16(lo, hi);
-        // Step 0. Turn off A13-A15 pins.
-        addr &= 0b0001_1111_1111_1111;
-
-        // Step 1. If not in cartridge ROM, turn off
-        if addr < CARTRIDGE_ROM_START as u16 {
-            addr &= 0b0011_1111_1111;
-        }
-
-        // Step 2. Implement mirrors in 0000-03FF range
-        // TODO.
-
-        addr
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_case::test_case;
-
-    #[test_case(0x00, 0x00, 0x0000; "no mirroring - 1")]
-    #[test_case(0xff, 0x1f, 0x1fff; "no mirroring - 2")]
-    #[test_case(0x00, 0x20, 0x0000; "higher half of address space - 1")]
-    #[test_case(RESET_VECTOR_LO, RESET_VECTOR_HI, 0x1FFC; "higher half of address space - 2")]
-    #[test_case(0xfe, 0x07, 0x3fe; "TIA-RAM-RIOT mirror - 1")]
-    #[test_case(0x01, 0x08, 0x001; "TIA-RAM-RIOT mirror - 2")]
-    #[test_case(0x80, 0x0d, 0x180; "TIA-RAM-RIOT mirror - 3")]
-    fn test_resolve_addr(lo: u8, hi: u8, addr: u16) {
-        let ret = Memory::resolve_addr(lo, hi);
-        assert_eq!(ret, addr);
-    }
 
     #[test]
     fn test_mem_get_set() {
-        let mut mem = Memory::new(&[0b01010101; 0x1000], true);
-        assert_eq!(mem.get(0x00, 0x11, 0), 0b01010101);
+        let mut mem = Memory::new(true);
+        assert_eq!(mem.get(0x00, 0x11, 0), 0xde);
         mem.set(0xA0, 0x00, 0, 0xFE);
         assert_eq!(mem.get(0xA0, 0x00, 0), 0xFE);
     }
