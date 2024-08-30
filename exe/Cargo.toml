@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 a2600 = { path = "../lib" }
 clap = { version = "4.5.16", features = ["derive"] }
+num-traits = "0.2.19"

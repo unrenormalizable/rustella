@@ -9,18 +9,19 @@ pub struct Memory {
 
 impl Memory {
     pub fn new(init: bool) -> Self {
-        Self::new_with_rom(&[], 0, mmaps::mm_6502, init)
+        Self::new_with_rom(&[], Default::default(), mmaps::mm_6502, init)
     }
 
-    pub fn new_with_rom(rom: &[u8], rom_start: usize, mmap_fn: MemMapFn, init: bool) -> Self {
+    pub fn new_with_rom(rom: &[u8], rom_start: LoHi, mmap_fn: MemMapFn, init: bool) -> Self {
         let mut data = [0u8; TOTAL_MEMORY_SIZE];
         if init {
             Self::fill_with_pattern(&mut data, 0xdeadbeef_baadf00d)
         }
 
-        data[rom_start..rom_start + rom.len()].copy_from_slice(rom);
+        let mut ret = Self { data, mmap_fn };
+        ret.load(rom, rom_start);
 
-        Self { data, mmap_fn }
+        ret
     }
 
     pub fn get(&self, lo: u8, hi: u8, index: u8) -> u8 {
@@ -41,11 +42,9 @@ impl Memory {
         }
     }
 
-    pub fn get_pc_from_reset_vector(&self) -> (u8, u8) {
-        let pc_lo = self.get(RESET_VECTOR_LO, RESET_VECTOR_HI, 0);
-        let pc_hi = self.get(RESET_VECTOR_LO, RESET_VECTOR_HI, 1);
-
-        (pc_lo, pc_hi)
+    pub fn load(&mut self, bytes: &[u8], start: LoHi) {
+        let start = am::utils::addr_to_u16(start) as usize;
+        self.data[start..start + bytes.len()].copy_from_slice(bytes);
     }
 }
 

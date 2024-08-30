@@ -1,4 +1,4 @@
-use super::{mem, opc_impl, opc_info};
+use super::{cmn::*, mem, opc_impl, opc_info};
 use bitflags::bitflags;
 
 bitflags! {
@@ -47,21 +47,29 @@ pub struct MOS6502 {
     P: PSR,
 }
 
-type HwDebuggerCallback = fn(opc: u8, cpu: &mut MOS6502, mem: &mut mem::Memory) -> (bool, usize);
+pub type HwDebuggerCallback =
+    fn(opc: u8, cpu: &mut MOS6502, mem: &mut mem::Memory) -> (bool, usize);
 
-impl MOS6502 {
-    pub fn new(pc_lo: u8, pc_hi: u8) -> Self {
+/// References (use multiple to cross check implementation):
+/// - https://www.masswerk.at/6502/6502_instruction_set.html
+/// - https://www.pagetable.com/c64ref/6502/
+pub type OpCode = dyn Fn(&mut MOS6502, &mut mem::Memory, u8, u8, u8) -> Option<(u8, u8)>;
+
+impl Default for MOS6502 {
+    fn default() -> Self {
         Self {
             A: 0xde,
             Y: 0xad,
             X: 0xbe,
-            PC_lo: pc_lo,
-            PC_hi: pc_hi,
+            PC_lo: RESET_VECTOR.0,
+            PC_hi: RESET_VECTOR.1,
             S: 0xef,
             P: PSR::default(),
         }
     }
+}
 
+impl MOS6502 {
     /// References:
     /// - Patterns: https://llx.com/Neil/a2/opcodes.html
     /// - Instruction set: https://www.masswerk.at/6502/6502_instruction_set.html
@@ -69,6 +77,8 @@ impl MOS6502 {
     /// TODO: Remove the callback once we find a better signalling mechanism to indicate hw breakpoint.
     pub fn fetch_decode_execute(&mut self, mem: &mut mem::Memory, callback: HwDebuggerCallback) {
         let mut call_dbg_after = 0;
+
+        self.set_pc(Self::get_pc_from_reset_vector(mem));
         loop {
             let opc = mem.get(self.PC_lo, self.PC_hi, 0);
             if call_dbg_after == 0 {
@@ -79,14 +89,7 @@ impl MOS6502 {
                 }
             }
 
-            let res =
-                opc_impl::ALL_OPCODE_ROUTINES[opc as usize](self, mem, opc, self.PC_lo, self.PC_hi);
-            if let Some((lo, hi)) = res {
-                self.PC_lo = lo;
-                self.PC_hi = hi;
-            } else {
-                self.pc_incr(opc_info::ALL[opc as usize].bytes);
-            }
+            self.exec_one_opcode(mem, opc);
             call_dbg_after -= 1;
         }
     }
@@ -143,12 +146,35 @@ impl MOS6502 {
         self.P = PSR::from_bits_truncate(p);
     }
 
-    pub fn pc(&self) -> (u8, u8) {
-        (self.PC_lo, self.PC_hi)
+    pub fn pc(&self) -> LoHi {
+        LoHi(self.PC_lo, self.PC_hi)
+    }
+
+    pub fn set_pc(&mut self, addr: LoHi) {
+        self.PC_lo = addr.0;
+        self.PC_hi = addr.1;
     }
 
     fn pc_incr(&mut self, index: u8) {
         self.PC_lo = opc_impl::adder::safe_add(self.PC_lo, index)
+    }
+
+    fn exec_one_opcode(&mut self, mem: &mut mem::Memory, opc: u8) {
+        let res =
+            opc_impl::ALL_OPCODE_ROUTINES[opc as usize](self, mem, opc, self.PC_lo, self.PC_hi);
+        if let Some((lo, hi)) = res {
+            self.PC_lo = lo;
+            self.PC_hi = hi;
+        } else {
+            self.pc_incr(opc_info::ALL[opc as usize].bytes);
+        }
+    }
+
+    fn get_pc_from_reset_vector(mem: &mem::Memory) -> LoHi {
+        let pc_lo = mem.get(RESET_VECTOR.0, RESET_VECTOR.1, 0);
+        let pc_hi = mem.get(RESET_VECTOR.0, RESET_VECTOR.1, 1);
+
+        LoHi(pc_lo, pc_hi)
     }
 }
 

@@ -1,7 +1,7 @@
 use super::{am, cmn};
 
 /// Base 6502 Memory layout
-pub fn mm_6502(a: cmn::Address2) -> usize {
+pub fn mm_6502(a: (u8, u8)) -> usize {
     am::utils::u8_to_u16(a.0, a.1) as usize
 }
 
@@ -40,13 +40,13 @@ pub fn mm_6502(a: cmn::Address2) -> usize {
 /// - https://forums.atariage.com/topic/192418-mirrored-memory/#comment-2439795
 /// - https://forums.atariage.com/topic/27190-session-5-memory-architecture/#comment-442653
 /// - https://wilsonminesco.com/6502primer/MemMapReqs.html
-pub fn mm_6507(a: cmn::Address2) -> usize {
+pub fn mm_6507(a: (u8, u8)) -> usize {
     let mut addr = am::utils::u8_to_u16(a.0, a.1);
     // Step 0. Turn off A13-A15 pins.
     addr &= 0b0001_1111_1111_1111;
 
     // Step 1. If not in cartridge ROM, turn off
-    if addr < cmn::ROM_START_6507 as u16 {
+    if addr < am::utils::addr_to_u16(cmn::ROM_START_6507) {
         addr &= 0b0011_1111_1111;
     }
 
@@ -66,7 +66,7 @@ mod tests {
     #[test_case(0x00, 0x00, 0x0000; "no mirroring - 1")]
     #[test_case(0xff, 0x1f, 0x1fff; "no mirroring - 2")]
     #[test_case(0x00, 0x20, 0x0000; "higher half of address space - 1")]
-    #[test_case(cmn::RESET_VECTOR_LO, cmn::RESET_VECTOR_HI, 0x1FFC; "higher half of address space - 2")]
+    #[test_case(cmn::RESET_VECTOR.0, cmn::RESET_VECTOR.1, 0x1FFC; "higher half of address space - 2")]
     #[test_case(0xfe, 0x07, 0x3fe; "TIA-RAM-RIOT mirror - 1")]
     #[test_case(0x01, 0x08, 0x001; "TIA-RAM-RIOT mirror - 2")]
     #[test_case(0x80, 0x0d, 0x180; "TIA-RAM-RIOT mirror - 3")]

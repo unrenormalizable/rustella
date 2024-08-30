@@ -8,8 +8,7 @@ use std::io::Read;
 fn main() -> Result<(), String> {
     let buffer = read_cartridge_rom();
     let mut mem = mem::Memory::new_with_rom(&buffer, cmn::ROM_START_6507, mmaps::mm_6507, true);
-    let (pc_lo, pc_hi) = mem.get_pc_from_reset_vector();
-    let mut cpu = cpu::MOS6502::new(pc_lo, pc_hi);
+    let mut cpu = cpu::MOS6502::default();
     cpu.fetch_decode_execute(&mut mem, hw_debugger_callback);
 
     Ok(())
@@ -41,6 +40,12 @@ fn hw_debugger_callback(_: u8, cpu: &mut cpu::MOS6502, mem: &mut mem::Memory) ->
             }
             Some(repl::Commands::Disassemble { start }) => {
                 cmds::disassemble(cpu, mem, start);
+            }
+            Some(repl::Commands::Load { start, path: file }) => {
+                cmds::load(cpu, mem, start, file);
+            }
+            Some(repl::Commands::SetReg { reg, val }) => {
+                cmds::set_register(cpu, mem, reg, val);
             }
             None => {}
         }

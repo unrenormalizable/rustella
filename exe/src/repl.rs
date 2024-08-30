@@ -1,9 +1,11 @@
 use clap::{Parser, Subcommand};
 use std::io::{self, Write};
 
+/// Refer:
+/// - https://docs.rs/clap/latest/clap/_derive/_tutorial/index.html
+/// - https://docs.rs/clap/latest/clap/_derive/_cookbook/index.html
 #[derive(Parser, Default)]
-#[command(name = "")]
-#[command(about = "Hardware debugger for Atari 2600.", long_about = None)]
+#[command(name = "a2600", about = "Hardware debugger for Atari 2600.", long_about = None)]
 pub struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
@@ -39,6 +41,24 @@ pub enum Commands {
     Disassemble {
         #[arg(index = 1)]
         start: Option<String>,
+    },
+
+    #[command(name = "l")]
+    Load {
+        #[arg(index = 1)]
+        start: String,
+
+        #[arg(index = 2)]
+        path: String,
+    },
+
+    #[command(name = "s")]
+    SetReg {
+        #[arg(index = 1)]
+        reg: String,
+
+        #[arg(index = 2)]
+        val: String,
     },
 }
 

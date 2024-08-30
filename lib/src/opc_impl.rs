@@ -2,11 +2,6 @@
 
 use super::{am, cpu::*, mem::Memory};
 
-/// References (use multiple to cross check implementation):
-/// - https://www.masswerk.at/6502/6502_instruction_set.html
-/// - https://www.pagetable.com/c64ref/6502/
-type OpCode = dyn Fn(&mut MOS6502, &mut Memory, u8, u8, u8) -> Option<(u8, u8)>;
-
 fn illegal(_: &mut MOS6502, _: &mut Memory, opc: u8, pc_lo: u8, pc_hi: u8) -> Option<(u8, u8)> {
     panic!("Illegal opcode {} @ {}{}", opc, pc_hi, pc_lo)
 }
@@ -2023,7 +2018,7 @@ mod stack {
 
         #[test]
         fn test_push_pop() {
-            let mut cpu = MOS6502::new(0x00, 0x00);
+            let mut cpu = MOS6502::default();
             let mut mem = Memory::new(true);
 
             const SP: u8 = 0xff;
