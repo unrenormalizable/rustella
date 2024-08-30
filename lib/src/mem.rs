@@ -9,7 +9,7 @@ pub struct Memory {
 
 impl Memory {
     pub fn new(init: bool) -> Self {
-        Self::new_with_rom(&[], 0, mmaps::nop, init)
+        Self::new_with_rom(&[], 0, mmaps::mm_6502, init)
     }
 
     pub fn new_with_rom(rom: &[u8], rom_start: usize, mmap_fn: MemMapFn, init: bool) -> Self {

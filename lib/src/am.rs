@@ -111,7 +111,7 @@ mod tests {
     #[test_case(0xff, 0xff)]
     #[test_case(0x00, 0xff)]
     fn test_load_immediate(pc_lo: u8, pc_hi: u8) {
-        let mut mem = Memory::new_with_rom(&[], 0, mmaps::_6507, true);
+        let mut mem = Memory::new_with_rom(&[], 0, mmaps::mm_6507, true);
         mem.set(pc_lo, pc_hi, 1, 0x07);
         mem.set(pc_lo, pc_hi, 2, 0xf7);
 
@@ -127,7 +127,7 @@ mod tests {
     #[test_case(0xff, 0xfe, 0x66)]
     #[test_case(0x00, 0xff, 0x96)]
     fn test_load_absolute(pc_lo: u8, pc_hi: u8, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], 0, mmaps::_6507, true);
+        let mut mem = Memory::new_with_rom(&[], 0, mmaps::mm_6507, true);
         mem.set(pc_lo, pc_hi, 1, 0x10);
         mem.set(pc_lo, pc_hi, 2, 0x30);
         mem.set(0x10, 0x30, 0, exp);
@@ -142,7 +142,7 @@ mod tests {
     #[test_case(0xff, 0xfe, 0x66)]
     #[test_case(0x00, 0xff, 0x96)]
     fn test_store_absolute(pc_lo: u8, pc_hi: u8, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], 0, mmaps::_6507, true);
+        let mut mem = Memory::new_with_rom(&[], 0, mmaps::mm_6507, true);
         mem.set(pc_lo, pc_hi, 1, 0x10);
         mem.set(pc_lo, pc_hi, 2, 0x30);
 
@@ -157,7 +157,7 @@ mod tests {
     #[test_case(0xff, 0xff, 0x66)]
     #[test_case(0x00, 0xff, 0x98)]
     fn test_load_zero_page(pc_lo: u8, pc_hi: u8, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], 0, mmaps::_6507, true);
+        let mut mem = Memory::new_with_rom(&[], 0, mmaps::mm_6507, true);
         mem.set(pc_lo, pc_hi, 1, 0x80);
         mem.set(0x80, 0x00, 0, exp);
 
@@ -171,7 +171,7 @@ mod tests {
     #[test_case(0xff, 0xff, 0x66)]
     #[test_case(0x00, 0xff, 0x98)]
     fn test_store_zero_page(pc_lo: u8, pc_hi: u8, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], 0, mmaps::_6507, true);
+        let mut mem = Memory::new_with_rom(&[], 0, mmaps::mm_6507, true);
         mem.set(pc_lo, pc_hi, 1, 0x80);
 
         store_zero_page(&mut mem, pc_lo, pc_hi, exp);
@@ -185,7 +185,7 @@ mod tests {
     #[test_case(0xff, 0xfe, 0x66)]
     #[test_case(0x00, 0xff, 0x96)]
     fn test_load_absolute_indexed(pc_lo: u8, pc_hi: u8, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], 0, mmaps::_6507, true);
+        let mut mem = Memory::new_with_rom(&[], 0, mmaps::mm_6507, true);
         mem.set(pc_lo, pc_hi, 1, 0x20);
         mem.set(pc_lo, pc_hi, 2, 0x31);
         let index = 0x12;
@@ -201,7 +201,7 @@ mod tests {
     #[test_case(0xff, 0xfe, 0x66)]
     #[test_case(0x00, 0xff, 0x96)]
     fn test_store_absolute_indexed(pc_lo: u8, pc_hi: u8, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], 0, mmaps::_6507, true);
+        let mut mem = Memory::new_with_rom(&[], 0, mmaps::mm_6507, true);
         mem.set(pc_lo, pc_hi, 1, 0x20);
         mem.set(pc_lo, pc_hi, 2, 0x31);
         let index = 0x12;
@@ -217,7 +217,7 @@ mod tests {
     #[test_case(0xff, 0xff, 0x66)]
     #[test_case(0x00, 0xff, 0x98)]
     fn test_load_zero_page_indexed(pc_lo: u8, pc_hi: u8, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], 0, mmaps::_6507, true);
+        let mut mem = Memory::new_with_rom(&[], 0, mmaps::mm_6507, true);
         mem.set(pc_lo, pc_hi, 1, 0x80);
         let index = 0x02;
         mem.set(0x82, 0x00, 0, exp);
@@ -232,7 +232,7 @@ mod tests {
     #[test_case(0xff, 0xff, 0x66)]
     #[test_case(0x00, 0xff, 0x98)]
     fn test_store_zero_page_indexed(pc_lo: u8, pc_hi: u8, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], 0, mmaps::_6507, true);
+        let mut mem = Memory::new_with_rom(&[], 0, mmaps::mm_6507, true);
         mem.set(pc_lo, pc_hi, 1, 0x80);
         let index = 0x02;
 
@@ -247,7 +247,7 @@ mod tests {
     #[test_case(0xff, 0xff, (0xde, 0xad))]
     #[test_case(0x00, 0xff, (0xbe, 0xef))]
     fn test_load_indirect(pc_lo: u8, pc_hi: u8, exp: (u8, u8)) {
-        let mut mem = Memory::new_with_rom(&[], 0, mmaps::_6507, true);
+        let mut mem = Memory::new_with_rom(&[], 0, mmaps::mm_6507, true);
         mem.set(pc_lo, pc_hi, 1, 0x82);
         mem.set(pc_lo, pc_hi, 2, 0xff);
         mem.set(0x82, 0xff, 0, exp.0);
@@ -262,7 +262,7 @@ mod tests {
     #[test_case(0xff, 0xff, 0x05, 0xA5)]
     #[test_case(0x00, 0xff, 0x05, 0xA5)]
     fn test_load_pre_indexed_indirect(pc_lo: u8, pc_hi: u8, index: u8, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], 0, mmaps::_6507, true);
+        let mut mem = Memory::new_with_rom(&[], 0, mmaps::mm_6507, true);
         mem.set(pc_lo, pc_hi, 1, 0x70);
         mem.set(0x75, 0x00, 0, 0x23);
         mem.set(0x75, 0x00, 1, 0x30);
@@ -277,7 +277,7 @@ mod tests {
     #[test_case(0xff, 0xff, 0x05, 0xA5)]
     #[test_case(0x00, 0xff, 0x05, 0xA5)]
     fn test_store_pre_indexed_indirect(pc_lo: u8, pc_hi: u8, index: u8, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], 0, mmaps::_6507, true);
+        let mut mem = Memory::new_with_rom(&[], 0, mmaps::mm_6507, true);
         mem.set(pc_lo, pc_hi, 1, 0x70);
         mem.set(0x75, 0x00, 0, 0x23);
         mem.set(0x75, 0x00, 1, 0x30);
@@ -292,7 +292,7 @@ mod tests {
     #[test_case(0xff, 0xff, 0x10, 0x23)]
     #[test_case(0x00, 0xff, 0x10, 0x23)]
     fn test_load_post_indexed_indirect(pc_lo: u8, pc_hi: u8, index: u8, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], 0, mmaps::_6507, true);
+        let mut mem = Memory::new_with_rom(&[], 0, mmaps::mm_6507, true);
         mem.set(pc_lo, pc_hi, 1, 0x70);
         mem.set(0x70, 0x00, 0, 0x43);
         mem.set(0x70, 0x00, 1, 0x35);
@@ -307,7 +307,7 @@ mod tests {
     #[test_case(0xff, 0xff, 0x10, 0x23)]
     #[test_case(0x00, 0xff, 0x10, 0x23)]
     fn test_store_post_indexed_indirect(pc_lo: u8, pc_hi: u8, index: u8, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], 0, mmaps::_6507, true);
+        let mut mem = Memory::new_with_rom(&[], 0, mmaps::mm_6507, true);
         mem.set(pc_lo, pc_hi, 1, 0x70);
         mem.set(0x70, 0x00, 0, 0x43);
         mem.set(0x70, 0x00, 1, 0x35);
@@ -380,7 +380,7 @@ pub mod utils {
         #[test_case(0xd0, 0x0a, 0xf0, 0xfb, (0x07, 0xf0); "Jump by -3+len bytes")]
         #[test_case(0x10, 0x00, 0x00, 0x50, (0x52, 0x00); "Jump by 50+len bytes")]
         fn test_relative_addr(opc: u8, pc_lo: u8, pc_hi: u8, op_arg: u8, exp: (u8, u8)) {
-            let mut mem = Memory::new_with_rom(&[], 0, mmaps::_6507, true);
+            let mut mem = Memory::new_with_rom(&[], 0, mmaps::mm_6507, true);
             mem.set(pc_lo, pc_hi, 1, op_arg);
 
             let obt = relative(&mem, opc, pc_lo, pc_hi);

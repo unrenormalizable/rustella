@@ -1,7 +1,7 @@
 use super::{am, cmn};
 
 /// Base 6502 Memory layout
-pub fn nop(a: cmn::Address2) -> usize {
+pub fn mm_6502(a: cmn::Address2) -> usize {
     am::utils::u8_to_u16(a.0, a.1) as usize
 }
 
@@ -40,7 +40,7 @@ pub fn nop(a: cmn::Address2) -> usize {
 /// - https://forums.atariage.com/topic/192418-mirrored-memory/#comment-2439795
 /// - https://forums.atariage.com/topic/27190-session-5-memory-architecture/#comment-442653
 /// - https://wilsonminesco.com/6502primer/MemMapReqs.html
-pub fn _6507(a: cmn::Address2) -> usize {
+pub fn mm_6507(a: cmn::Address2) -> usize {
     let mut addr = am::utils::u8_to_u16(a.0, a.1);
     // Step 0. Turn off A13-A15 pins.
     addr &= 0b0001_1111_1111_1111;
@@ -71,7 +71,7 @@ mod tests {
     #[test_case(0x01, 0x08, 0x001; "TIA-RAM-RIOT mirror - 2")]
     #[test_case(0x80, 0x0d, 0x180; "TIA-RAM-RIOT mirror - 3")]
     fn test_resolve_addr(lo: u8, hi: u8, addr: usize) {
-        let ret = _6507((lo, hi));
+        let ret = mm_6507((lo, hi));
         assert_eq!(ret, addr);
     }
 }

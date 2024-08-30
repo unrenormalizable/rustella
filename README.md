@@ -16,7 +16,7 @@ Why not?
 
 - In no_std safe Rust.
 - No referring to any existing A2600 emulator code.
-  - Allowed: Datasheets / tutorials / discussions on the web that is not emulator code.
+  - Allowed: Datasheets / tutorials / discussions on the web that is not emulator code / design.
 - v1: Just sufficient to play the very basic games.
 - v1: Web front-end with hardware debugger.
 
@@ -36,18 +36,21 @@ Why not?
 
 - [6502 primer](https://wilsonminesco.com/6502primer/)
 - [2600 Tech specs](https://problemkaputt.de/2k6specs.htm)
+- [Reference hardware](https://stella-emu.github.io/docs/index.html#ROMInfo)
 - CPU
   - [6502 datasheet](https://www.princeton.edu/~mae412/HANDOUTS/Datasheets/6502.pdf)
   - [6502 Instruction set](https://www.masswerk.at/6502/6502_instruction_set.html)
   - [The 6502/65C02/65C816 Instruction Set Decoded](https://llx.com/Neil/a2/opcodes.html)
   - [The 6502 Microprocessor Resource](http://www.6502.org/)
+  - Tests
+    - [6502 CPU tests](https://codegolf.stackexchange.com/questions/12844/emulate-a-mos-6502-cpu)
+    - [6502_65C02_functional_tests](https://github.com/Klaus2m5/6502_65C02_functional_tests)
+    - [Tom Harte style JSON](https://github.com/SingleStepTests/65x02)
 - Memory
   - [2600 Memory layout](https://forums.atariage.com/topic/192418-mirrored-memory/#comment-2439795)
   - [6502 Memory map requirements](https://wilsonminesco.com/6502primer/MemMapReqs.html)
-- Tests
-  - [6502 CPU tests](https://codegolf.stackexchange.com/questions/12844/emulate-a-mos-6502-cpu)
-  - [6502_65C02_functional_tests](https://github.com/Klaus2m5/6502_65C02_functional_tests)
-  - [Tom Harte style JSON](https://github.com/SingleStepTests/65x02)
+- TIA
+  - [The TIA and the 6502](https://www.randomterrain.com/atari-2600-memories-tutorial-andrew-davie-03.html)
+  - [Atari 2600 TIA Hardware Notes](https://www.atarihq.com/danb/files/TIA_HW_Notes.txt)
 - References
   - ROMS: Open AI Gym: &lt;user&gt;\\.conda\envs\rlenvs\Lib\site-packages\AutoROM\roms
-  - [Stella reference emulator](https://stella-emu.github.io/docs/index.html#ROMInfo)
