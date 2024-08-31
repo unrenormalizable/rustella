@@ -1,4 +1,4 @@
-use super::{am, cmn::*, mmaps};
+use super::{cmn::*, mmaps};
 use core::mem;
 
 /// 6502 Memory map: https://wilsonminesco.com/6502primer/MemMapReqs.html
@@ -24,13 +24,13 @@ impl Memory {
         ret
     }
 
-    pub fn get(&self, lo: u8, hi: u8, index: u8) -> u8 {
-        let addr = am::utils::u8_to_u8_indexed(lo, hi, index);
+    pub fn get(&self, addr: LoHi, index: u8) -> u8 {
+        let addr = addr + index;
         self.data[(self.mmap_fn)(addr)]
     }
 
-    pub fn set(&mut self, lo: u8, hi: u8, index: u8, value: u8) {
-        let addr = am::utils::u8_to_u8_indexed(lo, hi, index);
+    pub fn set(&mut self, addr: LoHi, index: u8, value: u8) {
+        let addr = addr + index;
         self.data[(self.mmap_fn)(addr)] = value;
     }
 
@@ -43,7 +43,7 @@ impl Memory {
     }
 
     pub fn load(&mut self, bytes: &[u8], start: LoHi) {
-        let start = am::utils::addr_to_u16(start) as usize;
+        let start = u16::from(start) as usize;
         self.data[start..start + bytes.len()].copy_from_slice(bytes);
     }
 }
@@ -55,8 +55,8 @@ mod tests {
     #[test]
     fn test_mem_get_set() {
         let mut mem = Memory::new(true);
-        assert_eq!(mem.get(0x00, 0x11, 0), 0xde);
-        mem.set(0xA0, 0x00, 0, 0xFE);
-        assert_eq!(mem.get(0xA0, 0x00, 0), 0xFE);
+        assert_eq!(mem.get(LoHi(0x00, 0x11), 0), 0xde);
+        mem.set(LoHi(0xA0, 0x00), 0, 0xFE);
+        assert_eq!(mem.get(LoHi(0xA0, 0x00), 0), 0xFE);
     }
 }

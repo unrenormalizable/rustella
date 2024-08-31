@@ -41,8 +41,7 @@ pub struct MOS6502 {
     A: u8,
     Y: u8,
     X: u8,
-    PC_lo: u8,
-    PC_hi: u8,
+    PC: LoHi,
     S: u8,
     P: PSR,
 }
@@ -53,7 +52,7 @@ pub type HwDebuggerCallback =
 /// References (use multiple to cross check implementation):
 /// - https://www.masswerk.at/6502/6502_instruction_set.html
 /// - https://www.pagetable.com/c64ref/6502/
-pub type OpCode = dyn Fn(&mut MOS6502, &mut mem::Memory, u8, u8, u8) -> Option<(u8, u8)>;
+pub type OpCode = dyn Fn(&mut MOS6502, &mut mem::Memory, u8, LoHi) -> Option<LoHi>;
 
 impl Default for MOS6502 {
     fn default() -> Self {
@@ -61,8 +60,7 @@ impl Default for MOS6502 {
             A: 0xde,
             Y: 0xad,
             X: 0xbe,
-            PC_lo: RESET_VECTOR.0,
-            PC_hi: RESET_VECTOR.1,
+            PC: RESET_VECTOR,
             S: 0xef,
             P: PSR::default(),
         }
@@ -80,7 +78,7 @@ impl MOS6502 {
 
         self.set_pc(Self::get_pc_from_reset_vector(mem));
         loop {
-            let opc = mem.get(self.PC_lo, self.PC_hi, 0);
+            let opc = mem.get(self.PC, 0);
             if call_dbg_after == 0 {
                 let cb_res = callback(opc, self, mem);
                 call_dbg_after = cb_res.1;
@@ -147,32 +145,29 @@ impl MOS6502 {
     }
 
     pub fn pc(&self) -> LoHi {
-        LoHi(self.PC_lo, self.PC_hi)
+        self.PC
     }
 
-    pub fn set_pc(&mut self, addr: LoHi) {
-        self.PC_lo = addr.0;
-        self.PC_hi = addr.1;
+    pub fn set_pc(&mut self, val: LoHi) {
+        self.PC = val;
     }
 
     fn pc_incr(&mut self, index: u8) {
-        self.PC_lo = opc_impl::adder::safe_add(self.PC_lo, index)
+        self.PC += index;
     }
 
     fn exec_one_opcode(&mut self, mem: &mut mem::Memory, opc: u8) {
-        let res =
-            opc_impl::ALL_OPCODE_ROUTINES[opc as usize](self, mem, opc, self.PC_lo, self.PC_hi);
-        if let Some((lo, hi)) = res {
-            self.PC_lo = lo;
-            self.PC_hi = hi;
+        let res = opc_impl::ALL_OPCODE_ROUTINES[opc as usize](self, mem, opc, self.PC);
+        if let Some(lohi) = res {
+            self.PC = lohi;
         } else {
             self.pc_incr(opc_info::ALL[opc as usize].bytes);
         }
     }
 
     fn get_pc_from_reset_vector(mem: &mem::Memory) -> LoHi {
-        let pc_lo = mem.get(RESET_VECTOR.0, RESET_VECTOR.1, 0);
-        let pc_hi = mem.get(RESET_VECTOR.0, RESET_VECTOR.1, 1);
+        let pc_lo = mem.get(RESET_VECTOR, 0);
+        let pc_hi = mem.get(RESET_VECTOR, 1);
 
         LoHi(pc_lo, pc_hi)
     }

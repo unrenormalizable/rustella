@@ -1,4 +1,4 @@
-use a2600::{am, cmn, cpu, mem, opc_info};
+use a2600::{cmn::*, cpu, mem, opc_info};
 
 pub fn dump_registers(cpu: &cpu::MOS6502, mem: &mem::Memory) {
     let pc = cpu.pc();
@@ -29,16 +29,16 @@ pub fn dump_registers(cpu: &cpu::MOS6502, mem: &mem::Memory) {
 }
 
 pub fn dump_memory(mem: &mem::Memory, start: &Option<String>) {
-    let cmn::LoHi(start_lo, start_hi) = parse_hex_addr_opt(start, cmn::RAM_START);
+    let LoHi(start_lo, start_hi) = parse_hex_addr_opt(start, RAM_START);
 
     let safe_incr = |s: u8, r: u8, o: u8| ((s as u16) + 16u16 * (r as u16) + (o as u16)) as u8;
 
     for r in 0..8 {
         let line = (0..16).fold(String::new(), |acc, e| {
-            let addr = (safe_incr(start_lo, r, e), start_hi);
+            let addr = LoHi(safe_incr(start_lo, r, e), start_hi);
             acc + format!(
                 "{:02x} {}",
-                mem.get(addr.0, addr.1, 0),
+                mem.get(addr, 0),
                 if e == 7 { "- " } else { "" }
             )
             .as_str()
@@ -49,11 +49,11 @@ pub fn dump_memory(mem: &mem::Memory, start: &Option<String>) {
 }
 
 pub fn disassemble(cpu: &cpu::MOS6502, mem: &mem::Memory, start: &Option<String>) {
-    let mut pc = parse_hex_addr_opt(start, cmn::LoHi(cpu.pc().0, cpu.pc().1));
+    let mut pc = parse_hex_addr_opt(start, LoHi(cpu.pc().0, cpu.pc().1));
 
     let mut instr_len = 0u8;
     for _ in 0..16 {
-        pc = am::utils::address_indexed(pc, instr_len);
+        pc += instr_len;
         let (opc, bytes_str, instr_str, _, addr_mode) = disassemble_one_instruction(pc, mem);
         instr_len = opc_info::ALL[opc as usize].bytes;
         println!(
@@ -64,7 +64,7 @@ pub fn disassemble(cpu: &cpu::MOS6502, mem: &mem::Memory, start: &Option<String>
 }
 
 pub fn load(_: &cpu::MOS6502, mem: &mut mem::Memory, start: &str, path: &str) {
-    let start = u16::from_str_radix(start, 16).map(am::utils::u16_to_addr);
+    let start = u16::from_str_radix(start, 16).map(LoHi::from);
     if start.is_err() {
         println!("Unable to parse start address {:?}", start);
         return;
@@ -91,26 +91,23 @@ pub fn set_register(cpu: &mut cpu::MOS6502, _: &mem::Memory, reg: &str, val: &st
         "a" => cpu.set_a(reg_val as u8),
         "x" => cpu.set_x(reg_val as u8),
         "y" => cpu.set_y(reg_val as u8),
-        "pc" => cpu.set_pc(am::utils::u16_to_addr(reg_val)),
+        "pc" => cpu.set_pc(LoHi::from(reg_val)),
         "s" => cpu.set_s(reg_val as u8),
         "p" => cpu.set_p(reg_val as u8),
         _ => println!("Unknown register {reg}"),
     }
 }
 
-fn disassemble_one_instruction(
-    start: cmn::LoHi,
-    mem: &mem::Memory,
-) -> (u8, String, String, u8, &str) {
-    let opc = mem.get(start.0, start.1, 0);
+fn disassemble_one_instruction(start: LoHi, mem: &mem::Memory) -> (u8, String, String, u8, &str) {
+    let opc = mem.get(start, 0);
     let opc_info = &opc_info::ALL[opc as usize];
     let instr_b1_str = if opc_info.bytes > 1 {
-        &format!("{:02x}", mem.get(start.0, start.1, 1))
+        &format!("{:02x}", mem.get(start, 1))
     } else {
         ""
     };
     let instr_b2_str = if opc_info.bytes > 2 {
-        &format!("{:02x}", mem.get(start.0, start.1, 2))
+        &format!("{:02x}", mem.get(start, 2))
     } else {
         ""
     };
@@ -144,9 +141,9 @@ fn bit_value(cpu: &cpu::MOS6502, bit: cpu::PSR) -> String {
     }
 }
 
-fn parse_hex_addr_opt(val: &Option<String>, default: cmn::LoHi) -> cmn::LoHi {
+fn parse_hex_addr_opt(val: &Option<String>, default: LoHi) -> LoHi {
     val.as_ref()
         .and_then(|x| u16::from_str_radix(x, 16).ok())
-        .map(am::utils::u16_to_addr)
+        .map(LoHi::from)
         .unwrap_or(default)
 }
