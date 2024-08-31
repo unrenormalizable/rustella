@@ -15,7 +15,7 @@ pub struct OpCodeInfo<'a> {
     pub cycles: &'a str,
 }
 
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LoHi(pub u8, pub u8);
 
 impl LoHi {

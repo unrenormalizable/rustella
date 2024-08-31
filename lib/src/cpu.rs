@@ -46,9 +46,6 @@ pub struct MOS6502 {
     P: PSR,
 }
 
-pub type HwDebuggerCallback =
-    fn(opc: u8, cpu: &mut MOS6502, mem: &mut mem::Memory) -> (bool, usize);
-
 /// References (use multiple to cross check implementation):
 /// - https://www.masswerk.at/6502/6502_instruction_set.html
 /// - https://www.pagetable.com/c64ref/6502/
@@ -60,35 +57,28 @@ impl Default for MOS6502 {
             A: 0xde,
             Y: 0xad,
             X: 0xbe,
-            PC: RESET_VECTOR,
+            PC: Default::default(),
             S: 0xef,
-            P: PSR::default(),
+            P: Default::default(),
         }
     }
 }
 
 impl MOS6502 {
-    /// References:
-    /// - Patterns: https://llx.com/Neil/a2/opcodes.html
-    /// - Instruction set: https://www.masswerk.at/6502/6502_instruction_set.html
-    ///
-    /// TODO: Remove the callback once we find a better signalling mechanism to indicate hw breakpoint.
-    pub fn fetch_decode_execute(&mut self, mem: &mut mem::Memory, callback: HwDebuggerCallback) {
-        let mut call_dbg_after = 0;
+    pub fn new(mem: &mem::Memory) -> Self {
+        let mut cpu = Self::default();
+        cpu.reset_pc(mem);
 
-        self.set_pc(Self::get_pc_from_reset_vector(mem));
-        loop {
-            let opc = mem.get(self.PC, 0);
-            if call_dbg_after == 0 {
-                let cb_res = callback(opc, self, mem);
-                call_dbg_after = cb_res.1;
-                if !cb_res.0 {
-                    break;
-                }
-            }
+        cpu
+    }
 
-            self.exec_one_opcode(mem, opc);
-            call_dbg_after -= 1;
+    pub fn fetch_decode_execute(&mut self, mem: &mut mem::Memory) {
+        let opc = mem.get(self.PC, 0);
+        let res = opc_impl::ALL_OPCODE_ROUTINES[opc as usize](self, mem, opc, self.PC);
+        if let Some(lohi) = res {
+            self.PC = lohi;
+        } else {
+            self.pc_incr(opc_info::ALL[opc as usize].bytes);
         }
     }
 
@@ -156,20 +146,11 @@ impl MOS6502 {
         self.PC += index;
     }
 
-    fn exec_one_opcode(&mut self, mem: &mut mem::Memory, opc: u8) {
-        let res = opc_impl::ALL_OPCODE_ROUTINES[opc as usize](self, mem, opc, self.PC);
-        if let Some(lohi) = res {
-            self.PC = lohi;
-        } else {
-            self.pc_incr(opc_info::ALL[opc as usize].bytes);
-        }
-    }
-
-    fn get_pc_from_reset_vector(mem: &mem::Memory) -> LoHi {
+    fn reset_pc(&mut self, mem: &mem::Memory) {
         let pc_lo = mem.get(RESET_VECTOR, 0);
         let pc_hi = mem.get(RESET_VECTOR, 1);
 
-        LoHi(pc_lo, pc_hi)
+        self.PC = LoHi(pc_lo, pc_hi);
     }
 }
 

@@ -1,8 +1,9 @@
 use a2600::{cmn::*, cpu, mem, opc_info};
+use std::collections::HashSet;
 
-pub fn dump_registers(cpu: &cpu::MOS6502, mem: &mem::Memory) {
+pub fn dump_registers(cpu: &cpu::MOS6502, mem: &mem::Memory, bps: &HashSet<LoHi>) {
     let pc = cpu.pc();
-    let (_, bytes_str, instr_str, instr_len, addr_mode) = disassemble_one_instruction(pc, mem);
+    let (_, bytes_str, instr_str, instr_len, addr_mode) = disassemble_one_instruction(mem, bps, pc);
 
     println!("┌────────────────┬────────────┬─────────────┬─────────────────┬──────────────┐");
     println!("│ PC             │ OP         │ A  X  Y  S  │ N V   B D I Z C │              │");
@@ -48,13 +49,18 @@ pub fn dump_memory(mem: &mem::Memory, start: &Option<String>) {
     }
 }
 
-pub fn disassemble(cpu: &cpu::MOS6502, mem: &mem::Memory, start: &Option<String>) {
+pub fn disassemble(
+    cpu: &cpu::MOS6502,
+    mem: &mem::Memory,
+    bps: &HashSet<LoHi>,
+    start: &Option<String>,
+) {
     let mut pc = parse_hex_addr_opt(start, LoHi(cpu.pc().0, cpu.pc().1));
 
     let mut instr_len = 0u8;
     for _ in 0..16 {
         pc += instr_len;
-        let (opc, bytes_str, instr_str, _, addr_mode) = disassemble_one_instruction(pc, mem);
+        let (opc, bytes_str, instr_str, _, addr_mode) = disassemble_one_instruction(mem, bps, pc);
         instr_len = opc_info::ALL[opc as usize].bytes;
         println!(
             "{} | {} | {: >2x} │ {: >7}",
@@ -63,7 +69,7 @@ pub fn disassemble(cpu: &cpu::MOS6502, mem: &mem::Memory, start: &Option<String>
     }
 }
 
-pub fn load(_: &cpu::MOS6502, mem: &mut mem::Memory, start: &str, path: &str) {
+pub fn load(mem: &mut mem::Memory, start: &str, path: &str) {
     let start = u16::from_str_radix(start, 16).map(LoHi::from);
     if start.is_err() {
         println!("Unable to parse start address {:?}", start);
@@ -79,7 +85,7 @@ pub fn load(_: &cpu::MOS6502, mem: &mut mem::Memory, start: &str, path: &str) {
     mem.load(&bytes.unwrap(), start.unwrap());
 }
 
-pub fn set_register(cpu: &mut cpu::MOS6502, _: &mem::Memory, reg: &str, val: &str) {
+pub fn set_register(cpu: &mut cpu::MOS6502, reg: &str, val: &str) {
     let reg_val = u16::from_str_radix(val, 16);
     if reg_val.is_err() {
         println!("Unable to parse value {val}");
@@ -98,23 +104,56 @@ pub fn set_register(cpu: &mut cpu::MOS6502, _: &mem::Memory, reg: &str, val: &st
     }
 }
 
-fn disassemble_one_instruction(start: LoHi, mem: &mem::Memory) -> (u8, String, String, u8, &str) {
-    let opc = mem.get(start, 0);
+pub fn bp_create_or_delete(break_points: &mut HashSet<LoHi>, op: &str, addr: &str) {
+    match op.to_lowercase().as_str() {
+        "a" | "add" => {
+            u16::from_str_radix(addr, 16)
+                .ok()
+                .map(|x| break_points.insert(LoHi::from(x)));
+        }
+        "d" | "del" => {
+            u16::from_str_radix(addr, 16)
+                .ok()
+                .map(|x| break_points.remove(&LoHi::from(x)));
+        }
+        _ => println!("Unknown command {op}"),
+    }
+}
+
+pub fn bp_list(break_points: &HashSet<LoHi>) {
+    break_points
+        .iter()
+        .enumerate()
+        .for_each(|(n, bp)| println!("{n:02} {:02x}{:02x}", bp.1, bp.0))
+}
+
+fn disassemble_one_instruction(
+    mem: &mem::Memory,
+    bps: &HashSet<LoHi>,
+    pc: LoHi,
+) -> (u8, String, String, u8, &'static str) {
+    let opc = mem.get(pc, 0);
     let opc_info = &opc_info::ALL[opc as usize];
     let instr_b1_str = if opc_info.bytes > 1 {
-        &format!("{:02x}", mem.get(start, 1))
+        &format!("{:02x}", mem.get(pc, 1))
     } else {
         ""
     };
     let instr_b2_str = if opc_info.bytes > 2 {
-        &format!("{:02x}", mem.get(start, 2))
+        &format!("{:02x}", mem.get(pc, 2))
     } else {
         ""
     };
 
+    let pc_str = format!("{:02x}{:02x}", pc.1, pc.0);
+    let pc_str = if bps.contains(&pc) {
+        pc_str.red()
+    } else {
+        pc_str
+    };
     let bytes_str = format!(
-        "{:02x}{:02x}: {:02x} {: <2} {: <2}",
-        start.1, start.0, opc, instr_b1_str, instr_b2_str
+        "{}: {:02x} {: <2} {: <2}",
+        pc_str, opc, instr_b1_str, instr_b2_str
     );
 
     let instr_str = format!(
@@ -146,4 +185,15 @@ fn parse_hex_addr_opt(val: &Option<String>, default: LoHi) -> LoHi {
         .and_then(|x| u16::from_str_radix(x, 16).ok())
         .map(LoHi::from)
         .unwrap_or(default)
+}
+
+trait VTerm {
+    fn red(&self) -> Self;
+}
+
+/// https://learn.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences
+impl VTerm for String {
+    fn red(&self) -> Self {
+        format!("\u{001B}[41m{self}\u{001B}[0m")
+    }
 }

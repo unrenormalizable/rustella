@@ -60,6 +60,18 @@ pub enum Commands {
         #[arg(index = 2)]
         val: String,
     },
+
+    #[command(name = "bp")]
+    BreakPoint {
+        #[arg(index = 1)]
+        op: String,
+
+        #[arg(index = 2)]
+        addr: String,
+    },
+
+    #[command(name = "bpl")]
+    BreakPointList,
 }
 
 pub fn get_cmdline() -> Cli {
