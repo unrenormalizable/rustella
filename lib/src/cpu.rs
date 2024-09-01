@@ -1,4 +1,4 @@
-use super::{cmn::*, mem, opc_impl, opc_info};
+use super::{cmn::*, mem, opc_impl, opc_info, timer};
 use bitflags::bitflags;
 
 bitflags! {
@@ -44,6 +44,10 @@ pub struct MOS6502 {
     PC: LoHi,
     S: u8,
     P: PSR,
+    // Profiling stuff, maybe move them elsewhere?
+    instructions: u64,
+    cycles: u64,
+    duration: u64,
 }
 
 /// References (use multiple to cross check implementation):
@@ -60,6 +64,9 @@ impl Default for MOS6502 {
             PC: Default::default(),
             S: 0xef,
             P: Default::default(),
+            instructions: 0,
+            cycles: 0,
+            duration: 0,
         }
     }
 }
@@ -72,7 +79,9 @@ impl MOS6502 {
         cpu
     }
 
+    #[inline]
     pub fn fetch_decode_execute(&mut self, mem: &mut mem::Memory) {
+        let start_time = timer::get_nanoseconds();
         let opc = mem.get(self.PC, 0);
         let res = opc_impl::ALL_OPCODE_ROUTINES[opc as usize](self, mem, opc, self.PC);
         if let Some(lohi) = res {
@@ -80,68 +89,101 @@ impl MOS6502 {
         } else {
             self.pc_incr(opc_info::ALL[opc as usize].bytes);
         }
+
+        self.instructions += 1;
+        self.cycles += opc_info::ALL[opc as usize].cycles;
+        self.duration += timer::measure_elapsed(start_time);
     }
 
+    #[inline]
     pub fn tst_psr_bit(&self, bit: PSR) -> bool {
         tst_bit(self.P.bits(), bit.bits())
     }
 
+    #[inline]
     pub fn set_psr_bit(&mut self, bit: PSR) {
         set_bit(&mut self.P, bit);
     }
 
+    #[inline]
     pub fn clr_psr_bit(&mut self, bit: PSR) {
         clr_bit(&mut self.P, bit)
     }
 
+    #[inline]
     pub fn a(&self) -> u8 {
         self.A
     }
 
+    #[inline]
     pub fn set_a(&mut self, a: u8) {
         self.A = a;
     }
 
+    #[inline]
     pub fn x(&self) -> u8 {
         self.X
     }
 
+    #[inline]
     pub fn set_x(&mut self, x: u8) {
         self.X = x;
     }
 
+    #[inline]
     pub fn y(&self) -> u8 {
         self.Y
     }
 
+    #[inline]
     pub fn set_y(&mut self, y: u8) {
         self.Y = y;
     }
 
+    #[inline]
     pub fn s(&self) -> u8 {
         self.S
     }
 
+    #[inline]
     pub fn set_s(&mut self, s: u8) {
         self.S = s;
     }
 
+    #[inline]
     pub fn p(&self) -> u8 {
         self.P.bits()
     }
 
+    #[inline]
     pub fn set_p(&mut self, p: u8) {
         self.P = PSR::from_bits_truncate(p);
     }
 
+    #[inline]
     pub fn pc(&self) -> LoHi {
         self.PC
     }
 
+    #[inline]
     pub fn set_pc(&mut self, val: LoHi) {
         self.PC = val;
     }
 
+    pub fn instructions(&self) -> u64 {
+        self.instructions
+    }
+
+    pub fn cycles(&self) -> u64 {
+        self.cycles
+    }
+
+    pub fn duration(&self) -> u64 {
+        let overhead = timer::measure_overhead();
+        self.duration.saturating_sub(self.instructions * overhead)
+    }
+
+    #[inline]
     fn pc_incr(&mut self, index: u8) {
         self.PC += index;
     }
@@ -154,14 +196,17 @@ impl MOS6502 {
     }
 }
 
+#[inline]
 pub fn tst_bit(bits: u8, bit: u8) -> bool {
     bits & bit == bit
 }
 
+#[inline]
 fn set_bit(bits: &mut PSR, bit: PSR) {
     *bits |= bit;
 }
 
+#[inline]
 fn clr_bit(bits: &mut PSR, bit: PSR) {
     *bits &= !bit;
 }

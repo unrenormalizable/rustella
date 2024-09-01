@@ -7,3 +7,4 @@ pub mod mem;
 pub mod mmaps;
 pub mod opc_impl;
 pub mod opc_info;
+pub mod timer;

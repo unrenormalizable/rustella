@@ -3,13 +3,13 @@ use std::collections::HashSet;
 
 pub fn dump_registers(cpu: &cpu::MOS6502, mem: &mem::Memory, bps: &HashSet<LoHi>) {
     let pc = cpu.pc();
-    let (_, bytes_str, instr_str, instr_len, addr_mode) = disassemble_one_instruction(mem, bps, pc);
+    let (_, bytes_str, instr_str, addr_mode) = disassemble_one_instruction(mem, bps, pc);
 
-    println!("┌────────────────┬────────────┬─────────────┬─────────────────┬──────────────┐");
-    println!("│ PC             │ OP         │ A  X  Y  S  │ N V   B D I Z C │              │");
-    println!("╞════════════════╪════════════╪═════════════╪═════════════════╪════╤═════════╡");
+    println!("┌────────────────┬────────────┬─────────────┬─────────────────┬────────────┐");
+    println!("│ PC             │ OP         │ A  X  Y  S  │ N V   B D I Z C │ Addr. Mode │");
+    println!("╞════════════════╪════════════╪═════════════╪═════════════════╪════════════╡");
     println!(
-        "│ {} │ {: <10} │ {:02x} {:02x} {:02x} {:02x} │ {} {}   {} {} {} {} {} │ {: >2x} │ {: >7} │",
+        "│ {} │ {: <10} │ {:02x} {:02x} {:02x} {:02x} │ {} {}   {} {} {} {} {} │ {: <7}    │",
         bytes_str,
         instr_str,
         cpu.a(),
@@ -23,10 +23,14 @@ pub fn dump_registers(cpu: &cpu::MOS6502, mem: &mem::Memory, bps: &HashSet<LoHi>
         bit_value(cpu, cpu::PSR::I),
         bit_value(cpu, cpu::PSR::Z),
         bit_value(cpu, cpu::PSR::C),
-        instr_len,
         addr_mode,
     );
-    println!("└────────────────┴────────────┴─────────────┴─────────────────┴────┴─────────┘");
+    println!("└────────────────┴────────────┴─────────────┴─────────────────┴────────────┘");
+    println!(
+        "{: >8} instructions @ {: >6.02} MHz",
+        cpu.instructions(),
+        clock_speed(cpu)
+    )
 }
 
 pub fn dump_memory(mem: &mem::Memory, start: &Option<String>) {
@@ -60,7 +64,7 @@ pub fn disassemble(
     let mut instr_len = 0u8;
     for _ in 0..16 {
         pc += instr_len;
-        let (opc, bytes_str, instr_str, _, addr_mode) = disassemble_one_instruction(mem, bps, pc);
+        let (opc, bytes_str, instr_str, addr_mode) = disassemble_one_instruction(mem, bps, pc);
         instr_len = opc_info::ALL[opc as usize].bytes;
         println!(
             "{} | {} | {: >2x} │ {: >7}",
@@ -131,7 +135,7 @@ fn disassemble_one_instruction(
     mem: &mem::Memory,
     bps: &HashSet<LoHi>,
     pc: LoHi,
-) -> (u8, String, String, u8, &'static str) {
+) -> (u8, String, String, &'static str) {
     let opc = mem.get(pc, 0);
     let opc_info = &opc_info::ALL[opc as usize];
     let instr_b1_str = if opc_info.bytes > 1 {
@@ -163,13 +167,7 @@ fn disassemble_one_instruction(
             .replace("oper", (instr_b2_str.to_string() + instr_b1_str).as_str())
     );
 
-    (
-        opc,
-        bytes_str,
-        instr_str,
-        opc_info.bytes,
-        opc_info.addressing,
-    )
+    (opc, bytes_str, instr_str, opc_info.addressing)
 }
 
 fn bit_value(cpu: &cpu::MOS6502, bit: cpu::PSR) -> String {
@@ -185,6 +183,14 @@ fn parse_hex_addr_opt(val: &Option<String>, default: LoHi) -> LoHi {
         .and_then(|x| u16::from_str_radix(x, 16).ok())
         .map(LoHi::from)
         .unwrap_or(default)
+}
+
+fn clock_speed(cpu: &cpu::MOS6502) -> f64 {
+    if cpu.duration() != 0 {
+        (cpu.cycles() as f64 * 1_000_000_000.0) / cpu.duration() as f64 / 1_000_000.0
+    } else {
+        0.0
+    }
 }
 
 trait VTerm {

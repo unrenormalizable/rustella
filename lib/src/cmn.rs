@@ -12,13 +12,14 @@ pub struct OpCodeInfo<'a> {
     pub addressing: &'a str,
     pub assembler: &'a str,
     pub bytes: u8,
-    pub cycles: &'a str,
+    pub cycles: u64,
 }
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LoHi(pub u8, pub u8);
 
 impl LoHi {
+    #[inline]
     pub fn wrapping_add_lo(&self, delta: u8) -> Self {
         Self(self.0.wrapping_add(delta), self.1)
     }
@@ -27,30 +28,35 @@ impl LoHi {
 impl core::ops::Add<u8> for LoHi {
     type Output = LoHi;
 
+    #[inline]
     fn add(self, rhs: u8) -> Self::Output {
         u16::from(self).wrapping_add(rhs as u16).into()
     }
 }
 
 impl core::ops::AddAssign<u8> for LoHi {
+    #[inline]
     fn add_assign(&mut self, rhs: u8) {
         *self = *self + rhs;
     }
 }
 
 impl From<(u8, u8)> for LoHi {
+    #[inline]
     fn from(value: (u8, u8)) -> Self {
         LoHi(value.0, value.1)
     }
 }
 
 impl From<u16> for LoHi {
+    #[inline]
     fn from(value: u16) -> Self {
         LoHi(value as u8, (value >> 8) as u8)
     }
 }
 
 impl From<LoHi> for u16 {
+    #[inline]
     fn from(value: LoHi) -> Self {
         ((value.1 as u16) << 8) + value.0 as u16
     }
