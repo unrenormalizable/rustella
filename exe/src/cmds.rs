@@ -1,8 +1,27 @@
-use super::color_term::VTerm;
+use super::{color_term::VTerm, repl};
 use a2600::{cmn::*, cpu, mem, opc_info};
 use std::collections::HashSet;
+use std::path::PathBuf;
 
-pub fn dump_registers(cpu: &cpu::MOS6502, mem: &mem::Memory, bps: &HashSet<LoHi>) {
+pub fn go(cpu: &mut cpu::MOS6502, mem: &mut mem::Memory, break_points: &HashSet<LoHi>, count: u64) {
+    let mut count = count;
+    loop {
+        cpu.fetch_decode_execute(mem);
+        count -= 1;
+
+        if count == 0 {
+            break;
+        }
+
+        if break_points.contains(&cpu.pc()) {
+            break;
+        }
+    }
+
+    registers(cpu, mem, break_points);
+}
+
+pub fn registers(cpu: &cpu::MOS6502, mem: &mem::Memory, bps: &HashSet<LoHi>) {
     let pc = cpu.pc();
     let (_, bytes_str, instr_str, _, _) = disassemble_one_instruction(mem, bps, pc);
 
@@ -33,8 +52,19 @@ pub fn dump_registers(cpu: &cpu::MOS6502, mem: &mem::Memory, bps: &HashSet<LoHi>
     );
 }
 
-pub fn dump_memory(mem: &mem::Memory, start: &Option<String>) {
-    let start = parse_hex_addr_opt(start, RAM_START);
+pub fn set_register(cpu: &mut cpu::MOS6502, reg: repl::Register, val: u16) {
+    match reg {
+        repl::Register::A => cpu.set_a(val as u8),
+        repl::Register::X => cpu.set_x(val as u8),
+        repl::Register::Y => cpu.set_y(val as u8),
+        repl::Register::PC => cpu.set_pc(LoHi::from(val)),
+        repl::Register::S => cpu.set_s(val as u8),
+        repl::Register::PSR => cpu.set_p(val as u8),
+    }
+}
+
+pub fn memory(mem: &mem::Memory, start: u16) {
+    let start = LoHi::from(start);
 
     for r in 0..8u8 {
         let line = (0..16u8).fold(String::new(), |acc, e| {
@@ -51,13 +81,12 @@ pub fn dump_memory(mem: &mem::Memory, start: &Option<String>) {
     }
 }
 
-pub fn disassemble(
-    cpu: &cpu::MOS6502,
-    mem: &mem::Memory,
-    bps: &HashSet<LoHi>,
-    start: &Option<String>,
-) {
-    let mut pc = parse_hex_addr_opt(start, LoHi(cpu.pc().0, cpu.pc().1));
+pub fn disassemble(cpu: &cpu::MOS6502, mem: &mem::Memory, bps: &HashSet<LoHi>, start: u16) {
+    let mut pc = if start == 0 {
+        cpu.pc()
+    } else {
+        LoHi::from(start)
+    };
 
     let mut instr_len = 0u8;
     for _ in 0..16 {
@@ -72,58 +101,26 @@ pub fn disassemble(
     }
 }
 
-pub fn load(mem: &mut mem::Memory, start: &str, path: &str) {
-    let start = u16::from_str_radix(start, 16).map(LoHi::from);
-    if start.is_err() {
-        println!("Unable to parse start address {:?}", start);
-        return;
-    }
-
-    let bytes = std::fs::read(path);
+pub fn load(mem: &mut mem::Memory, start: u16, path: PathBuf) {
+    let start = LoHi::from(start);
+    let bytes = std::fs::read(path.clone());
     if bytes.is_err() {
-        println!("Unable to read file {path}");
+        println!("Unable to read file {:?}", path);
         return;
     }
 
-    mem.load(&bytes.unwrap(), start.unwrap());
+    mem.load(&bytes.unwrap(), start);
 }
 
-pub fn set_register(cpu: &mut cpu::MOS6502, reg: &str, val: &str) {
-    let reg_val = u16::from_str_radix(val, 16);
-    if reg_val.is_err() {
-        println!("Unable to parse value {val}");
-        return;
-    }
-
-    let reg_val = reg_val.unwrap();
-    match reg.to_lowercase().as_str() {
-        "a" => cpu.set_a(reg_val as u8),
-        "x" => cpu.set_x(reg_val as u8),
-        "y" => cpu.set_y(reg_val as u8),
-        "pc" => cpu.set_pc(LoHi::from(reg_val)),
-        "s" => cpu.set_s(reg_val as u8),
-        "p" => cpu.set_p(reg_val as u8),
-        _ => println!("Unknown register {reg}"),
-    }
+pub fn change_break_points(break_points: &mut HashSet<LoHi>, op: repl::BreakPointOp, addr: u16) {
+    let addr = LoHi::from(addr);
+    match op {
+        repl::BreakPointOp::Add => break_points.insert(addr),
+        repl::BreakPointOp::Remove => break_points.remove(&addr),
+    };
 }
 
-pub fn bp_create_or_delete(break_points: &mut HashSet<LoHi>, op: &str, addr: &str) {
-    match op.to_lowercase().as_str() {
-        "a" | "add" => {
-            u16::from_str_radix(addr, 16)
-                .ok()
-                .map(|x| break_points.insert(LoHi::from(x)));
-        }
-        "d" | "del" => {
-            u16::from_str_radix(addr, 16)
-                .ok()
-                .map(|x| break_points.remove(&LoHi::from(x)));
-        }
-        _ => println!("Unknown command {op}"),
-    }
-}
-
-pub fn bp_list(break_points: &HashSet<LoHi>) {
+pub fn break_points(break_points: &HashSet<LoHi>) {
     break_points
         .iter()
         .enumerate()
@@ -181,13 +178,6 @@ fn bit_value(cpu: &cpu::MOS6502, bit: cpu::PSR) -> String {
     } else {
         "0".to_lowercase()
     }
-}
-
-fn parse_hex_addr_opt(val: &Option<String>, default: LoHi) -> LoHi {
-    val.as_ref()
-        .and_then(|x| u16::from_str_radix(x, 16).ok())
-        .map(LoHi::from)
-        .unwrap_or(default)
 }
 
 fn clock_speed(cpu: &cpu::MOS6502) -> f64 {

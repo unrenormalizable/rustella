@@ -5,5 +5,8 @@ edition = "2021"
 
 [dependencies]
 a2600 = { path = "../lib" }
-clap = { version = "4.5.16", features = ["derive"] }
+clap = "4.5.16"
+reedline = "0.32.0"
+clap-repl = "0.3.0"
 num-traits = "0.2.19"
+homedir = "0.3.3"

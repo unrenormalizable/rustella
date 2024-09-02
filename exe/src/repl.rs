@@ -1,102 +1,160 @@
-use clap::{Parser, Subcommand};
-use std::io::{self, Write};
+use clap::{Parser, ValueEnum};
+use clap_repl::ClapEditor;
+use reedline::{DefaultPrompt, DefaultPromptSegment, FileBackedHistory};
+use std::path::PathBuf;
+
+#[allow(clippy::upper_case_acronyms)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum Register {
+    A,
+    X,
+    Y,
+    PC,
+    S,
+    PSR,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum BreakPointOp {
+    #[value(aliases = ["a", "add"])]
+    Add,
+    #[value(aliases = ["r", "rem", "d", "del"])]
+    Remove,
+}
 
 /// Refer:
 /// - https://docs.rs/clap/latest/clap/_derive/_tutorial/index.html
 /// - https://docs.rs/clap/latest/clap/_derive/_cookbook/index.html
-#[derive(Parser, Default)]
-#[command(name = "a2600", about = "Hardware debugger for Atari 2600.", long_about = None)]
-pub struct Cli {
-    #[command(subcommand)]
-    command: Option<Commands>,
-}
-
-impl Cli {
-    pub fn command(&self) -> &Option<Commands> {
-        &self.command
-    }
-}
-
-#[derive(Subcommand)]
+#[derive(Debug, Parser)]
+#[command(name = "", about = "Hardware debugger for Atari 2600.", long_about = None)]
 pub enum Commands {
-    #[command(name = "q")]
+    #[command(
+        visible_aliases = [ "q", "exit" ],
+        about = "Exit the debugger.",
+        long_about = None)]
     Quit,
 
-    #[command(name = "g")]
+    #[command(
+        visible_aliases = [ "g" ],
+        about = "Run number of instructions and/or till break point is hit.",
+        long_about = None)]
     Go {
-        #[arg(index = 1)]
-        count: Option<usize>,
+        #[arg(
+            index = 1,
+            default_value_t = u64::MAX,
+            value_parser = clap::value_parser!(u64).range(1..),
+            help = "Number of instructions to execute.")]
+        count: u64,
     },
 
-    #[command(name = "r")]
+    #[command(
+        visible_aliases = [ "r", "reg" ],
+        about = "Display registers & next instruction to execute.",
+        long_about = None)]
     Registers,
 
-    #[command(name = "m")]
-    MemoryDump {
-        #[arg(index = 1)]
-        start: Option<String>,
+    #[command(
+        visible_aliases = [ "s", "sr", "sreg" ],
+        about = "Set one of the registers.",
+        long_about = None)]
+    SetRegisters {
+        #[arg(index = 1, value_enum, help = "Register to set")]
+        reg: Register,
+
+        #[arg(
+            index = 2,
+            value_parser = parse_u16_hex,
+            help = "Value to set into register.")]
+        val: u16,
     },
 
-    #[command(name = "d")]
+    #[command(
+        visible_aliases = [ "m", "mem" ],
+        about = "Dump the 128 bytes of memory starting location.",
+        long_about = None)]
+    Memory {
+        #[arg(
+            index = 1,
+            default_value_t = 0,
+            value_parser = parse_u16_hex,
+            help = "Starting address.")]
+        start: u16,
+    },
+
+    #[command(
+        visible_aliases = [ "d", "dis" ],
+        about = "Disassemble the next 16 instructions starting location.",
+        long_about = None)]
     Disassemble {
-        #[arg(index = 1)]
-        start: Option<String>,
+        #[arg(
+            index = 1,
+            default_value_t = 0,
+            value_parser = parse_u16_hex,
+            help = "Starting address.")]
+        start: u16,
     },
 
-    #[command(name = "l")]
+    #[command(
+        visible_aliases = [ "l", "ld" ],
+        about = "Load contents of binary file into memory starting address.",
+        long_about = None)]
     Load {
-        #[arg(index = 1)]
-        start: String,
+        #[arg(
+            index = 1,
+            value_parser = parse_u16_hex,
+            help = "Starting address.")]
+        start: u16,
 
-        #[arg(index = 2)]
-        path: String,
+        #[arg(
+            index = 2,
+            value_parser = clap::value_parser!(PathBuf),
+            help = "Path of the binary file.")]
+        path: PathBuf,
     },
 
-    #[command(name = "s")]
-    SetReg {
-        #[arg(index = 1)]
-        reg: String,
+    #[command(
+        visible_aliases = [ "lbp", "bpl" ],
+        about = "List of the active break points.",
+        long_about = None)]
+    BreakPoints,
 
-        #[arg(index = 2)]
-        val: String,
+    #[command(
+        visible_aliases = [ "b", "bp" ],
+        about = "Add or remove break points.",
+        long_about = None)]
+    BreakPointChange {
+        #[arg(index = 1, value_enum, help = "Add or remove break point.")]
+        op: BreakPointOp,
+
+        #[arg(
+            index = 2,
+            value_parser = parse_u16_hex,
+            help = "Address of the break point.")]
+        address: u16,
     },
-
-    #[command(name = "bp")]
-    BreakPoint {
-        #[arg(index = 1)]
-        op: String,
-
-        #[arg(index = 2)]
-        addr: String,
-    },
-
-    #[command(name = "bpl")]
-    BreakPointList,
 }
 
-pub fn get_cmdline() -> Cli {
-    print!("? ");
-    io::stdout().flush().unwrap();
+pub fn cmd_line() -> ClapEditor<Commands> {
+    let prompt = DefaultPrompt {
+        left_prompt: DefaultPromptSegment::Basic("? ".to_owned()),
+        ..DefaultPrompt::default()
+    };
+    ClapEditor::<Commands>::builder()
+        .with_prompt(Box::new(prompt))
+        .with_editor_hook(|reed| {
+            // Do custom things with `Reedline` instance here
+            reed.with_history(Box::new(
+                FileBackedHistory::with_file(
+                    10000,
+                    homedir::my_home().unwrap().unwrap().join(".a2600.rs"),
+                )
+                .unwrap(),
+            ))
+        })
+        .build()
+}
 
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-
-    let mut args = input
-        .split_whitespace()
-        .map(|x| x.to_string())
-        .collect::<Vec<_>>();
-    if args.is_empty() {
-        return Cli::default();
-    }
-
-    let cmd = args[0].clone();
-    args.insert(0, "".to_string());
-    Cli::try_parse_from(args).unwrap_or_else(|e| {
-        if cmd == "help" {
-            eprintln!("{e}");
-        } else {
-            eprintln!("Unknown command {cmd}.");
-        }
-        Cli::default()
-    })
+fn parse_u16_hex(s: &str) -> Result<u16, String> {
+    let val = u16::from_str_radix(s, 16).map_err(|_| format!("`{s}` is not in hex u16 format."))?;
+    Ok(val)
 }
