@@ -1110,8 +1110,7 @@ fn BCS_rel(cpu: &mut MOS6502, mem: &mut Memory, opc: u8, pc: LoHi) -> Option<LoH
 
 /// 0xB1 | (ind),Y | LDA (oper),Y
 fn LDA_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
-    let index = cpu.y();
-    let val = am::load_zero_page_indexed(mem, pc, index);
+    let val = am::load_post_indexed_indirect(mem, pc, cpu.y());
     cpu.set_a(val);
 
     pcr::sync_pcr_n(cpu, val);
@@ -1238,9 +1237,8 @@ fn CPY_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi
 
 /// 0xC1 | (ind,X) | CMP (oper,X)
 fn CMP_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
-    let index = cpu.x();
     let n1 = cpu.a();
-    let n2 = am::load_pre_indexed_indirect(mem, pc, index);
+    let n2 = am::load_pre_indexed_indirect(mem, pc, cpu.x());
 
     adder::cmp_core(cpu, n1, n2);
 
@@ -1354,9 +1352,8 @@ fn BNE_rel(cpu: &mut MOS6502, mem: &mut Memory, opc: u8, pc: LoHi) -> Option<LoH
 
 /// 0xD1 | (ind),Y | CMP (oper),Y
 fn CMP_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
-    let index = cpu.y();
     let n1 = cpu.a();
-    let n2 = am::load_post_indexed_indirect(mem, pc, index);
+    let n2 = am::load_post_indexed_indirect(mem, pc, cpu.y());
 
     adder::cmp_core(cpu, n1, n2);
 
