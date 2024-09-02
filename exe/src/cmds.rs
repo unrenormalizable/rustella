@@ -1,55 +1,53 @@
+use super::color_term::VTerm;
 use a2600::{cmn::*, cpu, mem, opc_info};
 use std::collections::HashSet;
 
 pub fn dump_registers(cpu: &cpu::MOS6502, mem: &mem::Memory, bps: &HashSet<LoHi>) {
     let pc = cpu.pc();
-    let (_, bytes_str, instr_str, addr_mode) = disassemble_one_instruction(mem, bps, pc);
+    let (_, bytes_str, instr_str, _, _) = disassemble_one_instruction(mem, bps, pc);
 
-    println!("┌────────────────┬────────────┬─────────────┬─────────────────┬────────────┐");
-    println!("│ PC             │ OP         │ A  X  Y  S  │ N V   B D I Z C │ Addr. Mode │");
-    println!("╞════════════════╪════════════╪═════════════╪═════════════════╪════════════╡");
+    println!("{}", " PC   AC XR YR SR SP  NV-BDIZC".fg_green());
     println!(
-        "│ {} │ {: <10} │ {:02x} {:02x} {:02x} {:02x} │ {} {}   {} {} {} {} {} │ {: <7}    │",
-        bytes_str,
-        instr_str,
+        "{:04X}  {:02X} {:02X} {:02X} {:02X} {:02X}  {}{}{}{}{}{}{}{}",
+        u16::from(cpu.pc()),
         cpu.a(),
         cpu.x(),
         cpu.y(),
+        cpu.p(),
         cpu.s(),
         bit_value(cpu, cpu::PSR::N),
         bit_value(cpu, cpu::PSR::V),
+        bit_value(cpu, cpu::PSR::__),
         bit_value(cpu, cpu::PSR::B),
         bit_value(cpu, cpu::PSR::D),
         bit_value(cpu, cpu::PSR::I),
         bit_value(cpu, cpu::PSR::Z),
         bit_value(cpu, cpu::PSR::C),
-        addr_mode,
     );
-    println!("└────────────────┴────────────┴─────────────┴─────────────────┴────────────┘");
+    println!("{}  {}", bytes_str, instr_str,);
     println!(
-        "{: >8} instructions @ {: >6.02} MHz",
+        "{} ops, {} cycles @ {:.02} MHz",
         cpu.instructions(),
+        cpu.cycles(),
         clock_speed(cpu)
-    )
+    );
 }
 
 pub fn dump_memory(mem: &mem::Memory, start: &Option<String>) {
-    let LoHi(start_lo, start_hi) = parse_hex_addr_opt(start, RAM_START);
+    let start = parse_hex_addr_opt(start, RAM_START);
 
-    let safe_incr = |s: u8, r: u8, o: u8| ((s as u16) + 16u16 * (r as u16) + (o as u16)) as u8;
-
-    for r in 0..8 {
-        let line = (0..16).fold(String::new(), |acc, e| {
-            let addr = LoHi(safe_incr(start_lo, r, e), start_hi);
+    for r in 0..8u8 {
+        let line = (0..16u8).fold(String::new(), |acc, e| {
+            let addr = start + r.wrapping_mul(16u8) + e;
             acc + format!(
-                "{:02x} {}",
+                "{:02X} {}",
                 mem.get(addr, 0),
                 if e == 7 { "- " } else { "" }
             )
             .as_str()
         });
-        let addr = (safe_incr(start_lo, r, 0), start_hi);
-        println!("[{:02x}:{:02x}] {line}", addr.1, addr.0)
+        let addr = start + r.wrapping_mul(16u8);
+        println!("{:04X}: {line}", u16::from(addr))
     }
 }
 
@@ -64,11 +62,12 @@ pub fn disassemble(
     let mut instr_len = 0u8;
     for _ in 0..16 {
         pc += instr_len;
-        let (opc, bytes_str, instr_str, addr_mode) = disassemble_one_instruction(mem, bps, pc);
+        let (opc, bytes_str, instr_str, addr_mode, cycles) =
+            disassemble_one_instruction(mem, bps, pc);
         instr_len = opc_info::ALL[opc as usize].bytes;
         println!(
-            "{} | {} | {: >2x} │ {: >7}",
-            bytes_str, instr_str, instr_len, addr_mode
+            "{} │ {} │ {} │ {: <7}",
+            bytes_str, instr_str, cycles, addr_mode
         )
     }
 }
@@ -128,53 +127,59 @@ pub fn bp_list(break_points: &HashSet<LoHi>) {
     break_points
         .iter()
         .enumerate()
-        .for_each(|(n, bp)| println!("{n:02} {:02x}{:02x}", bp.1, bp.0))
+        .for_each(|(n, bp)| println!("{n:02} {:02X}{:02X}", bp.1, bp.0))
 }
 
 fn disassemble_one_instruction(
     mem: &mem::Memory,
     bps: &HashSet<LoHi>,
     pc: LoHi,
-) -> (u8, String, String, &'static str) {
+) -> (u8, String, String, &'static str, u64) {
     let opc = mem.get(pc, 0);
     let opc_info = &opc_info::ALL[opc as usize];
     let instr_b1_str = if opc_info.bytes > 1 {
-        &format!("{:02x}", mem.get(pc, 1))
+        &format!("{:02X}", mem.get(pc, 1))
     } else {
         ""
     };
     let instr_b2_str = if opc_info.bytes > 2 {
-        &format!("{:02x}", mem.get(pc, 2))
+        &format!("{:02X}", mem.get(pc, 2))
     } else {
         ""
     };
 
-    let pc_str = format!("{:02x}{:02x}", pc.1, pc.0);
+    let pc_str = format!("{:02X}{:02X}", pc.1, pc.0);
     let pc_str = if bps.contains(&pc) {
-        pc_str.red()
+        pc_str.bg_red()
     } else {
         pc_str
     };
     let bytes_str = format!(
-        "{}: {:02x} {: <2} {: <2}",
+        "{} {:02X} {: <2} {: <2}",
         pc_str, opc, instr_b1_str, instr_b2_str
     );
 
     let instr_str = format!(
-        "{: <10}",
+        "{: >10}",
         opc_info
             .assembler
             .replace("oper", (instr_b2_str.to_string() + instr_b1_str).as_str())
     );
 
-    (opc, bytes_str, instr_str, opc_info.addressing)
+    (
+        opc,
+        bytes_str,
+        instr_str,
+        opc_info.addressing,
+        opc_info.cycles,
+    )
 }
 
 fn bit_value(cpu: &cpu::MOS6502, bit: cpu::PSR) -> String {
     if cpu::tst_bit(cpu.p(), bit.bits()) {
-        "+".to_string()
+        "1".to_string()
     } else {
-        " ".to_lowercase()
+        "0".to_lowercase()
     }
 }
 
@@ -190,16 +195,5 @@ fn clock_speed(cpu: &cpu::MOS6502) -> f64 {
         (cpu.cycles() as f64 * 1_000_000_000.0) / cpu.duration() as f64 / 1_000_000.0
     } else {
         0.0
-    }
-}
-
-trait VTerm {
-    fn red(&self) -> Self;
-}
-
-/// https://learn.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences
-impl VTerm for String {
-    fn red(&self) -> Self {
-        format!("\u{001B}[41m{self}\u{001B}[0m")
     }
 }

@@ -1,4 +1,5 @@
 mod cmds;
+mod color_term;
 mod repl;
 
 use a2600::{cmn, cpu, mem, mmaps};
@@ -7,7 +8,7 @@ use std::{collections::HashSet, fs};
 // TODO: Abstract out hd_dbg module.
 fn main() -> Result<(), String> {
     let buffer = fs::read("d:/src/u/a2600/AllSuiteA.bin").unwrap();
-    let mut mem = mem::Memory::new_with_rom(&buffer, cmn::LoHi(0x00, 0x40), mmaps::mm_6502, true);
+    let mut mem = mem::Memory::new_with_rom(&buffer, cmn::LoHi(0x00, 0x40), mmaps::mm_6502, false);
     //let buffer = fs::read("D:/bin/Stella-6.7.1/roms/air_raid.bin").unwrap();
     //let mut mem = mem::Memory::new_with_rom(&buffer, cmn::ROM_START_6507, mmaps::mm_6507, true);
     let mut cpu = cpu::MOS6502::new(&mem);

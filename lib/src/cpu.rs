@@ -31,11 +31,12 @@ bitflags! {
 
 impl Default for PSR {
     fn default() -> Self {
-        PSR::N | PSR::V | PSR::B | PSR::I | PSR::Z | PSR::C
+        PSR::__ | PSR::B | PSR::I | PSR::Z
     }
 }
 
 #[allow(non_snake_case)]
+#[derive(Default)]
 /// Refer: https://www.princeton.edu/~mae412/HANDOUTS/Datasheets/6502.pdf
 pub struct MOS6502 {
     A: u8,
@@ -54,22 +55,6 @@ pub struct MOS6502 {
 /// - https://www.masswerk.at/6502/6502_instruction_set.html
 /// - https://www.pagetable.com/c64ref/6502/
 pub type OpCode = dyn Fn(&mut MOS6502, &mut mem::Memory, u8, LoHi) -> Option<LoHi>;
-
-impl Default for MOS6502 {
-    fn default() -> Self {
-        Self {
-            A: 0xde,
-            Y: 0xad,
-            X: 0xbe,
-            PC: Default::default(),
-            S: 0xef,
-            P: Default::default(),
-            instructions: 0,
-            cycles: 0,
-            duration: 0,
-        }
-    }
-}
 
 impl MOS6502 {
     pub fn new(mem: &mem::Memory) -> Self {
