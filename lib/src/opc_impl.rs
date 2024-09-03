@@ -8,7 +8,7 @@ fn illegal(_: &mut MOS6502, _: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
 
 /// 0x00 | impl | BRK
 fn BRK_impl(_: &mut MOS6502, _: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
-    todo!("TBD: pcode {} @ {:?}", opc, pc)
+    todo!("TBD: opcode {:02X} @ {:?}", opc, pc)
 }
 
 /// 0x01 | (ind,X) | ORA (oper,X)
@@ -214,9 +214,9 @@ fn ASL_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 
 /// 0x20 | abs | JSR oper
 fn JSR_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
-    let pc = pc + 2;
-    stack::push(cpu, mem, pc.1);
-    stack::push(cpu, mem, pc.0);
+    let ret_addr = pc + 2;
+    stack::push(cpu, mem, ret_addr.1);
+    stack::push(cpu, mem, ret_addr.0);
 
     Some(am::load_immediate_2(mem, pc))
 }
@@ -680,13 +680,21 @@ fn RTS_impl(cpu: &mut MOS6502, mem: &mut Memory, _: u8, _: LoHi) -> Option<LoHi>
 }
 
 /// 0x61 | (ind,X) | ADC (oper,X)
-fn ADC_idx_ind_X(_: &mut MOS6502, _: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
-    todo!("TBD: pcode {} @ {:?}", opc, pc)
+fn ADC_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+    let n2 = am::load_pre_indexed_indirect(mem, pc, cpu.x());
+
+    adder::adc_core(cpu, n2);
+
+    None
 }
 
 /// 0x65 | zpg | ADC oper
-fn ADC_zpg(_: &mut MOS6502, _: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
-    todo!("TBD: pcode {} @ {:?}", opc, pc)
+fn ADC_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+    let n2 = am::load_zero_page(mem, pc);
+
+    adder::adc_core(cpu, n2);
+
+    None
 }
 
 /// 0x66 | zpg | ROR oper
@@ -714,8 +722,12 @@ fn PLA_impl(cpu: &mut MOS6502, mem: &mut Memory, _: u8, _: LoHi) -> Option<LoHi>
 }
 
 /// 0x69 | # | ADC #oper
-fn ADC_imme(_: &mut MOS6502, _: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
-    todo!("TBD: pcode {} @ {:?}", opc, pc)
+fn ADC_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+    let n2 = am::load_immediate(mem, pc);
+
+    adder::adc_core(cpu, n2);
+
+    None
 }
 
 /// 0x6A | A | ROR A
@@ -737,14 +749,18 @@ fn JMP_ind(_: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
     // JMP ($xxFF) will fetch the address from $xxFF and $xx00.
     let addr = am::load_immediate_2(mem, pc);
     let lo = mem.get(addr, 0);
-    let hi = mem.get(addr, 0).wrapping_add(1);
+    let hi = mem.get(addr, 1);
 
     Some((lo, hi).into())
 }
 
 /// 0x6D | abs | ADC oper
-fn ADC_abs(_: &mut MOS6502, _: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
-    todo!("TBD: pcode {} @ {:?}", opc, pc)
+fn ADC_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+    let n2 = am::load_absolute(mem, pc);
+
+    adder::adc_core(cpu, n2);
+
+    None
 }
 
 /// 0x6E | abs | ROR oper
@@ -770,13 +786,21 @@ fn BVS_rel(cpu: &mut MOS6502, mem: &mut Memory, opc: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0x71 | (ind),Y | ADC (oper),Y
-fn ADC_ind_Y_idx(_: &mut MOS6502, _: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
-    todo!("TBD: pcode {} @ {:?}", opc, pc)
+fn ADC_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+    let n2 = am::load_post_indexed_indirect(mem, pc, cpu.y());
+
+    adder::adc_core(cpu, n2);
+
+    None
 }
 
 /// 0x75 | zpg,X | ADC oper,X
-fn ADC_zpg_X(_: &mut MOS6502, _: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
-    todo!("TBD: pcode {} @ {:?}", opc, pc)
+fn ADC_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+    let n2 = am::load_zero_page_indexed(mem, pc, cpu.x());
+
+    adder::adc_core(cpu, n2);
+
+    None
 }
 
 /// 0x76 | zpg,X | ROR oper,X
@@ -800,13 +824,21 @@ fn SEI_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
 }
 
 /// 0x79 | abs,Y | ADC oper,Y
-fn ADC_abs_Y(_: &mut MOS6502, _: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
-    todo!("TBD: pcode {} @ {:?}", opc, pc)
+fn ADC_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+    let n2 = am::load_absolute_indexed(mem, pc, cpu.y());
+
+    adder::adc_core(cpu, n2);
+
+    None
 }
 
 /// 0x7D | abs,X | ADC oper,X
-fn ADC_abs_X(_: &mut MOS6502, _: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
-    todo!("TBD: pcode {} @ {:?}", opc, pc)
+fn ADC_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+    let n2 = am::load_absolute_indexed(mem, pc, cpu.x());
+
+    adder::adc_core(cpu, n2);
+
+    None
 }
 
 /// 0x7E | abs,X | ROR oper,X
@@ -1424,8 +1456,12 @@ fn CPX_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi
 }
 
 /// 0xE1 | (ind,X) | SBC (oper,X)
-fn SBC_idx_ind_X(_: &mut MOS6502, _: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
-    todo!("TBD: pcode {} @ {:?}", opc, pc)
+fn SBC_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+    let n2 = am::load_pre_indexed_indirect(mem, pc, cpu.x());
+
+    adder::sbc_core(cpu, n2);
+
+    None
 }
 
 /// 0xE4 | zpg | CPX oper
@@ -1439,8 +1475,12 @@ fn CPX_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0xE5 | zpg | SBC oper
-fn SBC_zpg(_: &mut MOS6502, _: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
-    todo!("TBD: pcode {} @ {:?}", opc, pc)
+fn SBC_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+    let n2 = am::load_zero_page(mem, pc);
+
+    adder::sbc_core(cpu, n2);
+
+    None
 }
 
 /// 0xE6 | zpg | INC oper
@@ -1467,8 +1507,12 @@ fn INX_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
 }
 
 /// 0xE9 | # | SBC #oper
-fn SBC_imme(_: &mut MOS6502, _: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
-    todo!("TBD: pcode {} @ {:?}", opc, pc)
+fn SBC_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+    let n2 = am::load_immediate(mem, pc);
+
+    adder::sbc_core(cpu, n2);
+
+    None
 }
 
 /// 0xEA | impl | NOP
@@ -1487,8 +1531,12 @@ fn CPX_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0xED | abs | SBC oper
-fn SBC_abs(_: &mut MOS6502, _: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
-    todo!("TBD: pcode {} @ {:?}", opc, pc)
+fn SBC_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+    let n2 = am::load_absolute(mem, pc);
+
+    adder::sbc_core(cpu, n2);
+
+    None
 }
 
 /// 0xEE | abs | INC oper
@@ -1513,13 +1561,21 @@ fn BEQ_rel(cpu: &mut MOS6502, mem: &mut Memory, opc: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0xF1 | (ind),Y | SBC (oper),Y
-fn SBC_ind_Y_idx(_: &mut MOS6502, _: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
-    todo!("TBD: pcode {} @ {:?}", opc, pc)
+fn SBC_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+    let n2 = am::load_post_indexed_indirect(mem, pc, cpu.y());
+
+    adder::sbc_core(cpu, n2);
+
+    None
 }
 
 /// 0xF5 | zpg,X | SBC oper,X
-fn SBC_zpg_X(_: &mut MOS6502, _: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
-    todo!("TBD: pcode {} @ {:?}", opc, pc)
+fn SBC_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+    let n2 = am::load_zero_page_indexed(mem, pc, cpu.x());
+
+    adder::sbc_core(cpu, n2);
+
+    None
 }
 
 /// 0xF6 | zpg,X | INC oper,X
@@ -1542,13 +1598,21 @@ fn SED_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
 }
 
 /// 0xF9 | abs,Y | SBC oper,Y
-fn SBC_abs_Y(_: &mut MOS6502, _: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
-    todo!("TBD: pcode {} @ {:?}", opc, pc)
+fn SBC_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+    let n2 = am::load_absolute_indexed(mem, pc, cpu.y());
+
+    adder::sbc_core(cpu, n2);
+
+    None
 }
 
 /// 0xFD | abs,X | SBC oper,X
-fn SBC_abs_X(_: &mut MOS6502, _: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
-    todo!("TBD: pcode {} @ {:?}", opc, pc)
+fn SBC_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+    let n2 = am::load_absolute_indexed(mem, pc, cpu.x());
+
+    adder::sbc_core(cpu, n2);
+
+    None
 }
 
 /// 0xFE | abs,X | INC oper,X
@@ -1967,6 +2031,34 @@ pub mod adder {
         (res as u8, v)
     }
 
+    /// Refer:
+    /// - https://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
+    /// - http://www.6502.org/tutorials/decimal_mode.html
+    pub fn adc_core(cpu: &mut MOS6502, n2: u8) {
+        let n1 = cpu.a();
+        let res = n1 + n2;
+        cpu.set_a(res);
+
+        pcr::sync_pcr_n(cpu, res);
+        // set V
+        pcr::sync_pcr_z(cpu, res);
+        // set C
+    }
+
+    /// Refer:
+    /// - https://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
+    /// - http://www.6502.org/tutorials/decimal_mode.html
+    pub fn sbc_core(cpu: &mut MOS6502, n2: u8) {
+        let n1 = cpu.a();
+        let res = n1 - n2;
+        cpu.set_a(res);
+
+        pcr::sync_pcr_n(cpu, res);
+        // set V
+        pcr::sync_pcr_z(cpu, res);
+        // set C
+    }
+
     #[cfg(test)]
     mod tests {
         use super::*;
@@ -1978,6 +2070,78 @@ pub mod adder {
         fn test_safe_sub(v1: u8, v2: u8, exp: (u8, bool)) {
             let obt = safe_sub_checked(v1, v2);
             assert_eq!(exp, obt);
+        }
+
+        ///           D     n1    n2     D     res    N      V      Z      C
+        #[test_case(false, 0x00, 0x00, false, 0x00, false, false, true, false)]
+        #[allow(clippy::too_many_arguments)]
+        fn test_adc(
+            decimal: bool,
+            v1: u8,
+            v2: u8,
+            carry: bool,
+            exp: u8,
+            exp_n: bool,
+            exp_v: bool,
+            exp_z: bool,
+            exp_c: bool,
+        ) {
+            let mut cpu = MOS6502::default();
+            cpu.set_a(v1);
+            if decimal {
+                cpu.set_psr_bit(PSR::D)
+            } else {
+                cpu.clr_psr_bit(PSR::D)
+            }
+            if carry {
+                cpu.set_psr_bit(PSR::C)
+            } else {
+                cpu.clr_psr_bit(PSR::C)
+            }
+
+            adc_core(&mut cpu, v2);
+
+            assert_eq!(cpu.a(), exp);
+            assert_eq!(cpu.tst_psr_bit(PSR::N), exp_n);
+            assert_eq!(cpu.tst_psr_bit(PSR::V), exp_v);
+            assert_eq!(cpu.tst_psr_bit(PSR::Z), exp_z);
+            assert_eq!(cpu.tst_psr_bit(PSR::C), exp_c);
+        }
+
+        ///           D     n1    n2     D     res    N      V      Z      C
+        #[test_case(false, 0x00, 0x00, false, 0x00, false, false, true, false)]
+        #[allow(clippy::too_many_arguments)]
+        fn test_sbc(
+            decimal: bool,
+            v1: u8,
+            v2: u8,
+            carry: bool,
+            exp: u8,
+            exp_n: bool,
+            exp_v: bool,
+            exp_z: bool,
+            exp_c: bool,
+        ) {
+            let mut cpu = MOS6502::default();
+            cpu.set_a(v1);
+            if decimal {
+                cpu.set_psr_bit(PSR::D)
+            } else {
+                cpu.clr_psr_bit(PSR::D)
+            }
+            if carry {
+                cpu.set_psr_bit(PSR::C)
+            } else {
+                cpu.clr_psr_bit(PSR::C)
+            }
+
+            sbc_core(&mut cpu, v2);
+
+            assert_eq!(cpu.a(), exp);
+            assert_eq!(cpu.tst_psr_bit(PSR::N), exp_n);
+            assert_eq!(cpu.tst_psr_bit(PSR::V), exp_v);
+            assert_eq!(cpu.tst_psr_bit(PSR::Z), exp_z);
+            assert_eq!(cpu.tst_psr_bit(PSR::C), exp_c);
         }
     }
 }

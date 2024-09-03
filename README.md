@@ -14,9 +14,9 @@ Why not?
 
 ## Development Principles
 
-- In no_std safe Rust.
-- No referring to any existing A2600 emulator code.
+- Clean room implementation ie no referring to any existing A2600 emulator code.
   - Allowed: Datasheets / tutorials / discussions on the web that is not emulator code / design.
+- In no_std safe Rust.
 - v1: Just sufficient to play the very basic games.
 - v1: Web front-end with hardware debugger.
 
