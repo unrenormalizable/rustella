@@ -37,7 +37,7 @@ jobs:
       - name: Run cargo test
         continue-on-error: false
         run: |
-          cargo test --release -- -Z unstable-options --format json --report-time | tee results.json
+          cargo test --release #-- -Z unstable-options --format json --report-time | tee results.json
         shell: pwsh
 
   lint-rust:

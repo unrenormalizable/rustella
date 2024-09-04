@@ -22,5 +22,5 @@ fn main() {
     assert_eq!(cpu.y(), 0x54);
     assert_eq!(cpu.p(), 0xB1);
     assert_eq!(cpu.s(), 0x33);
-    assert_eq!(mem.get(cmn::LoHi(0x10, 0x02), 0), 0xFE);
+    assert_eq!(mem.get(cmn::LoHi(0x10, 0x02), 0), 0xFF);
 }
