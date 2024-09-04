@@ -100,6 +100,15 @@ pub fn store_post_indexed_indirect(mem: &mut Memory, pc: LoHi, index: u8, val: u
     mem.set(addr, 0, val)
 }
 
+/// Refer: https://www.pagetable.com/c64ref/6502/?tab=3#r8
+/// TODO: Basic +/- working but edge cases (-128 to +127) not tested.
+pub fn relative(mem: &Memory, pc: LoHi) -> LoHi {
+    let off = mem.get(pc, 1);
+    let instr_len = 0x02u8; // NOTE: relative is only used in branch opcs, all have length 2.
+
+    (pc + instr_len).wrapping_add_lo(off)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -317,34 +326,18 @@ mod tests {
         let obt = mem.get(LoHi(0x53, 0x35), 0);
         assert_eq!(obt, exp);
     }
-}
 
-pub mod utils {
-    use crate::{cmn::LoHi, mem::Memory, opc_info};
+    #[test_case(LoHi(0x0a, 0xf0), 0xfb, LoHi(0x07, 0xf0); "Jump by -3+len bytes")]
+    #[test_case(LoHi(0x00, 0x00), 0x50, LoHi(0x52, 0x00); "Jump by 50+len bytes")]
+    #[test_case(LoHi(0xFF, 0x44), 0x02, LoHi(0x03, 0x45); "Example from AllSuiteA.bin 0x44FF")]
+    #[test_case(LoHi(0x00, 0x10), 0x03, LoHi(0x05, 0x10); "Example 1 from masswerk 6502_instruction_set")]
+    #[test_case(LoHi(0xD4, 0x08), 0xEE, LoHi(0xC4, 0x08); "Example 2 from masswerk 6502_instruction_set")]
+    fn test_relative_addr(pc: LoHi, op_arg: u8, exp: LoHi) {
+        let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
+        mem.set(pc, 1, op_arg);
 
-    /// TODO: Basic +/- working but edge cases (-128 to +127) not tested.
-    pub fn relative(mem: &Memory, opc: u8, pc: LoHi) -> LoHi {
-        let off = mem.get(pc, 1);
-        let instr_len = opc_info::ALL[opc as usize].bytes;
+        let obt = relative(&mem, pc);
 
-        pc.wrapping_add_lo(instr_len.wrapping_add(off))
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-        use crate::mmaps;
-        use test_case::test_case;
-
-        #[test_case(0xd0, LoHi(0x0a, 0xf0), 0xfb, LoHi(0x07, 0xf0); "Jump by -3+len bytes")]
-        #[test_case(0x10, LoHi(0x00, 0x00), 0x50, LoHi(0x52, 0x00); "Jump by 50+len bytes")]
-        fn test_relative_addr(opc: u8, pc: LoHi, op_arg: u8, exp: LoHi) {
-            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
-            mem.set(pc, 1, op_arg);
-
-            let obt = relative(&mem, opc, pc);
-
-            assert_eq!(exp, obt);
-        }
+        assert_eq!(exp, obt);
     }
 }

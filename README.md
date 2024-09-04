@@ -34,14 +34,16 @@ Why not?
 
 ## References
 
-- [6502 primer](https://wilsonminesco.com/6502primer/)
 - [2600 Tech specs](https://problemkaputt.de/2k6specs.htm)
-- [Reference hardware](https://stella-emu.github.io/docs/index.html#ROMInfo)
+- [Reference hardware - 1](https://www.masswerk.at/6502/)
+- [Reference hardware - 2](https://stella-emu.github.io/docs/index.html#ROMInfo)
 - CPU
-  - [6502 datasheet](https://www.princeton.edu/~mae412/HANDOUTS/Datasheets/6502.pdf)
   - [6502 Instruction set](https://www.masswerk.at/6502/6502_instruction_set.html)
-  - [The 6502/65C02/65C816 Instruction Set Decoded](https://llx.com/Neil/a2/opcodes.html)
+  - [6502 Family CPU Reference](https://www.pagetable.com/c64ref/6502/?tab=2)
+  - [6502 primer](https://wilsonminesco.com/6502primer/)
   - [The 6502 Microprocessor Resource](http://www.6502.org/)
+  - [6502 datasheet](https://www.princeton.edu/~mae412/HANDOUTS/Datasheets/6502.pdf)
+  - [The 6502/65C02/65C816 Instruction Set Decoded](https://llx.com/Neil/a2/opcodes.html)
   - Tests
     - [6502 CPU tests](https://codegolf.stackexchange.com/questions/12844/emulate-a-mos-6502-cpu)
     - [6502_65C02_functional_tests](https://github.com/Klaus2m5/6502_65C02_functional_tests)

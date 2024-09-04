@@ -115,9 +115,9 @@ fn ASL_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0x10 | rel | BPL oper
-fn BPL_rel(cpu: &mut MOS6502, mem: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
+fn BPL_rel(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
     if !cpu.tst_psr_bit(PSR::N) {
-        return Some(am::utils::relative(mem, opc, pc));
+        return Some(am::relative(mem, pc));
     }
 
     None
@@ -237,14 +237,9 @@ fn AND_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option
 
 /// 0x24 | zpg | BIT oper
 fn BIT_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
-    let v1 = cpu.a();
     let v2 = am::load_zero_page(mem, pc);
 
-    let res = v1 & v2;
-
-    pcr::sync_pcr_n(cpu, res);
-    pcr::sync_pcr_v_BIT(cpu, res);
-    pcr::sync_pcr_z(cpu, res);
+    adder::bit_core(cpu, v2);
 
     None
 }
@@ -313,14 +308,9 @@ fn ROL_A(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
 
 /// 0x2C | abs | BIT oper
 fn BIT_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
-    let v1 = cpu.a();
     let v2 = am::load_absolute(mem, pc);
 
-    let res = v1 & v2;
-
-    pcr::sync_pcr_n(cpu, res);
-    pcr::sync_pcr_v_BIT(cpu, res);
-    pcr::sync_pcr_z(cpu, res);
+    adder::bit_core(cpu, v2);
 
     None
 }
@@ -353,9 +343,9 @@ fn ROL_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0x30 | rel | BMI oper
-fn BMI_rel(cpu: &mut MOS6502, mem: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
+fn BMI_rel(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
     if cpu.tst_psr_bit(PSR::N) {
-        return Some(am::utils::relative(mem, opc, pc));
+        return Some(am::relative(mem, pc));
     }
 
     None
@@ -572,9 +562,9 @@ fn LSR_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0x50 | rel | BVC oper
-fn BVC_rel(cpu: &mut MOS6502, mem: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
+fn BVC_rel(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
     if !cpu.tst_psr_bit(PSR::V) {
-        return Some(am::utils::relative(mem, opc, pc));
+        return Some(am::relative(mem, pc));
     }
 
     None
@@ -777,9 +767,9 @@ fn ROR_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0x70 | rel | BVS oper
-fn BVS_rel(cpu: &mut MOS6502, mem: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
+fn BVS_rel(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
     if cpu.tst_psr_bit(PSR::V) {
-        return Some(am::utils::relative(mem, opc, pc));
+        return Some(am::relative(mem, pc));
     }
 
     None
@@ -926,9 +916,9 @@ fn STX_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0x90 | rel | BCC oper
-fn BCC_rel(cpu: &mut MOS6502, mem: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
+fn BCC_rel(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
     if !cpu.tst_psr_bit(PSR::C) {
-        return Some(am::utils::relative(mem, opc, pc));
+        return Some(am::relative(mem, pc));
     }
 
     None
@@ -1131,9 +1121,9 @@ fn LDX_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0xB0 | rel | BCS oper
-fn BCS_rel(cpu: &mut MOS6502, mem: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
+fn BCS_rel(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
     if cpu.tst_psr_bit(PSR::C) {
-        return Some(am::utils::relative(mem, opc, pc));
+        return Some(am::relative(mem, pc));
     }
 
     None
@@ -1366,9 +1356,9 @@ fn DEC_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0xD0 | rel | BNE oper
-fn BNE_rel(cpu: &mut MOS6502, mem: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
+fn BNE_rel(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
     if !cpu.tst_psr_bit(PSR::Z) {
-        return Some(am::utils::relative(mem, opc, pc));
+        return Some(am::relative(mem, pc));
     }
 
     None
@@ -1552,9 +1542,9 @@ fn INC_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0xF0 | rel | BEQ oper
-fn BEQ_rel(cpu: &mut MOS6502, mem: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
+fn BEQ_rel(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
     if cpu.tst_psr_bit(PSR::Z) {
-        return Some(am::utils::relative(mem, opc, pc));
+        return Some(am::relative(mem, pc));
     }
 
     None
@@ -1939,15 +1929,6 @@ mod pcr {
             cpu.clr_psr_bit(PSR::N)
         }
     }
-
-    #[inline]
-    pub fn sync_pcr_v_BIT(cpu: &mut MOS6502, val: u8) {
-        if tst_bit(val, 0b0100_0000) {
-            cpu.set_psr_bit(PSR::V)
-        } else {
-            cpu.clr_psr_bit(PSR::V)
-        }
-    }
 }
 
 mod stack {
@@ -2035,6 +2016,20 @@ pub mod adder {
         let v = res & 0b1_0000_0000 != 0;
 
         (res as u8, v)
+    }
+
+    #[inline]
+    pub fn bit_core(cpu: &mut MOS6502, v2: u8) {
+        let v1 = cpu.a();
+        let res = v1 & v2;
+
+        pcr::sync_pcr_n(cpu, v2);
+        if tst_bit(v2, 0b0100_0000) {
+            cpu.set_psr_bit(PSR::V)
+        } else {
+            cpu.clr_psr_bit(PSR::V)
+        }
+        pcr::sync_pcr_z(cpu, res);
     }
 
     /// Refer:
