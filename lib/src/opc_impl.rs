@@ -1903,6 +1903,7 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCode; 0x1_00] = &[
 mod pcr {
     use super::*;
 
+    #[inline]
     fn shift_ops_sync_pcr_c(cpu: &mut MOS6502, val: u8, bit_selector: u8) {
         if tst_bit(val, bit_selector) {
             cpu.set_psr_bit(PSR::C)
@@ -1911,14 +1912,17 @@ mod pcr {
         }
     }
 
+    #[inline]
     pub fn shift_ops_sync_pcr_c_lsb(cpu: &mut MOS6502, val: u8) {
         shift_ops_sync_pcr_c(cpu, val, 0b0000_0001);
     }
 
+    #[inline]
     pub fn shift_ops_sync_pcr_c_msb(cpu: &mut MOS6502, val: u8) {
         shift_ops_sync_pcr_c(cpu, val, 0b1000_0000);
     }
 
+    #[inline]
     pub fn sync_pcr_z(cpu: &mut MOS6502, val: u8) {
         if val == 0 {
             cpu.set_psr_bit(PSR::Z)
@@ -1927,6 +1931,7 @@ mod pcr {
         }
     }
 
+    #[inline]
     pub fn sync_pcr_n(cpu: &mut MOS6502, val: u8) {
         if tst_bit(val, 0b1000_0000) {
             cpu.set_psr_bit(PSR::N)
@@ -1935,6 +1940,7 @@ mod pcr {
         }
     }
 
+    #[inline]
     pub fn sync_pcr_v_BIT(cpu: &mut MOS6502, val: u8) {
         if tst_bit(val, 0b0100_0000) {
             cpu.set_psr_bit(PSR::V)
@@ -2032,31 +2038,63 @@ pub mod adder {
     }
 
     /// Refer:
+    /// - https://www.masswerk.at/6502/6502_instruction_set.html#arithmetic
     /// - https://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
     /// - http://www.6502.org/tutorials/decimal_mode.html
+    #[inline]
     pub fn adc_core(cpu: &mut MOS6502, n2: u8) {
-        let n1 = cpu.a();
-        let res = n1 + n2;
-        cpu.set_a(res);
+        if cpu.tst_psr_bit(PSR::D) {
+            adc_core_bcd(cpu, n2)
+        } else {
+            adc_core_bin(cpu, n2)
+        }
+    }
 
-        pcr::sync_pcr_n(cpu, res);
-        // set V
-        pcr::sync_pcr_z(cpu, res);
-        // set C
+    fn adc_core_bin(cpu: &mut MOS6502, n2: u8) {
+        let n1 = cpu.a();
+        let res = n1 as u16 + n2 as u16 + if cpu.tst_psr_bit(PSR::C) { 0x01 } else { 0x00 };
+        let res_u8 = res as u8;
+        cpu.set_a(res_u8);
+
+        pcr::sync_pcr_n(cpu, res_u8);
+        let bit8u8 = 0b1000_0000;
+        let c6 = ((n1 & !bit8u8) + (n2 & !bit8u8)) & bit8u8 == bit8u8;
+        let bit8u16 = 0b0000_0001_0000_0000;
+        let c7 = res & bit8u16 == bit8u16;
+        if c6 != c7 {
+            cpu.set_psr_bit(PSR::V)
+        } else {
+            cpu.clr_psr_bit(PSR::V)
+        }
+        pcr::sync_pcr_z(cpu, res_u8);
+        if c7 {
+            cpu.set_psr_bit(PSR::C)
+        } else {
+            cpu.clr_psr_bit(PSR::C)
+        }
+    }
+
+    fn adc_core_bcd(_cpu: &mut MOS6502, _n2: u8) {
+        todo!("ADC in decimal mode is not yet implemented.")
     }
 
     /// Refer:
-    /// - https://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
-    /// - http://www.6502.org/tutorials/decimal_mode.html
+    /// - http://forum.6502.org/viewtopic.php?f=2&t=2944#p57780
+    #[inline]
     pub fn sbc_core(cpu: &mut MOS6502, n2: u8) {
-        let n1 = cpu.a();
-        let res = n1 - n2;
-        cpu.set_a(res);
+        if cpu.tst_psr_bit(PSR::D) {
+            sbc_core_bcd(cpu, n2)
+        } else {
+            sbc_core_bin(cpu, n2)
+        }
+    }
 
-        pcr::sync_pcr_n(cpu, res);
-        // set V
-        pcr::sync_pcr_z(cpu, res);
-        // set C
+    fn sbc_core_bin(cpu: &mut MOS6502, n2: u8) {
+        adc_core(cpu, !n2);
+    }
+
+    fn sbc_core_bcd(_cpu: &mut MOS6502, _n2: u8) {
+        todo!("SBC in decimal mode is not yet implemented.")
     }
 
     #[cfg(test)]
@@ -2072,14 +2110,27 @@ pub mod adder {
             assert_eq!(exp, obt);
         }
 
-        ///           D     n1    n2     D     res    N      V      Z      C
-        #[test_case(false, 0x00, 0x00, false, 0x00, false, false, true, false)]
+        ///           C     n1    n2    res    N      V      Z      C
+        #[test_case(false, 0x00, 0x00, 0x00, false, false, true, false)]
+        #[test_case(true, 0x01, 0x01, 0x03, false, false, false, false)]
+        #[test_case(false, 0x01, 0x02, 0x03, false, false, false, false)]
+        #[test_case(false, 0x64, 0xE8, 0x4C, false, false, false, true)]
+        #[test_case(false, 0x40, 0x80, 0xC0, true, false, false, false)]
+        #[test_case(true, 0xD0, 0x8F, 0x60, false, true, false, true)]
+        // Test cases from https://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
+        #[test_case(false, 0x50, 0x10, 0x60, false, false, false, false)]
+        #[test_case(false, 0x50, 0x50, 0xA0, true, true, false, false)]
+        #[test_case(false, 0x50, 0x90, 0xE0, true, false, false, false)]
+        #[test_case(false, 0x50, 0xD0, 0x20, false, false, false, true)]
+        #[test_case(false, 0xD0, 0x10, 0xE0, true, false, false, false)]
+        #[test_case(false, 0xD0, 0x50, 0x20, false, false, false, true)]
+        #[test_case(false, 0xD0, 0x90, 0x60, false, true, false, true)]
+        #[test_case(false, 0xD0, 0xD0, 0xA0, true, false, false, true)]
         #[allow(clippy::too_many_arguments)]
-        fn test_adc(
-            decimal: bool,
+        fn test_binary_adc(
+            carry: bool,
             v1: u8,
             v2: u8,
-            carry: bool,
             exp: u8,
             exp_n: bool,
             exp_v: bool,
@@ -2087,35 +2138,39 @@ pub mod adder {
             exp_c: bool,
         ) {
             let mut cpu = MOS6502::default();
-            cpu.set_a(v1);
-            if decimal {
-                cpu.set_psr_bit(PSR::D)
-            } else {
-                cpu.clr_psr_bit(PSR::D)
-            }
+            cpu.clr_psr_bit(PSR::D);
             if carry {
                 cpu.set_psr_bit(PSR::C)
             } else {
                 cpu.clr_psr_bit(PSR::C)
             }
+            cpu.set_a(v1);
 
             adc_core(&mut cpu, v2);
 
             assert_eq!(cpu.a(), exp);
-            assert_eq!(cpu.tst_psr_bit(PSR::N), exp_n);
-            assert_eq!(cpu.tst_psr_bit(PSR::V), exp_v);
-            assert_eq!(cpu.tst_psr_bit(PSR::Z), exp_z);
-            assert_eq!(cpu.tst_psr_bit(PSR::C), exp_c);
+            assert_eq!(cpu.tst_psr_bit(PSR::N), exp_n, "N flag mismatch");
+            assert_eq!(cpu.tst_psr_bit(PSR::V), exp_v, "V flag mismatch");
+            assert_eq!(cpu.tst_psr_bit(PSR::Z), exp_z, "Z flag mismatch");
+            assert_eq!(cpu.tst_psr_bit(PSR::C), exp_c, "C flag mismatch");
         }
 
-        ///           D     n1    n2     D     res    N      V      Z      C
-        #[test_case(false, 0x00, 0x00, false, 0x00, false, false, true, false)]
+        ///           C     n1    n2    res    N      V      Z      C
+        #[test_case(true, 0x00, 0x00, 0x00, false, true, true, true)]
+        // Test cases from https://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
+        #[test_case(true, 0x50, 0xF0, 0x60, false, false, false, false)]
+        #[test_case(true, 0x50, 0xB0, 0xA0, true, true, false, false)]
+        #[test_case(true, 0x50, 0x70, 0xE0, true, false, false, false)]
+        #[test_case(true, 0x50, 0x30, 0x20, false, false, false, true)]
+        #[test_case(true, 0xD0, 0xF0, 0xE0, true, false, false, false)]
+        #[test_case(true, 0xD0, 0xB0, 0x20, false, false, false, true)]
+        #[test_case(true, 0xD0, 0x70, 0x60, false, true, false, true)]
+        #[test_case(true, 0xD0, 0x30, 0xA0, true, false, false, true)]
         #[allow(clippy::too_many_arguments)]
-        fn test_sbc(
-            decimal: bool,
+        fn test_binary_sbc(
+            carry: bool,
             v1: u8,
             v2: u8,
-            carry: bool,
             exp: u8,
             exp_n: bool,
             exp_v: bool,
@@ -2123,25 +2178,21 @@ pub mod adder {
             exp_c: bool,
         ) {
             let mut cpu = MOS6502::default();
-            cpu.set_a(v1);
-            if decimal {
-                cpu.set_psr_bit(PSR::D)
-            } else {
-                cpu.clr_psr_bit(PSR::D)
-            }
+            cpu.clr_psr_bit(PSR::D);
             if carry {
                 cpu.set_psr_bit(PSR::C)
             } else {
                 cpu.clr_psr_bit(PSR::C)
             }
+            cpu.set_a(v1);
 
             sbc_core(&mut cpu, v2);
 
             assert_eq!(cpu.a(), exp);
-            assert_eq!(cpu.tst_psr_bit(PSR::N), exp_n);
-            assert_eq!(cpu.tst_psr_bit(PSR::V), exp_v);
-            assert_eq!(cpu.tst_psr_bit(PSR::Z), exp_z);
-            assert_eq!(cpu.tst_psr_bit(PSR::C), exp_c);
+            assert_eq!(cpu.tst_psr_bit(PSR::N), exp_n, "N flag mismatch");
+            assert_eq!(cpu.tst_psr_bit(PSR::V), exp_v, "V flag mismatch");
+            assert_eq!(cpu.tst_psr_bit(PSR::Z), exp_z, "Z flag mismatch");
+            assert_eq!(cpu.tst_psr_bit(PSR::C), exp_c, "C flag mismatch");
         }
     }
 }
