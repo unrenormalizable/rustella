@@ -43,10 +43,10 @@ jobs:
       - name: Split test results
         if: always()
         run: |
-          rmdir -Recurse -Force .\test-results
-          mkdir -Force .\test-results
+          rmdir -Recurse -Force ./test-results -ErrorAction SilentlyContinue
+          mkdir -Force ./test-results
           $n = 0
-          gc .\results.raw | % { $_ | Out-File -FilePath ".\test-results\testsuite.$n.xml" -Encoding utf8 -Force; $n++ }
+          gc ./results.raw | % { $_ | Out-File -FilePath "./test-results/testsuite.$n.xml" -Encoding utf8 -Force; $n++ }
         shell: pwsh
 
       - name: Publish test results
