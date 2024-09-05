@@ -340,4 +340,16 @@ mod tests {
 
         assert_eq!(exp, obt);
     }
+
+    #[test]
+    #[ignore]
+    fn expensive_test_3() {
+        // code that takes an hour to run
+    }
+
+    #[test]
+    #[ignore]
+    fn failed_test_3() {
+        assert_eq!(1, 2)
+    }
 }

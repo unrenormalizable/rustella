@@ -92,6 +92,13 @@ pub enum Commands {
             value_parser = parse_u16_hex,
             help = "Starting address.")]
         start: u16,
+
+        #[arg(
+            index = 2,
+            default_value_t = 16,
+            value_parser = clap::value_parser!(u64),
+            help = "Starting address.")]
+        count: u64,
     },
 
     #[command(

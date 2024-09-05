@@ -35,10 +35,28 @@ jobs:
           cargo build --release --examples
 
       - name: Run cargo test
-        continue-on-error: false
+        if: always()
         run: |
-          cargo test --release #-- -Z unstable-options --format json --report-time | tee results.json
+          cargo test --release --frozen --all-features --all-targets --no-fail-fast -- -Z unstable-options --format junit --report-time --include-ignored --shuffle | tee results.raw
         shell: pwsh
+
+      - name: Split test results
+        if: always()
+        run: |
+          rmdir -Recurse -Force .\test-results
+          mkdir -Force .\test-results
+          $n = 0
+          gc .\results.raw | % { $_ | Out-File -FilePath ".\test-results\testsuite.$n.xml" -Encoding utf8 -Force; $n++ }
+        shell: pwsh
+
+      - name: Publish test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          action_fail: true
+          action_fail_on_inconclusive: true
+          files: |
+            test-results/**/*.xml
 
   lint-rust:
     name: Lint rust

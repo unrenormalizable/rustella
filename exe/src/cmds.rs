@@ -81,7 +81,7 @@ pub fn memory(mem: &mem::Memory, start: u16) {
     }
 }
 
-pub fn disassemble(cpu: &cpu::MOS6502, mem: &mem::Memory, bps: &HashSet<LoHi>, start: u16) {
+pub fn disassemble(cpu: &cpu::MOS6502, mem: &mem::Memory, bps: &HashSet<LoHi>, start: u16, count: u64) {
     let mut pc = if start == 0 {
         cpu.pc()
     } else {
@@ -89,7 +89,7 @@ pub fn disassemble(cpu: &cpu::MOS6502, mem: &mem::Memory, bps: &HashSet<LoHi>, s
     };
 
     let mut instr_len = 0u8;
-    for _ in 0..16 {
+    for _ in 0..count {
         pc += instr_len;
         let (opc, bytes_str, instr_str, addr_mode, cycles) =
             disassemble_one_instruction(mem, bps, pc);
