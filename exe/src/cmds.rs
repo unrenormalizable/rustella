@@ -81,7 +81,13 @@ pub fn memory(mem: &mem::Memory, start: u16) {
     }
 }
 
-pub fn disassemble(cpu: &cpu::MOS6502, mem: &mem::Memory, bps: &HashSet<LoHi>, start: u16, count: u64) {
+pub fn disassemble(
+    cpu: &cpu::MOS6502,
+    mem: &mem::Memory,
+    bps: &HashSet<LoHi>,
+    start: u16,
+    count: u64,
+) {
     let mut pc = if start == 0 {
         cpu.pc()
     } else {

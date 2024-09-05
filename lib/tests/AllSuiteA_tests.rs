@@ -25,7 +25,6 @@ fn main() {
     assert_eq!(mem.get(cmn::LoHi(0x10, 0x02), 0), 0xFE);
 }
 
-
 #[test]
 #[ignore]
 fn expensive_test_2() {
