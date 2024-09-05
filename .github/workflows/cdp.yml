@@ -35,23 +35,25 @@ jobs:
           cargo build --release --examples
 
       - name: Run cargo test
-        if: always()
+        if: always()  
+        continue-on-error: true
         run: |
           cargo test --release --frozen --all-features --all-targets --no-fail-fast -- -Z unstable-options --format junit --report-time --include-ignored --shuffle | tee results.raw
         shell: pwsh
 
       - name: Split test results
-        if: always()
+        if: always()  
+        continue-on-error: true
         run: |
-          rmdir -Recurse -Force ./test-results -ErrorAction SilentlyContinue
-          mkdir -Force ./test-results
+          Remove-Item -Recurse -Force ./test-results -ErrorAction SilentlyContinue
+          New-Item -Force ./test-results
           $n = 0
-          gc ./results.raw | % { $_ | Out-File -FilePath "./test-results/testsuite.$n.xml" -Encoding utf8 -Force; $n++ }
+          Get-Content ./results.raw | % { $_ | Out-File -FilePath "./test-results/testsuite.$n.xml" -Encoding utf8 -Force; $n++ }
         shell: pwsh
 
       - name: Publish test results
-        uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           action_fail: true
           action_fail_on_inconclusive: true
