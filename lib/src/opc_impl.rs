@@ -1,14 +1,22 @@
 #![allow(non_snake_case)]
 
-use super::{am, cmn::LoHi, cpu::*, mem::Memory};
+use super::{am, cmn::LoHi, cmn::IRQ_VECTOR, cpu::*, mem::Memory};
 
-fn illegal(_: &mut MOS6502, _: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
-    panic!("Illegal opcode {} @ {:?}", opc, pc)
+fn illegal(cpu: &mut MOS6502, _: &mut Memory, opc: u8, _: LoHi) -> Option<LoHi> {
+    unimplemented!("Illegal opcode {opc:02X}. CPU state: {cpu:?}")
 }
 
+/// The break instruction (BRK) behaves like a NMI, but will push the value of PC+2 onto the stack to be used as the return address.
+/// It will also set the I flag. See http://6502.org/tutorials/interrupts.html#2.2.
 /// 0x00 | impl | BRK
-fn BRK_impl(_: &mut MOS6502, _: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {
-    todo!("TBD: opcode {:02X} @ {:?}", opc, pc)
+fn BRK_impl(cpu: &mut MOS6502, mem: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+    stack::push_interrupt_call_stack(cpu, mem, cpu.pc() + 2);
+    cpu.set_psr_bit(PSR::I);
+
+    let pc_lo = mem.get(IRQ_VECTOR, 0);
+    let pc_hi = mem.get(IRQ_VECTOR, 1);
+
+    Some(LoHi(pc_lo, pc_hi))
 }
 
 /// 0x01 | (ind,X) | ORA (oper,X)
@@ -54,8 +62,7 @@ fn ASL_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 
 /// 0x08 | impl | PHP
 fn PHP_impl(cpu: &mut MOS6502, mem: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
-    let p = cpu.p();
-    stack::push(cpu, mem, p);
+    stack::push_psr(cpu, mem);
 
     None
 }
@@ -273,8 +280,7 @@ fn ROL_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 
 /// 0x28 | impl | PLP
 fn PLP_impl(cpu: &mut MOS6502, mem: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
-    let val = stack::pop(cpu, mem);
-    cpu.set_p(val);
+    stack::pop_psr(cpu, mem);
 
     None
 }
@@ -442,13 +448,9 @@ fn ROL_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 
 /// 0x40 | impl | RTI
 fn RTI_impl(cpu: &mut MOS6502, mem: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
-    let p = stack::pop(cpu, mem);
-    let pc_lo = stack::pop(cpu, mem);
-    let pc_hi = stack::pop(cpu, mem);
+    let ret_addr = stack::pop_interrupt_call_stack(cpu, mem);
 
-    cpu.set_p(p);
-
-    Some((pc_lo, pc_hi).into())
+    Some(ret_addr)
 }
 
 /// 0x41 | (ind,X) | EOR (oper,X)
@@ -741,7 +743,7 @@ fn JMP_ind(_: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
     let lo = mem.get(addr, 0);
     let hi = mem.get(addr, 1);
 
-    Some((lo, hi).into())
+    Some(LoHi(lo, hi))
 }
 
 /// 0x6D | abs | ADC oper
@@ -1936,6 +1938,7 @@ mod stack {
 
     pub const STACK_POINTER_HI: u8 = 0x01;
 
+    #[inline]
     pub fn push(cpu: &mut MOS6502, mem: &mut Memory, val: u8) {
         mem.set(LoHi(cpu.s(), STACK_POINTER_HI), 0, val);
 
@@ -1943,6 +1946,7 @@ mod stack {
         cpu.set_s(s);
     }
 
+    #[inline]
     pub fn pop(cpu: &mut MOS6502, mem: &mut Memory) -> u8 {
         let s = cpu.s().wrapping_add(1);
         cpu.set_s(s);
@@ -1950,9 +1954,40 @@ mod stack {
         mem.get(LoHi(s, STACK_POINTER_HI), 0)
     }
 
+    /// NOTE: Flags B & __ will be inserted when PSR is transferred to the stack by software (BRK or PHP).
+    #[inline]
+    pub fn push_psr(cpu: &mut MOS6502, mem: &mut Memory) {
+        let psr = cpu.psr() | 0x30;
+        stack::push(cpu, mem, psr | 0x30);
+    }
+
+    /// NOTE: Flags B & __ are ignored when retrieved by software (PLP or RTI).
+    #[inline]
+    pub fn pop_psr(cpu: &mut MOS6502, mem: &mut Memory) {
+        let val = stack::pop(cpu, mem) & !0x30;
+        cpu.set_psr(val);
+    }
+
+    #[inline]
+    pub fn push_interrupt_call_stack(cpu: &mut MOS6502, mem: &mut Memory, ret_addr: LoHi) {
+        stack::push(cpu, mem, ret_addr.1);
+        stack::push(cpu, mem, ret_addr.0);
+        stack::push_psr(cpu, mem);
+    }
+
+    #[inline]
+    pub fn pop_interrupt_call_stack(cpu: &mut MOS6502, mem: &mut Memory) -> LoHi {
+        stack::pop_psr(cpu, mem);
+        let lo = stack::pop(cpu, mem);
+        let hi = stack::pop(cpu, mem);
+
+        LoHi(lo, hi)
+    }
+
     #[cfg(test)]
     mod tests {
         use super::*;
+        use test_case::test_case;
 
         #[test]
         fn test_push_pop() {
@@ -1970,6 +2005,54 @@ mod stack {
             let val = pop(&mut cpu, &mut mem);
             assert_eq!(val, 0x55);
             assert_eq!(cpu.s(), SP);
+        }
+
+        #[test_case(0b0000_0000)]
+        #[test_case(0b1010_0010)]
+        #[test_case(0b0101_1001)]
+        #[test_case(0b1111_1111)]
+        fn push_psr_always_keeps_bits_4_and_5_on(psr: u8) {
+            let mut cpu = MOS6502::default();
+            let mut mem = Memory::new(true);
+
+            cpu.set_s(0xFF);
+            cpu.set_psr(psr);
+
+            push_psr(&mut cpu, &mut mem);
+            let stack_psr = pop(&mut cpu, &mut mem);
+
+            assert_eq!(
+                stack_psr & 0b1100_1111,
+                psr & 0b1100_1111,
+                "all bits other 4 & 5 should be on stack."
+            );
+            assert!(
+                tst_bit(stack_psr, 0x30),
+                "bits 4 & 5 should always be on stack."
+            );
+        }
+
+        #[test_case(0b1111_1111)]
+        #[test_case(0b1110_0000)]
+        #[test_case(0b1101_0100)]
+        #[test_case(0b0100_0011)]
+        fn pop_psr_always_keep_bits_4_and_5_off(psr: u8) {
+            let mut cpu = MOS6502::default();
+            let mut mem = Memory::new(true);
+
+            cpu.set_s(0xFF);
+            push(&mut cpu, &mut mem, psr);
+
+            pop_psr(&mut cpu, &mut mem);
+
+            assert!(
+                tst_bit(cpu.psr() & 0b0011_0000, 0b0000_0000),
+                "bits 4 & 5 should always be 0."
+            );
+            assert!(
+                tst_bit(cpu.psr(), psr & 0b1100_1111),
+                "except bits 4 & 5 psr after pop should match."
+            );
         }
     }
 }

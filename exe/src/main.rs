@@ -7,7 +7,7 @@ use std::{collections::HashSet, fs};
 
 // TODO: Abstract out hd_dbg module.
 fn main() {
-    let buffer = fs::read("d:/src/u/a2600/lib/tests/6502_functional_test.bin").unwrap();
+    let buffer = fs::read("d:/src/u/a2600/lib/tests/klaus_6502_functional_test.bin").unwrap();
     let mut mem = mem::Memory::new_with_rom(&buffer, cmn::LoHi(0x00, 0x00), mmaps::mm_6502, false);
     //let buffer = fs::read("D:/bin/Stella-6.7.1/roms/air_raid.bin").unwrap();
     //let mut mem = mem::Memory::new_with_rom(&buffer, cmn::ROM_START_6507, mmaps::mm_6507, true);

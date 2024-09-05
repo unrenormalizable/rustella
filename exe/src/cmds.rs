@@ -32,7 +32,7 @@ pub fn registers(cpu: &cpu::MOS6502, mem: &mem::Memory, bps: &HashSet<LoHi>) {
         cpu.a(),
         cpu.x(),
         cpu.y(),
-        cpu.p(),
+        cpu.psr(),
         cpu.s(),
         bit_value(cpu, cpu::PSR::N),
         bit_value(cpu, cpu::PSR::V),
@@ -59,7 +59,7 @@ pub fn set_register(cpu: &mut cpu::MOS6502, reg: repl::Register, val: u16) {
         repl::Register::Y => cpu.set_y(val as u8),
         repl::Register::PC => cpu.set_pc(LoHi::from(val)),
         repl::Register::S => cpu.set_s(val as u8),
-        repl::Register::PSR => cpu.set_p(val as u8),
+        repl::Register::PSR => cpu.set_psr(val as u8),
     }
 }
 
@@ -179,7 +179,7 @@ fn disassemble_one_instruction(
 }
 
 fn bit_value(cpu: &cpu::MOS6502, bit: cpu::PSR) -> String {
-    if cpu::tst_bit(cpu.p(), bit.bits()) {
+    if cpu::tst_bit(cpu.psr(), bit.bits()) {
         "1".to_string()
     } else {
         "0".to_lowercase()

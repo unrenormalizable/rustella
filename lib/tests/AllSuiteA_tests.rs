@@ -3,7 +3,7 @@ use std::{fs, path::PathBuf};
 
 /// Test suite from https://codegolf.stackexchange.com/q/12844.
 #[test]
-fn main() {
+fn allsuitea_tests_main() {
     let bin_path: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "AllSuiteA.bin"]
         .iter()
         .collect();
@@ -20,7 +20,7 @@ fn main() {
     assert_eq!(cpu.a(), 0xFE);
     assert_eq!(cpu.x(), 0x0D);
     assert_eq!(cpu.y(), 0x54);
-    assert_eq!(cpu.p(), 0xB1);
+    assert_eq!(cpu.psr(), 0x81);
     assert_eq!(cpu.s(), 0x33);
     assert_eq!(mem.get(cmn::LoHi(0x10, 0x02), 0), 0xFF);
 }

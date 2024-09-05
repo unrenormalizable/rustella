@@ -15,7 +15,10 @@ bitflags! {
         /// Decimal
         const D = 1 << 3;
 
-        /// Break command.
+        /// Break flag
+        /// - Is not accessed by the CPU at anytime and there is no internal representation.
+        /// - Will be inserted when PSR is transferred to the stack by software (BRK or PHP), and will be zero, when transferred by hardware.
+        /// - Will be ignored when retrieved by software (PLP or RTI).
         const B = 1 << 4;
 
         /// Ignored.
@@ -36,7 +39,7 @@ impl Default for PSR {
 }
 
 #[allow(non_snake_case)]
-#[derive(Default)]
+#[derive(Default, Debug)]
 /// Refer: https://www.princeton.edu/~mae412/HANDOUTS/Datasheets/6502.pdf
 pub struct MOS6502 {
     A: u8,
@@ -136,12 +139,12 @@ impl MOS6502 {
     }
 
     #[inline]
-    pub fn p(&self) -> u8 {
+    pub fn psr(&self) -> u8 {
         self.P.bits()
     }
 
     #[inline]
-    pub fn set_p(&mut self, p: u8) {
+    pub fn set_psr(&mut self, p: u8) {
         self.P = PSR::from_bits_truncate(p);
     }
 
@@ -174,8 +177,8 @@ impl MOS6502 {
     }
 
     fn reset_pc(&mut self, mem: &mem::Memory) {
-        let pc_lo = mem.get(RESET_VECTOR, 0);
-        let pc_hi = mem.get(RESET_VECTOR, 1);
+        let pc_lo = mem.get(RST_VECTOR, 0);
+        let pc_hi = mem.get(RST_VECTOR, 1);
 
         self.PC = LoHi(pc_lo, pc_hi);
     }

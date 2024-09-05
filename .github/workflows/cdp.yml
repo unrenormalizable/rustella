@@ -57,7 +57,7 @@ jobs:
         with:
           name: Test results
           path: test-results/**/*.xml
-          reporter: jest-junit
+          reporter: java-junit
           fail-on-error: 'true'
           fail-on-empty: 'true'
           list-tests: 'failed'

@@ -66,7 +66,7 @@ mod tests {
     #[test_case(LoHi(0x00, 0x00), 0x0000; "no mirroring - 1")]
     #[test_case(LoHi(0xff, 0x1f), 0x1fff; "no mirroring - 2")]
     #[test_case(LoHi(0x00, 0x20), 0x0000; "higher half of address space - 1")]
-    #[test_case(RESET_VECTOR, 0x1FFC; "higher half of address space - 2")]
+    #[test_case(RST_VECTOR, 0x1FFC; "higher half of address space - 2")]
     #[test_case(LoHi(0xfe, 0x07), 0x3fe; "TIA-RAM-RIOT mirror - 1")]
     #[test_case(LoHi(0x01, 0x08), 0x001; "TIA-RAM-RIOT mirror - 2")]
     #[test_case(LoHi(0x80, 0x0d), 0x180; "TIA-RAM-RIOT mirror - 3")]
