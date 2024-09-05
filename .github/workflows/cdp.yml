@@ -45,20 +45,23 @@ jobs:
         if: always()  
         continue-on-error: true
         run: |
-          Remove-Item -Recurse -Force ./test-results -ErrorAction SilentlyContinue
-          New-Item -Force -ItemType Directory ./test-results
+          Remove-Item -Recurse -Force -Path ./test-results -ErrorAction SilentlyContinue
+          New-Item -Force -ItemType Directory -Path ./test-results
           $n = 0
           Get-Content ./results.raw | % { $_ | Out-File -FilePath "./test-results/testsuite.$n.xml" -Encoding utf8 -Force; $n++ }
         shell: pwsh
 
       - name: Publish test results
         if: always()
-        uses: EnricoMi/publish-unit-test-result-action@v2
+        uses: dorny/test-reporter@v1
         with:
-          action_fail: true
-          action_fail_on_inconclusive: true
-          files: |
-            test-results/**/*.xml
+          name: Test results
+          path: test-results/**/*.xml
+          reporter: jest-junit
+          fail-on-error: 'true'
+          fail-on-empty: 'true'
+          use-actions-summary: 'true'
+          list-tests: 'failed'
 
   lint-rust:
     name: Lint rust
