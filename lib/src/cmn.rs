@@ -18,13 +18,6 @@ pub struct OpCodeInfo<'a> {
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LoHi(pub u8, pub u8);
 
-impl LoHi {
-    #[inline]
-    pub fn wrapping_add_lo(&self, delta: u8) -> Self {
-        Self(self.0.wrapping_add(delta), self.1)
-    }
-}
-
 impl core::ops::Add<u8> for LoHi {
     type Output = LoHi;
 

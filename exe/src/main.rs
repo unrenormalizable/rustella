@@ -34,15 +34,3 @@ fn main() {
         }
     });
 }
-
-#[test]
-#[ignore]
-fn expensive_test_1() {
-    // code that takes an hour to run
-}
-
-#[test]
-#[ignore]
-fn failed_test_1() {
-    assert_eq!(1, 2)
-}

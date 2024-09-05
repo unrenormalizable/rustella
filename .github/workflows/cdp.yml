@@ -60,7 +60,6 @@ jobs:
           reporter: jest-junit
           fail-on-error: 'true'
           fail-on-empty: 'true'
-          use-actions-summary: 'true'
           list-tests: 'failed'
 
   lint-rust:
