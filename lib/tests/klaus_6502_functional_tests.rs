@@ -21,11 +21,11 @@ fn klaus_6502_65c02_functional_tests_main() {
         cpu.fetch_decode_execute(&mut mem);
     }
 
+    assert_eq!(mem.get(cmn::LoHi(0x00, 0x02), 0), 0x10);
     assert_eq!(cpu.pc(), cmn::LoHi(0x0D, 0x0F));
     assert_eq!(cpu.a(), 0x10);
     assert_eq!(cpu.x(), 0x00);
     assert_eq!(cpu.y(), 0xFF);
     assert_eq!(cpu.psr(), 0x4D);
     assert_eq!(cpu.s(), 0xFF);
-    assert_eq!(mem.get(cmn::LoHi(0x00, 0x02), 0), 0x10);
 }

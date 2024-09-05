@@ -34,7 +34,7 @@ bitflags! {
 
 impl Default for PSR {
     fn default() -> Self {
-        PSR::__ | PSR::B | PSR::I | PSR::Z
+        PSR::I
     }
 }
 

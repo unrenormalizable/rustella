@@ -3,10 +3,14 @@ use std::{fs, path::PathBuf};
 
 /// Test suite from https://codegolf.stackexchange.com/q/12844.
 #[test]
-fn allsuitea_tests_main() {
-    let bin_path: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "AllSuiteA.bin"]
-        .iter()
-        .collect();
+fn hcm_6502_allsuitea_tests_main() {
+    let bin_path: PathBuf = [
+        env!("CARGO_MANIFEST_DIR"),
+        "tests",
+        "hcm_6502_AllSuiteA.bin",
+    ]
+    .iter()
+    .collect();
 
     let buffer = fs::read(bin_path).unwrap();
     let mut mem = mem::Memory::new_with_rom(&buffer, cmn::LoHi(0x00, 0x40), mmaps::mm_6502, true);
