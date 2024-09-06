@@ -17,15 +17,16 @@ fn klaus_6502_65c02_functional_tests_main() {
     let mut cpu = cpu::MOS6502::new(&mem);
     cpu.set_pc(cmn::LoHi(0x00, 0x04));
 
-    for _ in 0..42161 {
+    for _ in 0..54483 {
         cpu.fetch_decode_execute(&mut mem);
     }
 
-    assert_eq!(mem.get(cmn::LoHi(0x00, 0x02), 0), 0x10);
-    assert_eq!(cpu.pc(), cmn::LoHi(0x0D, 0x0F));
-    assert_eq!(cpu.a(), 0x10);
-    assert_eq!(cpu.x(), 0x00);
+    assert_eq!(mem.get(cmn::LoHi(0x00, 0x02), 0), 0x29); // NOTE: This indicates the number of tests ran.
+
+    assert_eq!(cpu.pc(), cmn::LoHi(0x08, 0x33));
+    assert_eq!(cpu.a(), 0x29);
+    assert_eq!(cpu.x(), 0xFE);
     assert_eq!(cpu.y(), 0xFF);
-    assert_eq!(cpu.psr(), 0x4D);
+    assert_eq!(cpu.psr(), 0x49);
     assert_eq!(cpu.s(), 0xFF);
 }

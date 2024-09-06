@@ -10,3 +10,6 @@ reedline = "0.32.0"
 clap-repl = "0.3.0"
 num-traits = "0.2.19"
 homedir = "0.3.3"
+
+[dev-dependencies]
+test-case = "3.3.1"

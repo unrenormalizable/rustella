@@ -53,9 +53,29 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_page_wrap_around() {
+        let mut mem = Memory::new(true);
+        let addr = 0x0100u16;
+        assert_eq!(mem.get(addr.into(), 0), 0xDE);
+        mem.set(0x00FFu16.into(), 1, 0x99);
+        assert_eq!(mem.get(0x00FFu16.into(), 1), 0x99);
+        assert_eq!(mem.get(addr.into(), 0), 0x99);
+    }
+
+    #[test]
+    fn test_address_space_wrap_around() {
+        let mut mem = Memory::new(true);
+        let addr = 0x0000u16;
+        assert_eq!(mem.get(addr.into(), 0), 0xDE);
+        mem.set(0xFFFFu16.into(), 1, 0x99);
+        assert_eq!(mem.get(0xFFFFu16.into(), 1), 0x99);
+        assert_eq!(mem.get(addr.into(), 0), 0x99);
+    }
+
+    #[test]
     fn test_mem_get_set() {
         let mut mem = Memory::new(true);
-        assert_eq!(mem.get(LoHi(0x00, 0x11), 0), 0xde);
+        assert_eq!(mem.get(LoHi(0x00, 0x11), 0), 0xDE);
         mem.set(LoHi(0xA0, 0x00), 0, 0xFE);
         assert_eq!(mem.get(LoHi(0xA0, 0x00), 0), 0xFE);
     }

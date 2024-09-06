@@ -21,8 +21,14 @@ pub struct OpCodeInfo<'a> {
     pub cycles: u64,
 }
 
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LoHi(pub u8, pub u8);
+
+impl core::fmt::Debug for LoHi {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        write!(f, "({:02X}, {:02X})", self.1, self.0)
+    }
+}
 
 impl core::ops::Add<u8> for LoHi {
     type Output = LoHi;
