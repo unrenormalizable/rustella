@@ -32,7 +32,7 @@ jobs:
       - name: Run cargo build
         continue-on-error: false
         run: |
-          cargo build --release --examples
+          cargo build --frozen --release --examples
 
       - name: Run cargo test
         if: always()  

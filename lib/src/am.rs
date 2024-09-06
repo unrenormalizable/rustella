@@ -1,349 +1,478 @@
 use super::{cmn::LoHi, mem::Memory};
 
-// NOTE: Naming conventions from "6502 Address Modes in Detail" in https://www.masswerk.at/6502/6502_instruction_set.html#modes
+/*
+    Details: "6502 Address Modes in Detail" in https://www.masswerk.at/6502/6502_instruction_set.html#modes
+    - Naming conventions from that document
+    - Also refer https://www.pagetable.com/c64ref/6502/?tab=3
+*/
 
-// Example: LDA #$07 - load the literal hexidecimal value "$7" into the accumulator
-pub fn load_immediate(mem: &Memory, pc: LoHi) -> u8 {
-    mem.get(pc, 1)
-}
-
-pub fn load_immediate_2(mem: &Memory, pc: LoHi) -> LoHi {
-    (mem.get(pc, 1), mem.get(pc, 2)).into()
-}
-
-// Example: LDA $3010 - load the contents of address "$3010" into the accumulato
-pub fn load_absolute(mem: &Memory, pc: LoHi) -> u8 {
-    load_absolute_indexed(mem, pc, 0)
-}
-
-pub fn store_absolute(mem: &mut Memory, pc: LoHi, val: u8) {
-    store_absolute_indexed(mem, pc, 0, val)
-}
-
-// Example: LDA $80 - load the contents of address "$0080" into the accumulator
-pub fn load_zero_page(mem: &Memory, pc: LoHi) -> u8 {
-    load_zero_page_indexed(mem, pc, 0)
-}
-
-pub fn store_zero_page(mem: &mut Memory, pc: LoHi, val: u8) {
-    store_zero_page_indexed(mem, pc, 0, val)
-}
-
-// Example: LDA $3120,X - load the contents of address "$3120 + X" into A
-pub fn load_absolute_indexed(mem: &Memory, pc: LoHi, index: u8) -> u8 {
-    let abs_args = load_immediate_2(mem, pc);
-    let addr = abs_args + index;
-    mem.get(addr, 0)
-}
-
-pub fn store_absolute_indexed(mem: &mut Memory, pc: LoHi, index: u8, val: u8) {
-    let abs_args = load_immediate_2(mem, pc);
-    let addr = abs_args + index;
-    mem.set(addr, 0, val);
-}
-
-// Example: LDA $80,X - load the contents of address "$0080 + X" into A
-pub fn load_zero_page_indexed(mem: &Memory, pc: LoHi, index: u8) -> u8 {
-    let abs_args = load_immediate(mem, pc);
-    let addr = LoHi(abs_args, 0) + index;
-    mem.get(addr, 0)
-}
-
-pub fn store_zero_page_indexed(mem: &mut Memory, pc: LoHi, index: u8, val: u8) {
-    let abs_args = load_immediate(mem, pc);
-    let addr = LoHi(abs_args, 0) + index;
-    mem.set(addr, 0, val)
-}
-
-// Example: JMP ($FF82) - jump to address given in addresses "$FF82" and "$FF83"
-pub fn load_indirect(mem: &Memory, pc: LoHi) -> LoHi {
-    let op_args = load_immediate_2(mem, pc);
-    let lo = mem.get(op_args, 0);
-    let hi = mem.get(op_args, 1);
-
-    LoHi(lo, hi)
-}
-
-/// Example: LDA ($70,X): load the contents of the location given in addresses "$0070+X" and "$0070+1+X" into A
-pub fn load_pre_indexed_indirect(mem: &Memory, pc: LoHi, index: u8) -> u8 {
-    let lo = load_zero_page_indexed(mem, pc, index);
-    let hi = load_zero_page_indexed(mem, pc, index.wrapping_add(1));
-
-    mem.get(LoHi(lo, hi), 0)
-}
-
-/// Example: STA ($A2,X): store the contents of A in the location given in addresses "$00A2+X" and "$00A3+X"
-pub fn store_pre_indexed_indirect(mem: &mut Memory, pc: LoHi, index: u8, val: u8) {
-    let lo = load_zero_page_indexed(mem, pc, index);
-    let hi = load_zero_page_indexed(mem, pc, index.wrapping_add(1));
-
-    mem.set(LoHi(lo, hi), 0, val)
-}
-
-/// Example: LDA ($70),Y: add the contents of the Y-register to the pointer provided in "$0070" and "$0071" and load the contents of this address into A
-pub fn load_post_indexed_indirect(mem: &Memory, pc: LoHi, index: u8) -> u8 {
-    let lo = load_zero_page_indexed(mem, pc, 0);
-    let hi = load_zero_page_indexed(mem, pc, 1);
-
-    let addr = LoHi(lo, hi) + index;
-
-    mem.get(addr, 0)
-}
-
-/// Example: STA ($A2),Y: store the contents of A in the location given by the pointer in "$00A2" and "$00A3" plus the contents of the Y-register
-pub fn store_post_indexed_indirect(mem: &mut Memory, pc: LoHi, index: u8, val: u8) {
-    let lo = load_zero_page_indexed(mem, pc, 0);
-    let hi = load_zero_page_indexed(mem, pc, 1);
-
-    let addr = LoHi(lo, hi) + index;
-
-    mem.set(addr, 0, val)
-}
-
-/// Refer: https://www.pagetable.com/c64ref/6502/?tab=3#r8
-pub fn relative(mem: &Memory, pc: LoHi) -> LoHi {
-    let off = mem.get(pc, 1);
-
-    u16::from(pc + 0x02u8) // NOTE: relative is only used in branch opcs, all have length 2
-        .wrapping_add_signed(off as i8 as i16)
-        .into()
-}
-
-#[cfg(test)]
-mod tests {
+/// #2 Immediate Addressing | Immediate
+///
+/// LDA #$07 - load the literal hexidecimal value "$7" into the accumulator
+/// ADC #$A0 - add the literal hexidecimal value "$A0" to the accumulator
+/// CPX #$32 - compare the X-register to the literal hexidecimal value "$32"
+pub mod immediate {
     use super::*;
-    use crate::mmaps;
-    use test_case::test_case;
 
-    #[test_case(LoHi(0x10, 0xf0))] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
-    #[test_case(LoHi(0xff, 0xfe))]
-    #[test_case(LoHi(0xff, 0xff))]
-    #[test_case(LoHi(0x00, 0xff))]
-    fn test_load_immediate(pc: LoHi) {
-        let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
-        mem.set(pc, 1, 0x07);
-        mem.set(pc, 2, 0xf7);
-
-        let obt = load_immediate(&mem, pc);
-        assert_eq!(obt, 0x07);
-
-        let obt = load_immediate_2(&mem, pc);
-        assert_eq!(obt, (0x07, 0xf7).into());
+    pub fn load(mem: &Memory, pc: LoHi) -> u8 {
+        mem.get(pc, 1)
     }
 
-    #[test_case(LoHi(0x10, 0xf0), 0x34)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
-    #[test_case(LoHi(0xff, 0xff), 0xff)]
-    #[test_case(LoHi(0xff, 0xfe), 0x66)]
-    #[test_case(LoHi(0x00, 0xff), 0x96)]
-    fn test_load_absolute(pc: LoHi, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
-        mem.set(pc, 1, 0x10);
-        mem.set(pc, 2, 0x30);
-        mem.set(LoHi(0x10, 0x30), 0, exp);
+    #[cfg(test)]
+    mod tests {
+        use crate::{cmn::LoHi, mem::Memory, mmaps};
+        use test_case::test_case;
 
-        let obt = load_absolute(&mem, pc);
+        #[test_case(LoHi(0x10, 0xf0))] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
+        #[test_case(LoHi(0xff, 0xfe))]
+        #[test_case(LoHi(0xff, 0xff))]
+        #[test_case(LoHi(0x00, 0xff))]
+        fn test_load(pc: LoHi) {
+            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
+            mem.set(pc, 1, 0x07);
+            mem.set(pc, 2, 0xf7);
 
-        assert_eq!(obt, exp);
+            let obt = super::load(&mem, pc);
+            assert_eq!(obt, 0x07);
+        }
+    }
+}
+
+/// #3 Absolute Addressing | Absolute
+///
+/// LDA $3010 - load the contents of address "$3010" into the accumulator
+/// ROL $08A0 - rotate the contents of address "$08A0" left by one position
+/// JMP $4000 - jump to (continue with) location "$4000"
+pub mod absolute {
+    use super::*;
+
+    pub fn load(mem: &Memory, pc: LoHi) -> u8 {
+        indexed_absolute::load(mem, pc, 0)
     }
 
-    #[test_case(LoHi(0x10, 0xf0), 0x34)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
-    #[test_case(LoHi(0xff, 0xff), 0xff)]
-    #[test_case(LoHi(0xff, 0xfe), 0x66)]
-    #[test_case(LoHi(0x00, 0xff), 0x96)]
-    fn test_store_absolute(pc: LoHi, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
-        mem.set(pc, 1, 0x10);
-        mem.set(pc, 2, 0x30);
-
-        store_absolute(&mut mem, pc, exp);
-        let obt = mem.get(LoHi(0x10, 0x30), 0);
-
-        assert_eq!(obt, exp);
+    pub fn load_lohi(mem: &Memory, pc: LoHi) -> LoHi {
+        LoHi(mem.get(pc, 1), mem.get(pc, 2))
     }
 
-    #[test_case(LoHi(0x10, 0xf0), 0x34)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
-    #[test_case(LoHi(0xff, 0xfe), 0xfe)]
-    #[test_case(LoHi(0xff, 0xff), 0x66)]
-    #[test_case(LoHi(0x00, 0xff), 0x98)]
-    fn test_load_zero_page(pc: LoHi, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
-        mem.set(pc, 1, 0x80);
-        mem.set(LoHi(0x80, 0x00), 0, exp);
-
-        let obt = load_zero_page(&mem, pc);
-
-        assert_eq!(obt, exp);
+    pub fn store(mem: &mut Memory, pc: LoHi, val: u8) {
+        indexed_absolute::store(mem, pc, 0, val)
     }
 
-    #[test_case(LoHi(0x10, 0xf0), 0x34)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
-    #[test_case(LoHi(0xff, 0xfe), 0xfe)]
-    #[test_case(LoHi(0xff, 0xff), 0x66)]
-    #[test_case(LoHi(0x00, 0xff), 0x98)]
-    fn test_store_zero_page(pc: LoHi, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
-        mem.set(pc, 1, 0x80);
+    #[cfg(test)]
+    mod tests {
+        use crate::{cmn::LoHi, mem::Memory, mmaps};
+        use test_case::test_case;
 
-        store_zero_page(&mut mem, pc, exp);
-        let obt = mem.get(LoHi(0x80, 0x00), 0);
+        #[test_case(LoHi(0x10, 0xf0), 0x34)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
+        #[test_case(LoHi(0xff, 0xff), 0xff)]
+        #[test_case(LoHi(0xff, 0xfe), 0x66)]
+        #[test_case(LoHi(0x00, 0xff), 0x96)]
+        fn test_load(pc: LoHi, exp: u8) {
+            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
+            mem.set(pc, 1, 0x10);
+            mem.set(pc, 2, 0x30);
+            mem.set(LoHi(0x10, 0x30), 0, exp);
 
-        assert_eq!(obt, exp);
+            let obt = super::load(&mem, pc);
+
+            assert_eq!(obt, exp);
+        }
+
+        #[test_case(LoHi(0x10, 0xf0), 0x34)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
+        #[test_case(LoHi(0xff, 0xff), 0xff)]
+        #[test_case(LoHi(0xff, 0xfe), 0x66)]
+        #[test_case(LoHi(0x00, 0xff), 0x96)]
+        fn test_store(pc: LoHi, exp: u8) {
+            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
+            mem.set(pc, 1, 0x10);
+            mem.set(pc, 2, 0x30);
+
+            super::store(&mut mem, pc, exp);
+            let obt = mem.get(LoHi(0x10, 0x30), 0);
+
+            assert_eq!(obt, exp);
+        }
+
+        //////////////////////// TODO test for load_lohi ///////
+    }
+}
+
+/// #4 Zero-Page Addressing | Zero Page
+///
+/// LDA $80 - load the contents of address "$0080" into the accumulator
+/// BIT $A2 - perform bit-test with the contents of address "$00A2"
+/// ASL $9A - arithmetic shift left of the contents of location "$009A"
+pub mod zero_page {
+    use super::*;
+
+    // Example: LDA $80 - load the contents of address "$0080" into the accumulator
+    pub fn load(mem: &Memory, pc: LoHi) -> u8 {
+        indexed_zero_page::load(mem, pc, 0)
     }
 
-    #[test_case(LoHi(0x10, 0xf0), 0x78)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
-    #[test_case(LoHi(0xff, 0xff), 0xff)]
-    #[test_case(LoHi(0xff, 0xfe), 0x66)]
-    #[test_case(LoHi(0x00, 0xff), 0x96)]
-    fn test_load_absolute_indexed(pc: LoHi, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
-        mem.set(pc, 1, 0x20);
-        mem.set(pc, 2, 0x31);
-        let index = 0x12;
-        mem.set(LoHi(0x32, 0x31), 0, exp);
-
-        let obt = load_absolute_indexed(&mem, pc, index);
-
-        assert_eq!(obt, exp);
+    pub fn store(mem: &mut Memory, pc: LoHi, val: u8) {
+        indexed_zero_page::store(mem, pc, 0, val)
     }
 
-    #[test_case(LoHi(0x10, 0xf0), 0x78)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
-    #[test_case(LoHi(0xff, 0xff), 0xff)]
-    #[test_case(LoHi(0xff, 0xfe), 0x66)]
-    #[test_case(LoHi(0x00, 0xff), 0x96)]
-    fn test_store_absolute_indexed(pc: LoHi, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
-        mem.set(pc, 1, 0x20);
-        mem.set(pc, 2, 0x31);
-        let index = 0x12;
+    #[cfg(test)]
+    mod tests {
+        use crate::{cmn::LoHi, mem::Memory, mmaps};
+        use test_case::test_case;
 
-        store_absolute_indexed(&mut mem, pc, index, exp);
-        let obt = mem.get(LoHi(0x32, 0x31), 0);
+        #[test_case(LoHi(0x10, 0xf0), 0x34)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
+        #[test_case(LoHi(0xff, 0xfe), 0xfe)]
+        #[test_case(LoHi(0xff, 0xff), 0x66)]
+        #[test_case(LoHi(0x00, 0xff), 0x98)]
+        fn test_load(pc: LoHi, exp: u8) {
+            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
+            mem.set(pc, 1, 0x80);
+            mem.set(LoHi(0x80, 0x00), 0, exp);
 
-        assert_eq!(obt, exp);
+            let obt = super::load(&mem, pc);
+
+            assert_eq!(obt, exp);
+        }
+
+        #[test_case(LoHi(0x10, 0xf0), 0x34)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
+        #[test_case(LoHi(0xff, 0xfe), 0xfe)]
+        #[test_case(LoHi(0xff, 0xff), 0x66)]
+        #[test_case(LoHi(0x00, 0xff), 0x98)]
+        fn test_store(pc: LoHi, exp: u8) {
+            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
+            mem.set(pc, 1, 0x80);
+
+            super::store(&mut mem, pc, exp);
+            let obt = mem.get(LoHi(0x80, 0x00), 0);
+
+            assert_eq!(obt, exp);
+        }
+    }
+}
+
+/// #5 Indexed Addressing: Absolute,X and Absolute,Y
+///
+/// LDA $3120,X - load the contents of address "$3120 + X" into A
+/// LDX $8240,Y - load the contents of address "$8240 + Y" into X
+/// INC $1400,X - increment the contents of address "$1400 + X"
+pub mod indexed_absolute {
+    use super::*;
+
+    // Example: LDA $3120,X - load the contents of address "$3120 + X" into A
+    pub fn load(mem: &Memory, pc: LoHi, index: u8) -> u8 {
+        let abs_args = absolute::load_lohi(mem, pc);
+        let addr = abs_args + index;
+        mem.get(addr, 0)
     }
 
-    #[test_case(LoHi(0x10, 0xf0), 0x64)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
-    #[test_case(LoHi(0xff, 0xfe), 0xfe)]
-    #[test_case(LoHi(0xff, 0xff), 0x66)]
-    #[test_case(LoHi(0x00, 0xff), 0x98)]
-    fn test_load_zero_page_indexed(pc: LoHi, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
-        mem.set(pc, 1, 0x80);
-        let index = 0x02;
-        mem.set(LoHi(0x82, 0x00), 0, exp);
-
-        let obt = load_zero_page_indexed(&mem, pc, index);
-
-        assert_eq!(obt, exp);
+    pub fn store(mem: &mut Memory, pc: LoHi, index: u8, val: u8) {
+        let abs_args = absolute::load_lohi(mem, pc);
+        let addr = abs_args + index;
+        mem.set(addr, 0, val);
     }
 
-    #[test_case(LoHi(0x10, 0xf0), 0x64)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
-    #[test_case(LoHi(0xff, 0xfe), 0xfe)]
-    #[test_case(LoHi(0xff, 0xff), 0x66)]
-    #[test_case(LoHi(0x00, 0xff), 0x98)]
-    fn test_store_zero_page_indexed(pc: LoHi, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
-        mem.set(pc, 1, 0x80);
-        let index = 0x02;
+    #[cfg(test)]
+    mod tests {
+        use crate::{cmn::LoHi, mem::Memory, mmaps};
+        use test_case::test_case;
 
-        store_zero_page_indexed(&mut mem, pc, index, exp);
-        let obt = mem.get(LoHi(0x82, 0x00), 0);
+        #[test_case(LoHi(0x10, 0xf0), 0x78)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
+        #[test_case(LoHi(0xff, 0xff), 0xff)]
+        #[test_case(LoHi(0xff, 0xfe), 0x66)]
+        #[test_case(LoHi(0x00, 0xff), 0x96)]
+        fn test_load(pc: LoHi, exp: u8) {
+            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
+            mem.set(pc, 1, 0x20);
+            mem.set(pc, 2, 0x31);
+            let index = 0x12;
+            mem.set(LoHi(0x32, 0x31), 0, exp);
 
-        assert_eq!(obt, exp);
+            let obt = super::load(&mem, pc, index);
+
+            assert_eq!(obt, exp);
+        }
+
+        #[test_case(LoHi(0x10, 0xf0), 0x78)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
+        #[test_case(LoHi(0xff, 0xff), 0xff)]
+        #[test_case(LoHi(0xff, 0xfe), 0x66)]
+        #[test_case(LoHi(0x00, 0xff), 0x96)]
+        fn test_store(pc: LoHi, exp: u8) {
+            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
+            mem.set(pc, 1, 0x20);
+            mem.set(pc, 2, 0x31);
+            let index = 0x12;
+
+            super::store(&mut mem, pc, index, exp);
+            let obt = mem.get(LoHi(0x32, 0x31), 0);
+
+            assert_eq!(obt, exp);
+        }
+    }
+}
+
+/// #6 Indexed Addressing: Zero-Page,X and Zero-Page,Y
+///
+/// LDA $80,X - load the contents of address "$0080 + X" into A
+/// LSR $82,X - shift the contents of address "$0082 + X" left
+/// LDX $60,Y - load the contents of address "$0060 + Y" into X
+pub mod indexed_zero_page {
+    use super::*;
+
+    // Example: LDA $80,X - load the contents of address "$0080 + X" into A
+    pub fn load(mem: &Memory, pc: LoHi, index: u8) -> u8 {
+        let abs_args = immediate::load(mem, pc);
+        let addr = LoHi(abs_args, 0) + index;
+        mem.get(addr, 0)
     }
 
-    #[test_case(LoHi(0x10, 0xf0), LoHi(0xc4, 0x80))] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
-    #[test_case(LoHi(0xff, 0xfe), LoHi(0xff, 0xff))]
-    #[test_case(LoHi(0xff, 0xff), LoHi(0xde, 0xad))]
-    #[test_case(LoHi(0x00, 0xff), LoHi(0xbe, 0xef))]
-    fn test_load_indirect(pc: LoHi, exp: LoHi) {
-        let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
-        mem.set(pc, 1, 0x82);
-        mem.set(pc, 2, 0xff);
-        mem.set(LoHi(0x82, 0xff), 0, exp.0);
-        mem.set(LoHi(0x82, 0xff), 1, exp.1);
-
-        let obt = load_indirect(&mem, pc);
-
-        assert_eq!(obt, exp);
+    pub fn store(mem: &mut Memory, pc: LoHi, index: u8, val: u8) {
+        let abs_args = immediate::load(mem, pc);
+        let addr = LoHi(abs_args, 0) + index;
+        mem.set(addr, 0, val)
     }
 
-    #[test_case(LoHi(0x10, 0xf0), 0x05, 0xA5)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
-    #[test_case(LoHi(0xff, 0xff), 0x05, 0xA5)]
-    #[test_case(LoHi(0x00, 0xff), 0x05, 0xA5)]
-    fn test_load_pre_indexed_indirect(pc: LoHi, index: u8, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
-        mem.set(pc, 1, 0x70);
-        mem.set(LoHi(0x75, 0x00), 0, 0x23);
-        mem.set(LoHi(0x75, 0x00), 1, 0x30);
-        mem.set(LoHi(0x23, 0x30), 0, 0xA5);
+    #[cfg(test)]
+    mod tests {
+        use crate::{cmn::LoHi, mem::Memory, mmaps};
+        use test_case::test_case;
 
-        let obt = load_pre_indexed_indirect(&mem, pc, index);
+        #[test_case(LoHi(0x10, 0xf0), 0x64)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
+        #[test_case(LoHi(0xff, 0xfe), 0xfe)]
+        #[test_case(LoHi(0xff, 0xff), 0x66)]
+        #[test_case(LoHi(0x00, 0xff), 0x98)]
+        fn test_load(pc: LoHi, exp: u8) {
+            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
+            mem.set(pc, 1, 0x80);
+            let index = 0x02;
+            mem.set(LoHi(0x82, 0x00), 0, exp);
 
-        assert_eq!(obt, exp);
+            let obt = super::load(&mem, pc, index);
+
+            assert_eq!(obt, exp);
+        }
+
+        #[test_case(LoHi(0x10, 0xf0), 0x64)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
+        #[test_case(LoHi(0xff, 0xfe), 0xfe)]
+        #[test_case(LoHi(0xff, 0xff), 0x66)]
+        #[test_case(LoHi(0x00, 0xff), 0x98)]
+        fn test_store(pc: LoHi, exp: u8) {
+            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
+            mem.set(pc, 1, 0x80);
+            let index = 0x02;
+
+            super::store(&mut mem, pc, index, exp);
+            let obt = mem.get(LoHi(0x82, 0x00), 0);
+
+            assert_eq!(obt, exp);
+        }
+    }
+}
+
+/// #7 Indirect Addressing | Absolute Indirect
+/// On 6502, the indirect jump instruction does not increment the page address when the indirect
+///   pointer crosses a page boundary.
+///
+/// JMP ($xxFF) - jump to address given in addresses $xxFF and $xx00"
+pub mod indirect {
+    use super::*;
+
+    // Example: JMP ($xxFF) - jump to address given in addresses "$xxFF" and "$xx00"
+    pub fn load(mem: &Memory, pc: LoHi) -> LoHi {
+        let op_args = absolute::load_lohi(mem, pc);
+        let lo = mem.get(op_args, 0);
+        let hi = mem.get(op_args, 1);
+
+        //////             TODO panic!("jump to address given in addresses \"$xxFF\" and \"$xx00\"");
+
+        LoHi(lo, hi)
     }
 
-    #[test_case(LoHi(0x10, 0xf0), 0x05, 0xA5)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
-    #[test_case(LoHi(0xff, 0xff), 0x05, 0xA5)]
-    #[test_case(LoHi(0x00, 0xff), 0x05, 0xA5)]
-    fn test_store_pre_indexed_indirect(pc: LoHi, index: u8, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
-        mem.set(pc, 1, 0x70);
-        mem.set(LoHi(0x75, 0x00), 0, 0x23);
-        mem.set(LoHi(0x75, 0x00), 1, 0x30);
+    #[cfg(test)]
+    mod tests {
+        use crate::{cmn::LoHi, mem::Memory, mmaps};
+        use test_case::test_case;
 
-        store_pre_indexed_indirect(&mut mem, pc, index, 0xA5);
+        #[test_case(LoHi(0x10, 0xf0), LoHi(0xc4, 0x80))] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
+        #[test_case(LoHi(0xff, 0xfe), LoHi(0xff, 0xff))]
+        #[test_case(LoHi(0xff, 0xff), LoHi(0xde, 0xad))]
+        #[test_case(LoHi(0x00, 0xff), LoHi(0xbe, 0xef))] // TODO ????????????                    JMP ($xxFF) - jump to address given in addresses "$xxFF" and "$xx00"
+        fn test_load(pc: LoHi, exp: LoHi) {
+            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
+            mem.set(pc, 1, 0x82);
+            mem.set(pc, 2, 0xff);
+            mem.set(LoHi(0x82, 0xff), 0, exp.0);
+            mem.set(LoHi(0x82, 0xff), 1, exp.1);
 
-        let obt = mem.get(LoHi(0x23, 0x30), 0);
-        assert_eq!(obt, exp);
+            let obt = super::load(&mem, pc);
+
+            assert_eq!(obt, exp);
+        }
+    }
+}
+
+/// #8 Pre-Indexed Indirect, "(Zero-Page,X)"
+///
+/// LDA ($70,X) - load the contents of the location given in addresses "$0070+X" and "$0070+1+X" into A
+/// STA ($A2,X) - store the contents of A in the location given in addresses "$00A2+X" and "$00A3+X"
+/// EOR ($BA,X) - perform an exlusive OR of the contents of A and the contents of the location given in addresses "$00BA+X" and "$00BB+X"
+pub mod pre_indexed_indirect {
+    use super::*;
+
+    /// Example: LDA ($70,X): load the contents of the location given in addresses "$0070+X" and "$0070+1+X" into A
+    pub fn load(mem: &Memory, pc: LoHi, index: u8) -> u8 {
+        let lo = indexed_zero_page::load(mem, pc, index);
+        let hi = indexed_zero_page::load(mem, pc, index.wrapping_add(1));
+
+        mem.get(LoHi(lo, hi), 0)
     }
 
-    #[test_case(LoHi(0x10, 0xf0), 0x10, 0x23)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
-    #[test_case(LoHi(0xff, 0xff), 0x10, 0x23)]
-    #[test_case(LoHi(0x00, 0xff), 0x10, 0x23)]
-    fn test_load_post_indexed_indirect(pc: LoHi, index: u8, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
-        mem.set(pc, 1, 0x70);
-        mem.set(LoHi(0x70, 0x00), 0, 0x43);
-        mem.set(LoHi(0x70, 0x00), 1, 0x35);
-        mem.set(LoHi(0x53, 0x35), 0, 0x23);
+    /// Example: STA ($A2,X): store the contents of A in the location given in addresses "$00A2+X" and "$00A3+X"
+    pub fn store(mem: &mut Memory, pc: LoHi, index: u8, val: u8) {
+        let lo = indexed_zero_page::load(mem, pc, index);
+        let hi = indexed_zero_page::load(mem, pc, index.wrapping_add(1));
 
-        let obt = load_post_indexed_indirect(&mem, pc, index);
-
-        assert_eq!(obt, exp);
+        mem.set(LoHi(lo, hi), 0, val)
     }
 
-    #[test_case(LoHi(0x10, 0xf0), 0x10, 0x23)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
-    #[test_case(LoHi(0xff, 0xff), 0x10, 0x23)]
-    #[test_case(LoHi(0x00, 0xff), 0x10, 0x23)]
-    fn test_store_post_indexed_indirect(pc: LoHi, index: u8, exp: u8) {
-        let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
-        mem.set(pc, 1, 0x70);
-        mem.set(LoHi(0x70, 0x00), 0, 0x43);
-        mem.set(LoHi(0x70, 0x00), 1, 0x35);
+    #[cfg(test)]
+    mod tests {
+        use crate::{cmn::LoHi, mem::Memory, mmaps};
+        use test_case::test_case;
 
-        store_post_indexed_indirect(&mut mem, pc, index, 0x23);
+        #[test_case(LoHi(0x10, 0xf0), 0x05, 0xA5)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
+        #[test_case(LoHi(0xff, 0xff), 0x05, 0xA5)]
+        #[test_case(LoHi(0x00, 0xff), 0x05, 0xA5)]
+        fn test_load(pc: LoHi, index: u8, exp: u8) {
+            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
+            mem.set(pc, 1, 0x70);
+            mem.set(LoHi(0x75, 0x00), 0, 0x23);
+            mem.set(LoHi(0x75, 0x00), 1, 0x30);
+            mem.set(LoHi(0x23, 0x30), 0, 0xA5);
 
-        let obt = mem.get(LoHi(0x53, 0x35), 0);
-        assert_eq!(obt, exp);
+            let obt = super::load(&mem, pc, index);
+
+            assert_eq!(obt, exp);
+        }
+
+        #[test_case(LoHi(0x10, 0xf0), 0x05, 0xA5)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
+        #[test_case(LoHi(0xff, 0xff), 0x05, 0xA5)]
+        #[test_case(LoHi(0x00, 0xff), 0x05, 0xA5)]
+        fn test_store(pc: LoHi, index: u8, exp: u8) {
+            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
+            mem.set(pc, 1, 0x70);
+            mem.set(LoHi(0x75, 0x00), 0, 0x23);
+            mem.set(LoHi(0x75, 0x00), 1, 0x30);
+
+            super::store(&mut mem, pc, index, 0xA5);
+
+            let obt = mem.get(LoHi(0x23, 0x30), 0);
+            assert_eq!(obt, exp);
+        }
+    }
+}
+
+/// #9 Post-Indexed Indirect, "(Zero-Page),Y"
+///
+/// LDA ($70),Y - add the contents of the Y-register to the pointer provided in "$0070" and "$0071" and load the contents of this address into A
+/// STA ($A2),Y - store the contents of A in the location given by the pointer in "$00A2" and "$00A3" plus the contents of the Y-register
+/// EOR ($BA),Y - perform an exlusive OR of the contents of A and the address given by the addition of Y to the pointer in "$00BA" and "$00BB"
+pub mod post_indexed_indirect {
+    use super::*;
+
+    pub fn load(mem: &Memory, pc: LoHi, index: u8) -> u8 {
+        let lo = indexed_zero_page::load(mem, pc, 0);
+        let hi = indexed_zero_page::load(mem, pc, 1);
+
+        let addr = LoHi(lo, hi) + index;
+
+        mem.get(addr, 0)
     }
 
-    #[test_case(LoHi(0x0A, 0xF0), 0xFB, LoHi(0x07, 0xF0); "Jump by -3 bytes")]
-    #[test_case(LoHi(0x00, 0x00), 0x50, LoHi(0x52, 0x00); "Jump by 50+len bytes")]
-    #[test_case(LoHi(0xFF, 0x44), 0x02, LoHi(0x03, 0x45); "Example from AllSuiteA.bin 0x44FF")]
-    #[test_case(LoHi(0x00, 0x10), 0x03, LoHi(0x05, 0x10); "Example 1 from masswerk 6502_instruction_set")]
-    #[test_case(LoHi(0xD4, 0x08), 0xEE, LoHi(0xC4, 0x08); "Example 2 from masswerk 6502_instruction_set")]
-    #[test_case(LoHi(0x42, 0xF1), 0xFE, LoHi(0x42, 0xF1); "Same instruction")]
-    #[test_case(LoHi(0xFF, 0xF1), 0xFE, LoHi(0xFF, 0xF1); "same instruction - wrap across page")]
-    #[test_case(LoHi(0x42, 0xF1), 0x7F, LoHi(0xC3, 0xF1); "max front")]
-    #[test_case(LoHi(0x35, 0xF0), 0x80, LoHi(0xB7, 0xEF); "max back")]
-    #[test_case(LoHi(0xE8, 0xF2), 0x80, LoHi(0x6A, 0xF2); "max back - page wrap")]
-    #[test_case(LoHi(0x46, 0xF0), 0x80, LoHi(0xC8, 0xEF); "min")]
-    fn test_relative_addr(pc: LoHi, op_arg: u8, exp: LoHi) {
-        let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
-        mem.set(pc, 1, op_arg);
+    pub fn store(mem: &mut Memory, pc: LoHi, index: u8, val: u8) {
+        let lo = indexed_zero_page::load(mem, pc, 0);
+        let hi = indexed_zero_page::load(mem, pc, 1);
 
-        let obt = relative(&mem, pc);
+        let addr = LoHi(lo, hi) + index;
 
-        assert_eq!(exp, obt);
+        mem.set(addr, 0, val)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use crate::{cmn::LoHi, mem::Memory, mmaps};
+        use test_case::test_case;
+
+        #[test_case(LoHi(0x10, 0xf0), 0x10, 0x23)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
+        #[test_case(LoHi(0xff, 0xff), 0x10, 0x23)]
+        #[test_case(LoHi(0x00, 0xff), 0x10, 0x23)]
+        fn test_load(pc: LoHi, index: u8, exp: u8) {
+            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
+            mem.set(pc, 1, 0x70);
+            mem.set(LoHi(0x70, 0x00), 0, 0x43);
+            mem.set(LoHi(0x70, 0x00), 1, 0x35);
+            mem.set(LoHi(0x53, 0x35), 0, 0x23);
+
+            let obt = super::load(&mem, pc, index);
+
+            assert_eq!(obt, exp);
+        }
+
+        #[test_case(LoHi(0x10, 0xf0), 0x10, 0x23)] // Example from https://www.masswerk.at/6502/6502_instruction_set.htm
+        #[test_case(LoHi(0xff, 0xff), 0x10, 0x23)]
+        #[test_case(LoHi(0x00, 0xff), 0x10, 0x23)]
+        fn test_store(pc: LoHi, index: u8, exp: u8) {
+            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
+            mem.set(pc, 1, 0x70);
+            mem.set(LoHi(0x70, 0x00), 0, 0x43);
+            mem.set(LoHi(0x70, 0x00), 1, 0x35);
+
+            super::store(&mut mem, pc, index, 0x23);
+
+            let obt = mem.get(LoHi(0x53, 0x35), 0);
+            assert_eq!(obt, exp);
+        }
+    }
+}
+
+/// #10 Relative Addressing (Conditional Branching)
+///
+/// BEQ $1005 - branch to location "$1005", if the zero flag is set. if the current address is $1000, this will give an offset of $03.
+/// BCS $08C4 - branch to location "$08C4", if the carry flag is set. if the current address is $08D4, this will give an offset of $EE (−$12).
+/// BCC $084A - branch to location "$084A", if the carry flag is clear.
+pub mod relative {
+    use super::*;
+
+    /// Refer: https://www.pagetable.com/c64ref/6502/?tab=3#r8
+    pub fn load(mem: &Memory, pc: LoHi) -> LoHi {
+        let off = mem.get(pc, 1);
+
+        u16::from(pc + 0x02u8) // NOTE: relative is only used in branch opcs, all have length 2
+            .wrapping_add_signed(off as i8 as i16)
+            .into()
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use crate::{cmn::LoHi, mem::Memory, mmaps};
+        use test_case::test_case;
+
+        #[test_case(LoHi(0x0A, 0xF0), 0xFB, LoHi(0x07, 0xF0); "Jump by -3 bytes")]
+        #[test_case(LoHi(0x00, 0x00), 0x50, LoHi(0x52, 0x00); "Jump by 50+len bytes")]
+        #[test_case(LoHi(0xFF, 0x44), 0x02, LoHi(0x03, 0x45); "Example from AllSuiteA.bin 0x44FF")]
+        #[test_case(LoHi(0x00, 0x10), 0x03, LoHi(0x05, 0x10); "Example 1 from masswerk 6502_instruction_set")]
+        #[test_case(LoHi(0xD4, 0x08), 0xEE, LoHi(0xC4, 0x08); "Example 2 from masswerk 6502_instruction_set")]
+        #[test_case(LoHi(0x42, 0xF1), 0xFE, LoHi(0x42, 0xF1); "Same instruction")]
+        #[test_case(LoHi(0xFF, 0xF1), 0xFE, LoHi(0xFF, 0xF1); "same instruction - wrap across page")]
+        #[test_case(LoHi(0x42, 0xF1), 0x7F, LoHi(0xC3, 0xF1); "max front")]
+        #[test_case(LoHi(0x35, 0xF0), 0x80, LoHi(0xB7, 0xEF); "max back")]
+        #[test_case(LoHi(0xE8, 0xF2), 0x80, LoHi(0x6A, 0xF2); "max back - page wrap")]
+        #[test_case(LoHi(0x46, 0xF0), 0x80, LoHi(0xC8, 0xEF); "min")]
+        fn test_load(pc: LoHi, op_arg: u8, exp: LoHi) {
+            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6507, true);
+            mem.set(pc, 1, op_arg);
+
+            let obt = super::load(&mem, pc);
+
+            assert_eq!(exp, obt);
+        }
     }
 }
