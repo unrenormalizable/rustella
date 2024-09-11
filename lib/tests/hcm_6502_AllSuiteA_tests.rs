@@ -1,4 +1,4 @@
-use a2600::{cmn, cpu, mem, mmaps};
+use a2600::{cmn, cpu::*, mem};
 use std::{fs, path::PathBuf};
 
 /// Test suite from https://codegolf.stackexchange.com/q/12844.
@@ -13,8 +13,8 @@ fn hcm_6502_allsuitea_tests_main() {
     .collect();
 
     let buffer = fs::read(bin_path).unwrap();
-    let mut mem = mem::Memory::new_with_rom(&buffer, cmn::LoHi(0x00, 0x40), mmaps::mm_6502, true);
-    let mut cpu = cpu::MOS6502::new(&mem);
+    let mut mem = mem::Memory::new_with_rom(&buffer, cmn::LoHi(0x00, 0x40), mem::mm_6502, true);
+    let mut cpu = MOS6502::new(&mem);
 
     for _ in 0..615 {
         cpu.fetch_decode_execute(&mut mem);

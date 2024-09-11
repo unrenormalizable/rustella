@@ -1,6 +1,8 @@
 #![allow(non_snake_case)]
 
-use super::{am, cmn::LoHi, cmn::IRQ_VECTOR, cpu::*, mem::Memory};
+use crate::cmn::{LoHi, IRQ_VECTOR};
+use crate::cpu::{am, core::*};
+use crate::mem::Memory;
 
 fn illegal(cpu: &mut MOS6502, _: &mut Memory, opc: u8, _: LoHi) -> Option<LoHi> {
     unimplemented!("Illegal opcode {opc:02X}. CPU state: {cpu:?}")

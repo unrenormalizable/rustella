@@ -1,4 +1,5 @@
-use super::{cmn::*, mmaps};
+use crate::cmn::*;
+use crate::mem::mmaps;
 use core::mem;
 
 /// 6502 Memory map: https://wilsonminesco.com/6502primer/MemMapReqs.html

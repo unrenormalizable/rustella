@@ -32,13 +32,13 @@ jobs:
       - name: Run cargo build
         continue-on-error: false
         run: |
-          cargo build --frozen --release --examples
+          cargo build --release --examples
 
       - name: Run cargo test
         if: always()  
         continue-on-error: true
         run: |
-          cargo test --release --frozen --all-features --all-targets --no-fail-fast -- -Z unstable-options --format junit --report-time --include-ignored --shuffle | tee results.raw
+          cargo test --release --all-features --all-targets --no-fail-fast -- -Z unstable-options --format junit --report-time --include-ignored --shuffle | tee results.raw
         shell: pwsh
 
       - name: Split test results

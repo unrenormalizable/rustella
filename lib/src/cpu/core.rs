@@ -1,4 +1,6 @@
-use super::{cmn::*, mem, opc_impl, opc_info, timer};
+use crate::cmn::*;
+use crate::cpu::{opc_impl, opc_info, timer};
+use crate::mem::Memory;
 use bitflags::bitflags;
 
 bitflags! {
@@ -57,10 +59,10 @@ pub struct MOS6502 {
 /// References (use multiple to cross check implementation):
 /// - https://www.masswerk.at/6502/6502_instruction_set.html
 /// - https://www.pagetable.com/c64ref/6502/
-pub type OpCode = dyn Fn(&mut MOS6502, &mut mem::Memory, u8, LoHi) -> Option<LoHi>;
+pub type OpCode = dyn Fn(&mut MOS6502, &mut Memory, u8, LoHi) -> Option<LoHi>;
 
 impl MOS6502 {
-    pub fn new(mem: &mem::Memory) -> Self {
+    pub fn new(mem: &Memory) -> Self {
         let mut cpu = Self::default();
         cpu.reset_pc(mem);
 
@@ -68,7 +70,7 @@ impl MOS6502 {
     }
 
     #[inline]
-    pub fn fetch_decode_execute(&mut self, mem: &mut mem::Memory) {
+    pub fn fetch_decode_execute(&mut self, mem: &mut Memory) {
         let start_time = timer::get_nanoseconds();
         let opc = mem.get(self.PC, 0);
         let res = opc_impl::ALL_OPCODE_ROUTINES[opc as usize](self, mem, opc, self.PC);
@@ -176,7 +178,7 @@ impl MOS6502 {
         self.PC += index;
     }
 
-    fn reset_pc(&mut self, mem: &mem::Memory) {
+    fn reset_pc(&mut self, mem: &Memory) {
         let pc_lo = mem.get(RST_VECTOR, 0);
         let pc_hi = mem.get(RST_VECTOR, 1);
 

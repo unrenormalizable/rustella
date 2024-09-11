@@ -1,5 +1,5 @@
 use super::{color_term::VTerm, repl};
-use a2600::{cmn::*, cpu, mem, opc_info};
+use a2600::{cmn::LoHi, cpu, mem};
 use std::collections::HashSet;
 use std::path::PathBuf;
 
@@ -99,7 +99,7 @@ pub fn disassemble(
         pc += instr_len;
         let (opc, bytes_str, instr_str, addr_mode, cycles) =
             disassemble_one_instruction(mem, bps, pc);
-        instr_len = opc_info::ALL[opc as usize].bytes;
+        instr_len = cpu::opc_info::ALL[opc as usize].bytes;
         println!(
             "{} │ {} │ {} │ {: <7}",
             bytes_str, instr_str, cycles, addr_mode
@@ -139,7 +139,7 @@ fn disassemble_one_instruction(
     pc: LoHi,
 ) -> (u8, String, String, &'static str, u64) {
     let opc = mem.get(pc, 0);
-    let opc_info = &opc_info::ALL[opc as usize];
+    let opc_info = &cpu::opc_info::ALL[opc as usize];
     let instr_b1_str = if opc_info.bytes > 1 {
         &format!("{:02X}", mem.get(pc, 1))
     } else {

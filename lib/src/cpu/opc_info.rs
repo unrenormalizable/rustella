@@ -1,4 +1,4 @@
-use super::cmn::OpCodeInfo;
+use crate::cmn::OpCodeInfo;
 
 /*
 To regenerate this run

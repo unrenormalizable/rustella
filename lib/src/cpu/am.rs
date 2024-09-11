@@ -1,4 +1,5 @@
-use super::{cmn::LoHi, mem::Memory};
+use crate::cmn::LoHi;
+use crate::mem::Memory;
 
 /*
     Details: "6502 Address Modes in Detail" in https://www.masswerk.at/6502/6502_instruction_set.html#modes
@@ -23,12 +24,12 @@ pub mod immediate {
 
     #[cfg(test)]
     mod tests {
-        use crate::{mem::Memory, mmaps};
+        use crate::mem;
         use test_case::test_case;
 
         #[test_case((0x07,); "Example from https://www.masswerk.at/6502/6502_instruction_set.htm")]
         fn test_load(op_arg: (u8,)) {
-            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6502, true);
+            let mut mem = mem::Memory::new_with_rom(&[], Default::default(), mem::mm_6502, true);
             let pc = 0x0000u16.into();
 
             // Setup Opcode.
@@ -67,12 +68,12 @@ pub mod absolute {
 
     #[cfg(test)]
     mod tests {
-        use crate::{mem::Memory, mmaps};
+        use crate::mem;
         use test_case::test_case;
 
         #[test_case((0x10, 0x30), 0x34; "Example from https://www.masswerk.at/6502/6502_instruction_set.htm")]
         fn test_load(op_args: (u8, u8), exp: u8) {
-            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6502, true);
+            let mut mem = mem::Memory::new_with_rom(&[], Default::default(), mem::mm_6502, true);
             let pc = 0x0000u16.into();
 
             // Setup OpCode.
@@ -90,7 +91,7 @@ pub mod absolute {
 
         #[test_case((0x10, 0x30), 0x34; "Example from https://www.masswerk.at/6502/6502_instruction_set.htm")]
         fn test_store(op_args: (u8, u8), exp: u8) {
-            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6502, true);
+            let mut mem = mem::Memory::new_with_rom(&[], Default::default(), mem::mm_6502, true);
             let pc = 0x0000u16.into();
 
             // Setup OpCode.
@@ -107,7 +108,7 @@ pub mod absolute {
 
         #[test_case((0x10, 0x30); "Example from https://www.masswerk.at/6502/6502_instruction_set.htm")]
         fn test_load_lohi(op_args: (u8, u8)) {
-            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6502, true);
+            let mut mem = mem::Memory::new_with_rom(&[], Default::default(), mem::mm_6502, true);
             let pc = 0x0000u16.into();
 
             // Setup OpCode.
@@ -143,12 +144,13 @@ pub mod zero_page {
 
     #[cfg(test)]
     mod tests {
-        use crate::{cmn::LoHi, mem::Memory, mmaps};
+        use super::*;
+        use crate::mem;
         use test_case::test_case;
 
         #[test_case((0x80,), LoHi(0x80, 0x00), 0x34; "Example from https://www.masswerk.at/6502/6502_instruction_set.htm")]
         fn test_load(op_args: (u8,), lookup: LoHi, exp: u8) {
-            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6502, true);
+            let mut mem = mem::Memory::new_with_rom(&[], Default::default(), mem::mm_6502, true);
             let pc = 0x0000u16.into();
 
             // Set up opcode.
@@ -168,7 +170,7 @@ pub mod zero_page {
         #[test_case(LoHi(0xff, 0xff), 0x66)]
         #[test_case(LoHi(0x00, 0xff), 0x98)]
         fn test_store(pc: LoHi, exp: u8) {
-            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6502, true);
+            let mut mem = mem::Memory::new_with_rom(&[], Default::default(), mem::mm_6502, true);
             mem.set(pc, 1, 0x80);
 
             super::store(&mut mem, pc, exp);
@@ -209,14 +211,15 @@ pub mod indexed_absolute {
 
     #[cfg(test)]
     mod tests {
-        use crate::{cmn::LoHi, mem::Memory, mmaps};
+        use super::*;
+        use crate::mem;
         use test_case::test_case;
 
         #[test_case((0x20, 0x31), 0x12, LoHi(0x32, 0x31), 0x78; "Example from https://www.masswerk.at/6502/6502_instruction_set.htm")]
         #[test_case((0xFF, 0x31), 0x01, LoHi(0x00, 0x32), 0x78; "Page wrap around")]
         #[test_case((0xFF, 0xFF), 0x01, LoHi(0x00, 0x00), 0x78; "Address space wrap around")]
         fn test_load(op_args: (u8, u8), index: u8, lookup: LoHi, exp: u8) {
-            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6502, true);
+            let mut mem = mem::Memory::new_with_rom(&[], Default::default(), mem::mm_6502, true);
             let pc = 0x0000u16.into();
 
             // Set up OpCode.
@@ -236,7 +239,7 @@ pub mod indexed_absolute {
         #[test_case((0xFF, 0x31), 0x01, LoHi(0x00, 0x32), 0x78; "Page wrap around")]
         #[test_case((0xFF, 0xFF), 0x01, LoHi(0x00, 0x00), 0x78; "Address space wrap around")]
         fn test_store(op_args: (u8, u8), index: u8, lookup: LoHi, exp: u8) {
-            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6502, true);
+            let mut mem = mem::Memory::new_with_rom(&[], Default::default(), mem::mm_6502, true);
             let pc = 0x0000u16.into();
 
             // Set up OpCode.
@@ -281,13 +284,13 @@ pub mod indexed_zero_page {
 
     #[cfg(test)]
     mod tests {
-        use crate::{mem::Memory, mmaps};
+        use crate::mem;
         use test_case::test_case;
 
         #[test_case((0x80,), 0x02, (0x82, 0x00), 0x64; "Example from https://www.masswerk.at/6502/6502_instruction_set.htm")]
         #[test_case((0xFF,), 0x01, (0x00, 0x00), 0x64; "Page wrap around")]
         fn test_load(op_args: (u8,), index: u8, lookup: (u8, u8), exp: u8) {
-            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6502, true);
+            let mut mem = mem::Memory::new_with_rom(&[], Default::default(), mem::mm_6502, true);
             let pc = 0x0400u16.into();
 
             // Setup OpCode.
@@ -305,7 +308,7 @@ pub mod indexed_zero_page {
         #[test_case((0x80,), 0x02, (0x82, 0x00), 0x64; "Example from https://www.masswerk.at/6502/6502_instruction_set.htm")]
         #[test_case((0xFF,), 0x01, (0x00, 0x00), 0x64; "Page wrap around")]
         fn test_store(op_args: (u8,), index: u8, lookup: (u8, u8), exp: u8) {
-            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6502, true);
+            let mut mem = mem::Memory::new_with_rom(&[], Default::default(), mem::mm_6502, true);
             let pc = 0x0400u16.into();
 
             // Setup OpCode.
@@ -340,14 +343,15 @@ pub mod indirect {
 
     #[cfg(test)]
     mod tests {
-        use crate::{cmn::LoHi, mem::Memory, mmaps};
+        use super::*;
+        use crate::mem;
         use test_case::test_case;
 
         //            Op Args   ->              Lookup             ->     Eff. Addr
         #[test_case((0x82, 0xFF), LoHi(0x82, 0xFF), LoHi(0x83, 0xFF), LoHi(0xC4, 0x80); "Example from https://www.masswerk.at/6502/6502_instruction_set.htm")]
         #[test_case((0xFF, 0xFF), LoHi(0xFF, 0xFF), LoHi(0x00, 0xFF), LoHi(0xC4, 0x80); "No page wrap around for lookup address")]
         fn test_load(op_args: (u8, u8), lookup_lo: LoHi, lookup_hi: LoHi, exp: LoHi) {
-            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6502, true);
+            let mut mem = mem::Memory::new_with_rom(&[], Default::default(), mem::mm_6502, true);
             let pc = 0x0000u16.into();
 
             // Set up opcode: JMP ($xxFF)
@@ -398,13 +402,14 @@ pub mod pre_indexed_indirect {
 
     #[cfg(test)]
     mod tests {
-        use crate::{cmn::LoHi, mem::Memory, mmaps};
+        use super::*;
+        use crate::mem;
         use test_case::test_case;
 
         #[test_case((0x70,), 0x05, LoHi(0x75, 0x00), LoHi(0x23, 0x30), 0xA5; "Example from https://www.masswerk.at/6502/6502_instruction_set.htm")]
         #[test_case((0xFE,), 0x02, LoHi(0x00, 0x00), LoHi(0x23, 0x30), 0xA5; "Page wrap around")]
         fn test_load(op_args: (u8,), index: u8, lookup: LoHi, ea: LoHi, exp: u8) {
-            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6502, true);
+            let mut mem = mem::Memory::new_with_rom(&[], Default::default(), mem::mm_6502, true);
             let pc = 0x0400u16.into();
 
             // Setup OpCode
@@ -426,7 +431,7 @@ pub mod pre_indexed_indirect {
         #[test_case((0x70,), 0x05, LoHi(0x75, 0x00), LoHi(0x23, 0x30), 0xA5; "Example from https://www.masswerk.at/6502/6502_instruction_set.htm")]
         #[test_case((0xFE,), 0x02, LoHi(0x00, 0x00), LoHi(0x23, 0x30), 0xA5; "Page wrap around")]
         fn test_store(op_args: (u8,), index: u8, lookup: LoHi, ea: LoHi, exp: u8) {
-            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6502, true);
+            let mut mem = mem::Memory::new_with_rom(&[], Default::default(), mem::mm_6502, true);
             let pc = 0x0400u16.into();
 
             // Setup OpCode
@@ -475,14 +480,15 @@ pub mod post_indexed_indirect {
 
     #[cfg(test)]
     mod tests {
-        use crate::{cmn::LoHi, mem::Memory, mmaps};
+        use super::*;
+        use crate::mem;
         use test_case::test_case;
 
         #[test_case((0x70,), LoHi(0x70, 0x00), LoHi(0x43, 0x35), 0x10, LoHi(0x53, 0x35), 0x23; "Example from https://www.masswerk.at/6502/6502_instruction_set.htm")]
         #[test_case((0x70,), LoHi(0x70, 0x00), LoHi(0xFF, 0x35), 0x01, LoHi(0x00, 0x36), 0x23; "Page wrap around")]
         #[test_case((0x70,), LoHi(0x70, 0x00), LoHi(0xFE, 0xFF), 0x02, LoHi(0x00, 0x00), 0x23; "Address space around")]
         fn test_load(op_args: (u8,), lookup: LoHi, pre_ea: LoHi, index: u8, ea: LoHi, exp: u8) {
-            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6502, true);
+            let mut mem = mem::Memory::new_with_rom(&[], Default::default(), mem::mm_6502, true);
             let pc = 0x0400u16.into();
 
             // Setup OpCode.
@@ -504,7 +510,7 @@ pub mod post_indexed_indirect {
         #[test_case((0x70,), LoHi(0x70, 0x00), LoHi(0xFF, 0x35), 0x01, LoHi(0x00, 0x36), 0x23; "Page wrap around")]
         #[test_case((0x70,), LoHi(0x70, 0x00), LoHi(0xFE, 0xFF), 0x02, LoHi(0x00, 0x00), 0x23; "Address space around")]
         fn test_store(op_args: (u8,), lookup: LoHi, pre_ea: LoHi, index: u8, ea: LoHi, exp: u8) {
-            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6502, true);
+            let mut mem = mem::Memory::new_with_rom(&[], Default::default(), mem::mm_6502, true);
             let pc = 0x0400u16.into();
 
             // Setup OpCode.
@@ -542,7 +548,8 @@ pub mod relative {
 
     #[cfg(test)]
     mod tests {
-        use crate::{cmn::LoHi, mem::Memory, mmaps};
+        use super::*;
+        use crate::mem;
         use test_case::test_case;
 
         #[test_case(LoHi(0x0A, 0xF0), 0xFB, LoHi(0x07, 0xF0); "Jump by -3 bytes")]
@@ -557,7 +564,7 @@ pub mod relative {
         #[test_case(LoHi(0xE8, 0xF2), 0x80, LoHi(0x6A, 0xF2); "max back - page wrap")]
         #[test_case(LoHi(0x46, 0xF0), 0x80, LoHi(0xC8, 0xEF); "min")]
         fn test_load(pc: LoHi, op_arg: u8, exp: LoHi) {
-            let mut mem = Memory::new_with_rom(&[], Default::default(), mmaps::mm_6502, true);
+            let mut mem = mem::Memory::new_with_rom(&[], Default::default(), mem::mm_6502, true);
             mem.set(pc, 1, op_arg);
 
             let obt = super::load(&mem, pc);

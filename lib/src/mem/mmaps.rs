@@ -1,38 +1,13 @@
-use super::cmn::*;
+use crate::cmn::*;
 
 /// Base 6502 Memory layout
 pub fn mm_6502(a: LoHi) -> usize {
     u16::from(a) as usize
 }
 
-/// 6507 Memory layout
-///
-/// 0000-002C TIA (Write)
-/// 0030-003D TIA (Read)
-/// 0080-00FF RIOT RAM
-/// 0280-0297 RIOT I/O, TIMER
-/// ... Mirrored (see details below)
-/// 1000-1FFF Cartridge ROM
-///
-/// Details:
-/// 0000-003F = TIA Addresses $00-$3F   (zero page)
-/// 0040-007F = TIA Addresses $00-$3F   (mirror)
-/// 0080-00FF = RIOT RAM                (zero page)
-/// 0100-013F = TIA Addresses $00-$3F   (mirror)
-/// 0140-017F = TIA Addresses $00-$3F   (mirror)
-/// 0180-01FF = RIOT RAM                (mirror)
-/// 0200-023F = TIA Addresses $00-$3F   (mirror)
-/// 0240-027F = TIA Addresses $00-$3F   (mirror)
-/// 0280-029F = RIOT Addresses $00-$1F
-/// 02A0-02BF = RIOT Addresses $00-$1F  (mirror)
-/// 02C0-02DF = RIOT Addresses $00-$1F  (mirror)
-/// 02E0-02FF = RIOT Addresses $00-$1F  (mirror)
-/// 0300-033F = TIA Addresses $00-$3F   (mirror)
-/// 0340-037F = TIA Addresses $00-$3F   (mirror)
-/// 0380-039F = RIOT Addresses $00-$1F  (mirror)
-/// 03A0-03BF = RIOT Addresses $00-$1F  (mirror)
-/// 03C0-03DF = RIOT Addresses $00-$1F  (mirror)
-/// 03E0-03FF = RIOT Addresses $00-$1F  (mirror)
+/// 6507 Memory layout:
+/// - https://www.qotile.net/minidig/docs/2600_mem_map.txt
+/// - https://www.taswegian.com/WoodgrainWizard/tiki-index.php?page=Memory-Map
 ///
 /// Pins A12-A15 disabled, so 0300-FFFF mirrored as per https://forums.atariage.com/topic/192418-mirrored-memory/#comment-2439795
 ///
