@@ -1,5 +1,5 @@
 use super::{color_term::VTerm, repl};
-use a2600::{cmn::LoHi, cpu, mem};
+use a2600::{bits, cmn::LoHi, cpu, mem};
 use std::collections::HashSet;
 use std::path::PathBuf;
 
@@ -179,7 +179,7 @@ fn disassemble_one_instruction(
 }
 
 fn bit_value(cpu: &cpu::MOS6502, bit: cpu::PSR) -> String {
-    if cpu::tst_bit(cpu.psr(), bit.bits()) {
+    if bits::tst_bits(cpu.psr(), bit.bits()) {
         "1".to_string()
     } else {
         "0".to_lowercase()

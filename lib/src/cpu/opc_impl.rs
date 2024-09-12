@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 
+use crate::bits;
 use crate::cmn::{LoHi, IRQ_VECTOR};
 use crate::cpu::{am, core::*};
 use crate::mem::Memory;
@@ -1895,7 +1896,7 @@ mod pcr {
 
     #[inline]
     fn shift_ops_sync_pcr_c(cpu: &mut MOS6502, val: u8, bit_selector: u8) {
-        if tst_bit(val, bit_selector) {
+        if bits::tst_bits(val, bit_selector) {
             cpu.set_psr_bit(PSR::C)
         } else {
             cpu.clr_psr_bit(PSR::C)
@@ -1923,7 +1924,7 @@ mod pcr {
 
     #[inline]
     pub fn sync_pcr_n(cpu: &mut MOS6502, val: u8) {
-        if tst_bit(val, 0b1000_0000) {
+        if bits::tst_bits(val, 0b1000_0000) {
             cpu.set_psr_bit(PSR::N)
         } else {
             cpu.clr_psr_bit(PSR::N)
@@ -2025,7 +2026,7 @@ mod stack {
                 "all bits other 4 & 5 should be on stack."
             );
             assert!(
-                tst_bit(stack_psr, 0x30),
+                bits::tst_bits(stack_psr, 0x30),
                 "bits 4 & 5 should always be on stack."
             );
         }
@@ -2044,11 +2045,11 @@ mod stack {
             pop_psr(&mut cpu, &mut mem);
 
             assert!(
-                tst_bit(cpu.psr() & 0b0011_0000, 0b0000_0000),
+                bits::tst_bits(cpu.psr() & 0b0011_0000, 0b0000_0000),
                 "bits 4 & 5 should always be 0."
             );
             assert!(
-                tst_bit(cpu.psr(), psr & 0b1100_1111),
+                bits::tst_bits(cpu.psr(), psr & 0b1100_1111),
                 "except bits 4 & 5 psr after pop should match."
             );
         }
@@ -2105,7 +2106,7 @@ pub mod adder {
         let res = v1 & v2;
 
         pcr::sync_pcr_n(cpu, v2);
-        if tst_bit(v2, 0b0100_0000) {
+        if bits::tst_bits(v2, 0b0100_0000) {
             cpu.set_psr_bit(PSR::V)
         } else {
             cpu.clr_psr_bit(PSR::V)

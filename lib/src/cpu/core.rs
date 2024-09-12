@@ -1,3 +1,4 @@
+use crate::bits;
 use crate::cmn::*;
 use crate::cpu::{opc_impl, opc_info, timer};
 use crate::mem::Memory;
@@ -87,7 +88,7 @@ impl MOS6502 {
 
     #[inline]
     pub fn tst_psr_bit(&self, bit: PSR) -> bool {
-        tst_bit(self.P.bits(), bit.bits())
+        bits::tst_bits(self.P.bits(), bit.bits())
     }
 
     #[inline]
@@ -187,11 +188,6 @@ impl MOS6502 {
 }
 
 #[inline]
-pub fn tst_bit(bits: u8, bit: u8) -> bool {
-    bits & bit == bit
-}
-
-#[inline]
 fn set_bit(bits: &mut PSR, bit: PSR) {
     *bits |= bit;
 }
@@ -204,12 +200,13 @@ fn clr_bit(bits: &mut PSR, bit: PSR) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bits;
 
     #[test]
     fn test_tst_bit() {
         let bits: PSR = PSR::B | PSR::C;
-        assert!(tst_bit(bits.bits(), PSR::B.bits()));
-        assert!(!tst_bit(bits.bits(), PSR::V.bits()));
+        assert!(bits::tst_bits(bits.bits(), PSR::B.bits()));
+        assert!(!bits::tst_bits(bits.bits(), PSR::V.bits()));
     }
 
     #[test]
@@ -217,7 +214,7 @@ mod tests {
         let mut bits: PSR = !PSR::from_bits_truncate(0);
         set_bit(&mut bits, PSR::B);
 
-        assert!(tst_bit(bits.bits(), PSR::B.bits()));
+        assert!(bits::tst_bits(bits.bits(), PSR::B.bits()));
     }
 
     #[test]
@@ -225,6 +222,6 @@ mod tests {
         let mut bits: PSR = PSR::from_bits_truncate(0);
         clr_bit(&mut bits, PSR::B);
 
-        assert!(!tst_bit(bits.bits(), PSR::B.bits()));
+        assert!(!bits::tst_bits(bits.bits(), PSR::B.bits()));
     }
 }
