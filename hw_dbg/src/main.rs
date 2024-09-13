@@ -2,7 +2,7 @@ mod cmds;
 mod color_term;
 mod repl;
 
-use a2600::{cmn, cpu, mem};
+use a2600_emu::{cmn, cpu, mem};
 use std::{collections::HashSet, fs};
 
 // TODO: Abstract out hd_dbg module.

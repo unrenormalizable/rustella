@@ -1,5 +1,5 @@
 use super::{color_term::VTerm, repl};
-use a2600::{bits, cmn::LoHi, cpu, mem};
+use a2600_emu::{bits, cmn::LoHi, cpu, mem};
 use std::collections::HashSet;
 use std::path::PathBuf;
 

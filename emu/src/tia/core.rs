@@ -198,17 +198,33 @@ mod tests {
         };
         let mut tia = TIA::new(&mut tv, &mut rdy);
 
-        tia.tick_n(cmn::CYCLES_PER_SCAN_LINE);
+        // 0th scan line.
         tia.tick();
         assert!(!waiting_on_wsync.get());
-
         tia.set_register(cmn::Register::WSYNC, 0x00);
-        tia.tick_n(cmn::CYCLES_PER_SCAN_LINE - 2);
         assert!(waiting_on_wsync.get());
-
         tia.tick();
         assert!(waiting_on_wsync.get());
-
+        tia.tick_n(cmn::CYCLES_PER_SCAN_LINE - 3);
+        assert!(waiting_on_wsync.get());
+        tia.tick();
+        assert!(waiting_on_wsync.get());
+        // 1st scan line.
+        tia.tick();
+        assert!(!waiting_on_wsync.get());
+        tia.tick_n(10 * cmn::CYCLES_PER_SCAN_LINE - 1);
+        assert!(!waiting_on_wsync.get());
+        // 11th scan line.
+        tia.tick();
+        assert!(!waiting_on_wsync.get());
+        tia.set_register(cmn::Register::WSYNC, 0x00);
+        assert!(waiting_on_wsync.get());
+        tia.tick();
+        assert!(waiting_on_wsync.get());
+        tia.tick_n(cmn::CYCLES_PER_SCAN_LINE - 3);
+        assert!(waiting_on_wsync.get());
+        tia.tick();
+        assert!(waiting_on_wsync.get());
         tia.tick();
         assert!(!waiting_on_wsync.get());
     }

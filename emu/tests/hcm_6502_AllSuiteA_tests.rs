@@ -1,4 +1,4 @@
-use a2600::{cmn, cpu::*, mem};
+use a2600_emu::{cmn, cpu::*, mem};
 use std::{fs, path::PathBuf};
 
 /// Test suite from https://codegolf.stackexchange.com/q/12844.

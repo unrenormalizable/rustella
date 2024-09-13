@@ -1,10 +1,10 @@
 [package]
-name = "a2600_emu"
+name = "a2600_hw_dbg"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-a2600 = { path = "../lib" }
+a2600_emu = { path = "../emu" }
 clap = "4.5.16"
 reedline = "0.32.0"
 clap-repl = "0.3.0"

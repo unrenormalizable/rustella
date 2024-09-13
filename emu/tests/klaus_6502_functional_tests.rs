@@ -1,4 +1,4 @@
-use a2600::{cmn, cpu, mem};
+use a2600_emu::{cmn, cpu, mem};
 use std::{fs, path::PathBuf};
 
 /// Test suite from https://github.com/Klaus2m5/6502_65C02_functional_tests.
