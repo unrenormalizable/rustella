@@ -1,6 +1,8 @@
 use a2600_emu::{cmn, cpu, mem};
 use std::{fs, path::PathBuf};
 
+/* NOTE: This is not complete yet. ADC/SBC bin & dec part of the tests are not done. */
+
 /// Test suite from https://github.com/Klaus2m5/6502_65C02_functional_tests.
 #[test]
 fn klaus_6502_65c02_functional_tests_main() {

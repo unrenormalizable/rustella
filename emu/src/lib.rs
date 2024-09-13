@@ -6,6 +6,15 @@ pub mod mem;
 pub mod tia;
 
 pub mod bits {
+    pub const BIT_D0: u8 = 0x01 << 0;
+    pub const BIT_D1: u8 = 0x01 << 1;
+    pub const BIT_D2: u8 = 0x01 << 2;
+    pub const BIT_D3: u8 = 0x01 << 3;
+    pub const BIT_D4: u8 = 0x01 << 4;
+    pub const BIT_D5: u8 = 0x01 << 5;
+    pub const BIT_D6: u8 = 0x01 << 6;
+    pub const BIT_D7: u8 = 0x01 << 7;
+
     #[inline]
     pub fn tst_bits<
         T: num_traits::sign::Unsigned + core::ops::BitAnd + PartialEq + core::marker::Copy,
@@ -29,7 +38,10 @@ mod tests {
             $buffer.iter().enumerate().for_each(|(r, buf)| {
                 buf.iter().enumerate().for_each(|(c, &val)| {
                     let expected = $expected;
-                    assert_eq!(val, expected, "[{r},{c}]: Found {val}, expected {expected}")
+                    assert_eq!(
+                        val, expected,
+                        "[{r},{c}]: Found 0x{val:02X}, expected 0x{expected:02X}."
+                    )
                 })
             });
         };
@@ -46,7 +58,10 @@ mod tests {
                         $val.1
                     };
 
-                    assert_eq!(val, expected, "[{r},{c}]: Found {val}, expected {expected}")
+                    assert_eq!(
+                        val, expected,
+                        "[{r},{c}]: Found 0x{val:02X}, expected 0x{expected:02X}."
+                    )
                 })
             });
             assert!(atleast_one_match, "There were no matches. Test is faulty!")

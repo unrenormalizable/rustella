@@ -1,13 +1,14 @@
 use super::{cmn, tv};
+use crate::bits;
 
 const COUNT_REGISTERS: usize = cmn::Register::CXCLR as usize;
-const BIT_D1: u8 = 0x01 << 1;
 
 /// Refer:
 /// - module README.md
 /// - https://www.atarihq.com/danb/files/TIA_HW_Notes.txt
 pub struct TIA<'a> {
-    counter: usize,
+    frame_counter: usize,
+    frame_cycle_counter: usize,
     registers: [u8; COUNT_REGISTERS],
     wsync: bool,
     rdy: &'a mut dyn FnMut(bool),
@@ -17,12 +18,19 @@ pub struct TIA<'a> {
 impl<'a> TIA<'a> {
     pub fn new(tv: &'a mut dyn tv::TV, rdy: &'a mut dyn FnMut(bool)) -> Self {
         Self {
-            counter: 0,
+            frame_counter: 0,
+            frame_cycle_counter: 0,
             registers: [0x00; COUNT_REGISTERS],
             wsync: false,
             rdy,
             tv,
         }
+    }
+
+    /// Number of times VSYNC on is called.
+    #[inline]
+    pub fn frame_counter(&self) -> usize {
+        self.frame_counter
     }
 
     pub fn set_register(&mut self, reg: cmn::Register, val: u8) {
@@ -31,6 +39,13 @@ impl<'a> TIA<'a> {
 
         if let cmn::Register::WSYNC = reg {
             self.set_RDY(true);
+        }
+
+        if let cmn::Register::VSYNC = reg {
+            if bits::tst_bits(val, bits::BIT_D1) {
+                self.frame_counter += 1;
+                self.frame_cycle_counter = 0;
+            }
         }
 
         self.registers[reg as usize] = val;
@@ -42,9 +57,9 @@ impl<'a> TIA<'a> {
     }
 
     pub fn tick(&mut self) {
-        self.counter += 1;
+        self.frame_cycle_counter += 1;
 
-        let offset = (self.counter - 1) % cmn::CYCLES_PER_SCAN_LINE;
+        let offset = (self.frame_cycle_counter - 1) % cmn::CYCLES_PER_SCAN_LINE;
         if self.wsync && offset == 0 {
             self.set_RDY(false);
         }
@@ -52,12 +67,12 @@ impl<'a> TIA<'a> {
             return;
         }
 
-        let scan_line = (self.counter - 1) / cmn::CYCLES_PER_SCAN_LINE;
+        let scan_line = (self.frame_cycle_counter - 1) / cmn::CYCLES_PER_SCAN_LINE;
         if scan_line < cmn::ROW_VERTICAL_SYNC_END {
             return;
         }
 
-        if !crate::bits::tst_bits(self.registers[cmn::Register::VBLANK as usize], BIT_D1) {
+        if !bits::tst_bits(self.registers[cmn::Register::VBLANK as usize], bits::BIT_D1) {
             return;
         }
 
@@ -69,17 +84,24 @@ impl<'a> TIA<'a> {
     }
 
     #[allow(non_snake_case)]
+    #[inline]
     fn set_RDY(&mut self, on: bool) {
         self.wsync = on;
         (self.rdy)(on);
     }
 
     #[cfg(debug_assertions)]
+    #[inline]
     fn check_unsupported_register_flags(&self, reg: &cmn::Register, val: u8) {
         if let cmn::Register::VBLANK = reg {
-            let x = val & !BIT_D1;
+            let x = val & !bits::BIT_D1;
             assert!(x == 0, "Unsupported {reg:?} <= 0x{val:02X}.")
         }
+
+        assert!(
+            cmn::IMPLEMENTED_REGISTERS[*reg as usize],
+            "{reg:?} is not implemented yet."
+        )
     }
 }
 
@@ -97,19 +119,20 @@ mod tests {
         let mut tia = TIA::new(&mut tv, rdy);
 
         tia.tick_n(cmn::ntsc::CYCLES_PER_FRAME * 2);
+        assert_eq!(tia.frame_counter(), 0);
 
         check_display!(tv.buffer(), 0x00);
     }
 
     #[test]
-    fn render_with_vblank_always_on() {
+    fn render_with_VBLANK_always_on() {
         let mut tv =
             tv::InMemoryTV::<{ cmn::ntsc::SCAN_LINES }, { cmn::CYCLES_PER_SCAN_LINE }>::default();
         let rdy = &mut nop_rdy;
         let mut tia = TIA::new(&mut tv, rdy);
 
         let colubk = 0x1F;
-        tia.set_register(cmn::Register::VBLANK, BIT_D1);
+        tia.set_register(cmn::Register::VBLANK, bits::BIT_D1);
         tia.set_register(cmn::Register::COLUBK, colubk);
 
         tia.tick_n(cmn::ntsc::CYCLES_PER_FRAME);
@@ -133,17 +156,20 @@ mod tests {
         let rdy = &mut nop_rdy;
         let mut tia = TIA::new(&mut tv, rdy);
 
+        tia.set_register(cmn::Register::VSYNC, bits::BIT_D1);
         let colubk = 0xFF;
         tia.set_register(cmn::Register::COLUBK, colubk);
 
         tia.set_register(cmn::Register::VBLANK, 0x00);
         tia.tick_n(cmn::ntsc::CYCLES_PER_VERTICAL_SYNC);
+        tia.set_register(cmn::Register::VSYNC, 0x00);
         tia.tick_n(cmn::ntsc::CYCLES_PER_VERTICAL_BLANK);
-        tia.set_register(cmn::Register::VBLANK, BIT_D1);
+        tia.set_register(cmn::Register::VBLANK, bits::BIT_D1);
         tia.tick_n(cmn::ntsc::CYCLES_PER_DRAWABLE_AREA_AND_HBLANK);
         tia.set_register(cmn::Register::VBLANK, 0x00);
         tia.tick_n(cmn::ntsc::CYCLES_PER_OVERSCAN);
 
+        assert_eq!(tia.frame_counter(), 1);
         check_display!(
             tv.buffer(),
             (
@@ -163,26 +189,27 @@ mod tests {
         let rdy = &mut nop_rdy;
         let mut tia = TIA::new(&mut tv, rdy);
 
-        let colubk = 0xEE;
-        tia.set_register(cmn::Register::COLUBK, colubk);
+        tia.set_register(cmn::Register::VBLANK, bits::BIT_D1);
 
-        tia.set_register(cmn::Register::VBLANK, 0x00);
+        tia.set_register(cmn::Register::COLUBK, 0x11);
         tia.tick_n(cmn::ntsc::CYCLES_PER_VERTICAL_SYNC);
-        tia.tick_n(cmn::ntsc::CYCLES_PER_VERTICAL_BLANK);
-        tia.set_register(cmn::Register::VBLANK, BIT_D1);
-        tia.tick_n(cmn::ntsc::CYCLES_PER_DRAWABLE_AREA_AND_HBLANK);
-        tia.set_register(cmn::Register::VBLANK, 0x00);
-        tia.tick_n(cmn::ntsc::CYCLES_PER_OVERSCAN);
+        tia.tick_n(cmn::CYCLES_PER_SCAN_LINE);
 
+        tia.set_register(cmn::Register::VSYNC, bits::BIT_D1);
+        tia.set_register(cmn::Register::COLUBK, 0x22);
+        tia.tick_n(cmn::ntsc::CYCLES_PER_VERTICAL_SYNC);
+        tia.set_register(cmn::Register::VSYNC, 0x00);
+        tia.tick_n(cmn::CYCLES_PER_SCAN_LINE);
+        assert_eq!(tia.frame_counter(), 1);
         check_display!(
             tv.buffer(),
             (
-                cmn::ntsc::ROW_DRAWABLE_AREA_START,
+                cmn::ntsc::ROW_VERTICAL_BLANK_START,
                 cmn::COL_DRAWABLE_AREA_START,
-                cmn::ntsc::ROW_DRAWABLE_AREA_END,
+                cmn::ntsc::ROW_VERTICAL_BLANK_START + 1,
                 cmn::COL_DRAWABLE_AREA_END
             ),
-            (colubk, 0x00)
+            (0x22, 0x00)
         );
     }
 

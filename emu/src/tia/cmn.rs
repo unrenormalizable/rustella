@@ -1,4 +1,6 @@
 pub const CYCLES_PER_SCAN_LINE: usize = COL_DRAWABLE_AREA_END;
+pub const CYCLES_PER_SCAN_LINE_HORIZONTAL_BLANK: usize = COL_HORIZONTAL_BLANK_LEN;
+pub const CYCLES_PER_SCAN_LINE_DRAWABLE_AREA: usize = COL_HORIZONTAL_BLANK_LEN;
 
 pub const COL_HORIZONTAL_BLANK_START: usize = 0;
 pub const COL_HORIZONTAL_BLANK_LEN: usize = 68;
@@ -38,8 +40,9 @@ pub mod ntsc {
     pub const CYCLES_PER_FRAME: usize = SCAN_LINES * super::CYCLES_PER_SCAN_LINE;
 }
 
+#[rustfmt::skip]
 #[repr(usize)]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Register {
     /// $00   0000 00x0   Vertical Sync Set-Clear
     VSYNC = 0x00,
@@ -132,3 +135,52 @@ pub enum Register {
     /// $2C   ---- ----   Clear Collision Latches
     CXCLR = 0x2C,
 }
+
+#[rustfmt::skip]
+pub static IMPLEMENTED_REGISTERS: &[bool] = &[
+    true , // VSYNC   = $00   0000 00x0   Vertical Sync Set-Clear
+    true , // VBLANK  = $01   xx00 00x0   Vertical Blank Set-Clear
+    true , // WSYNC   = $02   ---- ----   Wait for Horizontal Blank
+    false, // RSYNC   = $03   ---- ----   Reset Horizontal Sync Counter
+    false, // NUSIZ0  = $04   00xx 0xxx   Number-Size player/missle 0
+    false, // NUSIZ1  = $05   00xx 0xxx   Number-Size player/missle 1
+    false, // COLUP0  = $06   xxxx xxx0   Color-Luminance Player 0
+    false, // COLUP1  = $07   xxxx xxx0   Color-Luminance Player 1
+    false, // COLUPF  = $08   xxxx xxx0   Color-Luminance Playfield
+    true , // COLUBK  = $09   xxxx xxx0   Color-Luminance Background
+    false, // CTRLPF  = $0A   00xx 0xxx   Control Playfield, Ball, Collisions
+    false, // REFP0   = $0B   0000 x000   Reflection Player 0
+    false, // REFP1   = $0C   0000 x000   Reflection Player 1
+    false, // PF0     = $0D   xxxx 0000   Playfield Register Byte 0
+    false, // PF1     = $0E   xxxx xxxx   Playfield Register Byte 1
+    false, // PF2     = $0F   xxxx xxxx   Playfield Register Byte 2
+    false, // RESP0   = $10   ---- ----   Reset Player 0
+    false, // RESP1   = $11   ---- ----   Reset Player 1
+    false, // RESM0   = $12   ---- ----   Reset Missle 0
+    false, // RESM1   = $13   ---- ----   Reset Missle 1
+    false, // RESBL   = $14   ---- ----   Reset Ball
+    false, // AUDC0   = $15   0000 xxxx   Audio Control 0
+    false, // AUDC1   = $16   0000 xxxx   Audio Control 1
+    false, // AUDF0   = $17   000x xxxx   Audio Frequency 0
+    false, // AUDF1   = $18   000x xxxx   Audio Frequency 1
+    false, // AUDV0   = $19   0000 xxxx   Audio Volume 0
+    false, // AUDV1   = $1A   0000 xxxx   Audio Volume 1
+    false, // GRP0    = $1B   xxxx xxxx   Graphics Register Player 0
+    false, // GRP1    = $1C   xxxx xxxx   Graphics Register Player 1
+    false, // ENAM0   = $1D   0000 00x0   Graphics Enable Missle 0
+    false, // ENAM1   = $1E   0000 00x0   Graphics Enable Missle 1
+    false, // ENABL   = $1F   0000 00x0   Graphics Enable Ball
+    false, // HMP0    = $20   xxxx 0000   Horizontal Motion Player 0
+    false, // HMP1    = $21   xxxx 0000   Horizontal Motion Player 1
+    false, // HMM0    = $22   xxxx 0000   Horizontal Motion Missle 0
+    false, // HMM1    = $23   xxxx 0000   Horizontal Motion Missle 1
+    false, // HMBL    = $24   xxxx 0000   Horizontal Motion Ball
+    false, // VDELP0  = $25   0000 000x   Vertical Delay Player 0
+    false, // VDELP1  = $26   0000 000x   Vertical Delay Player 1
+    false, // VDELBL  = $27   0000 000x   Vertical Delay Ball
+    false, // RESMP0  = $28   0000 00x0   Reset Missle 0 to Player 0
+    false, // RESMP1  = $29   0000 00x0   Reset Missle 1 to Player 1
+    false, // HMOVE   = $2A   ---- ----   Apply Horizontal Motion
+    false, // HMCLR   = $2B   ---- ----   Clear Horizontal Move Registers
+    false, // CXCLR   = $2C   ---- ----   Clear Collision Latches
+];
