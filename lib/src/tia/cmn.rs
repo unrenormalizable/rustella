@@ -1,4 +1,4 @@
-pub const PIXELS_PER_SCAN_LINE: usize = COL_DRAWABLE_AREA_END;
+pub const CYCLES_PER_SCAN_LINE: usize = COL_DRAWABLE_AREA_END;
 
 pub const COL_HORIZONTAL_BLANK_START: usize = 0;
 pub const COL_HORIZONTAL_BLANK_LEN: usize = 68;
@@ -27,11 +27,15 @@ pub mod ntsc {
 
     pub const SCAN_LINES: usize = ROW_OVERSCAN_END;
     pub const CYCLES_PER_VERTICAL_SYNC: usize =
-        super::ROW_VERTICAL_SYNC_LEN * super::PIXELS_PER_SCAN_LINE;
+        super::ROW_VERTICAL_SYNC_LEN * super::CYCLES_PER_SCAN_LINE;
     pub const CYCLES_PER_VERTICAL_BLANK: usize =
-        ROW_VERTICAL_BLANK_LEN * super::PIXELS_PER_SCAN_LINE;
-    pub const CYCLES_PER_OVERSCAN: usize = ROW_OVERSCAN_LEN * super::PIXELS_PER_SCAN_LINE;
-    pub const CYCLES_PER_FRAME: usize = SCAN_LINES * super::PIXELS_PER_SCAN_LINE;
+        ROW_VERTICAL_BLANK_LEN * super::CYCLES_PER_SCAN_LINE;
+    pub const CYCLES_PER_OVERSCAN: usize = ROW_OVERSCAN_LEN * super::CYCLES_PER_SCAN_LINE;
+    pub const CYCLES_PER_DRAWABLE_AREA_AND_HBLANK: usize = CYCLES_PER_FRAME
+        - CYCLES_PER_VERTICAL_SYNC
+        - CYCLES_PER_VERTICAL_BLANK
+        - CYCLES_PER_OVERSCAN;
+    pub const CYCLES_PER_FRAME: usize = SCAN_LINES * super::CYCLES_PER_SCAN_LINE;
 }
 
 #[repr(usize)]
