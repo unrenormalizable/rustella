@@ -1,7 +1,10 @@
 use crate::bits;
-use crate::cmn::*;
-use crate::cpu::{opc_impl, opc_info, timer};
-use crate::mem::Memory;
+use crate::{
+    cmn::*,
+    cpu::{opc_impl, opc_info, timer},
+    mem::Memory,
+    tia,
+};
 use bitflags::bitflags;
 
 bitflags! {
@@ -51,6 +54,8 @@ pub struct MOS6502 {
     PC: LoHi,
     S: u8,
     P: PSR,
+    // Other pins
+    rdy: bool,
     // Profiling stuff, maybe move them elsewhere?
     instructions: u64,
     cycles: u64,
@@ -64,14 +69,17 @@ pub type OpCode = dyn Fn(&mut MOS6502, &mut Memory, u8, LoHi) -> Option<LoHi>;
 
 impl MOS6502 {
     pub fn new(mem: &Memory) -> Self {
-        let mut cpu = Self::default();
+        let mut cpu = Self {
+            rdy: true,
+            ..Default::default()
+        };
         cpu.reset_pc(mem);
 
         cpu
     }
 
     #[inline]
-    pub fn fetch_decode_execute(&mut self, mem: &mut Memory) {
+    pub fn tick(&mut self, mem: &mut Memory) {
         let start_time = timer::get_nanoseconds();
         let opc = mem.get(self.PC, 0);
         let res = opc_impl::ALL_OPCODE_ROUTINES[opc as usize](self, mem, opc, self.PC);
@@ -184,6 +192,16 @@ impl MOS6502 {
         let pc_hi = mem.get(RST_VECTOR, 1);
 
         self.PC = LoHi(pc_lo, pc_hi);
+    }
+}
+
+impl tia::RDY for MOS6502 {
+    fn state(&self) -> bool {
+        self.rdy
+    }
+
+    fn set_state(&mut self, state: bool) {
+        self.rdy = state;
     }
 }
 

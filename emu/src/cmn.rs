@@ -12,8 +12,6 @@ pub const RAM_SIZE: usize = 0x0080;
 
 pub const ROM_START_6507: LoHi = LoHi(0x00, 0x10);
 
-pub type MemMapFn = fn(LoHi) -> usize;
-
 pub struct OpCodeInfo<'a> {
     pub addressing: &'a str,
     pub assembler: &'a str,

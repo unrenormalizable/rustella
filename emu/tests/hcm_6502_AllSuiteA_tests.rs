@@ -12,12 +12,13 @@ fn hcm_6502_allsuitea_tests_main() {
     .iter()
     .collect();
 
+    let mmap = Box::new(mem::MMap6502::default());
     let buffer = fs::read(bin_path).unwrap();
-    let mut mem = mem::Memory::new_with_rom(&buffer, cmn::LoHi(0x00, 0x40), mem::mm_6502, true);
+    let mut mem = mem::Memory::new_with_rom(&buffer, cmn::LoHi(0x00, 0x40), mmap, None, true);
     let mut cpu = MOS6502::new(&mem);
 
     for _ in 0..615 {
-        cpu.fetch_decode_execute(&mut mem);
+        cpu.tick(&mut mem);
     }
 
     assert_eq!(cpu.pc(), cmn::LoHi(0xC0, 0x45));

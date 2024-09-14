@@ -6,7 +6,7 @@ use std::path::PathBuf;
 pub fn go(cpu: &mut cpu::MOS6502, mem: &mut mem::Memory, break_points: &HashSet<LoHi>, count: u64) {
     let mut count = count;
     loop {
-        cpu.fetch_decode_execute(mem);
+        cpu.tick(mem);
         count -= 1;
 
         if count == 0 {

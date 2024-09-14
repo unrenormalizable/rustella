@@ -1,9 +1,29 @@
-use crate::{*, cmn::*};
+use crate::{cmn::*, *};
+
+pub trait MemoryMap {
+    fn map(&self, a: LoHi) -> usize;
+}
 
 /// Base 6502 Memory layout
-#[inline]
-pub fn mm_6502(a: LoHi) -> usize {
-    u16::from(a) as usize
+#[derive(Default)]
+pub struct MMap6502 {}
+
+impl MemoryMap for MMap6502 {
+    #[inline]
+    fn map(&self, a: LoHi) -> usize {
+        u16::from(a) as usize
+    }
+}
+
+/// Base 6502 Memory layout
+#[derive(Default)]
+pub struct MMap6507 {}
+
+impl MemoryMap for MMap6507 {
+    #[inline]
+    fn map(&self, a: LoHi) -> usize {
+        mm_6507(a)
+    }
 }
 
 /// 6507 Memory layout:
@@ -14,7 +34,7 @@ pub fn mm_6502(a: LoHi) -> usize {
 /// - https://forums.atariage.com/topic/192418-mirrored-memory/#comment-2439795
 /// - https://forums.atariage.com/topic/27190-session-5-memory-architecture/#comment-442653
 /// - https://wilsonminesco.com/6502primer/MemMapReqs.html
-pub fn mm_6507(a: LoHi) -> usize {
+fn mm_6507(a: LoHi) -> usize {
     // Step 0. Turn off A13-A15 pins.
     let addr = u16::from(a) as usize & 0b0001_1111_1111_1111;
 
@@ -68,11 +88,7 @@ pub fn mm_6507(a: LoHi) -> usize {
     // *     z = {8,$A,$C,$E}                 *
     // *                                      *
     // ****************************************
-    //if bits::tst_bits(addr, 0b0000_0010_0000_0000) {
-    //    return addr & 0b0000_0000_1111_1111;
-    //}
-
-    return addr & 0b0000_0000_0001_1111;
+    addr & 0b0000_0000_0001_1111
 }
 
 #[cfg(test)]

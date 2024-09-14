@@ -40,100 +40,99 @@ pub mod ntsc {
     pub const CYCLES_PER_FRAME: usize = SCAN_LINES * super::CYCLES_PER_SCAN_LINE;
 }
 
-#[rustfmt::skip]
-#[repr(usize)]
-#[derive(Debug, Clone, Copy)]
-pub enum Register {
+pub const TIA_MAX_ADDRESS: usize = 0x003F;
+
+pub mod regs {
     /// $00   0000 00x0   Vertical Sync Set-Clear
-    VSYNC = 0x00,
+    pub const VSYNC: usize = 0x00;
     /// $01   xx00 00x0   Vertical Blank Set-Clear
-    VBLANK = 0x01,
+    pub const VBLANK: usize = 0x01;
     /// $02   ---- ----   Wait for Horizontal Blank
-    WSYNC = 0x02,
+    pub const WSYNC: usize = 0x02;
     /// $03   ---- ----   Reset Horizontal Sync Counter
-    RSYNC = 0x03,
+    pub const RSYNC: usize = 0x03;
     /// $04   00xx 0xxx   Number-Size player/missle 0
-    NUSIZ0 = 0x04,
+    pub const NUSIZ0: usize = 0x04;
     /// $05   00xx 0xxx   Number-Size player/missle 1
-    NUSIZ1 = 0x05,
+    pub const NUSIZ1: usize = 0x05;
     /// $06   xxxx xxx0   Color-Luminance Player 0
-    COLUP0 = 0x06,
+    pub const COLUP0: usize = 0x06;
     /// $07   xxxx xxx0   Color-Luminance Player 1
-    COLUP1 = 0x07,
+    pub const COLUP1: usize = 0x07;
     /// $08   xxxx xxx0   Color-Luminance Playfield
-    COLUPF = 0x08,
+    pub const COLUPF: usize = 0x08;
     /// $09   xxxx xxx0   Color-Luminance Background
-    COLUBK = 0x09,
+    pub const COLUBK: usize = 0x09;
     /// $0A   00xx 0xxx   Control Playfield, Ball, Collisions
-    CTRLPF = 0x0A,
+    pub const CTRLPF: usize = 0x0A;
     /// $0B   0000 x000   Reflection Player 0
-    REFP0 = 0x0B,
+    pub const REFP0: usize = 0x0B;
     /// $0C   0000 x000   Reflection Player 1
-    REFP1 = 0x0C,
+    pub const REFP1: usize = 0x0C;
     /// $0D   xxxx 0000   Playfield Register Byte 0
-    PF0 = 0x0D,
+    pub const PF0: usize = 0x0D;
     /// $0E   xxxx xxxx   Playfield Register Byte 1
-    PF1 = 0x0E,
+    pub const PF1: usize = 0x0E;
     /// $0F   xxxx xxxx   Playfield Register Byte 2
-    PF2 = 0x0F,
+    pub const PF2: usize = 0x0F;
     /// $10   ---- ----   Reset Player 0
-    RESP0 = 0x10,
+    pub const RESP0: usize = 0x10;
     /// $11   ---- ----   Reset Player 1
-    RESP1 = 0x11,
+    pub const RESP1: usize = 0x11;
     /// $12   ---- ----   Reset Missle 0
-    RESM0 = 0x12,
+    pub const RESM0: usize = 0x12;
     /// $13   ---- ----   Reset Missle 1
-    RESM1 = 0x13,
+    pub const RESM1: usize = 0x13;
     /// $14   ---- ----   Reset Ball
-    RESBL = 0x14,
+    pub const RESBL: usize = 0x14;
     /// $15   0000 xxxx   Audio Control 0
-    AUDC0 = 0x15,
+    pub const AUDC0: usize = 0x15;
     /// $16   0000 xxxx   Audio Control 1
-    AUDC1 = 0x16,
+    pub const AUDC1: usize = 0x16;
     /// $17   000x xxxx   Audio Frequency 0
-    AUDF0 = 0x17,
+    pub const AUDF0: usize = 0x17;
     /// $18   000x xxxx   Audio Frequency 1
-    AUDF1 = 0x18,
+    pub const AUDF1: usize = 0x18;
     /// $19   0000 xxxx   Audio Volume 0
-    AUDV0 = 0x19,
+    pub const AUDV0: usize = 0x19;
     /// $1A   0000 xxxx   Audio Volume 1
-    AUDV1 = 0x1A,
+    pub const AUDV1: usize = 0x1A;
     /// $1B   xxxx xxxx   Graphics Register Player 0
-    GRP0 = 0x1B,
+    pub const GRP0: usize = 0x1B;
     /// $1C   xxxx xxxx   Graphics Register Player 1
-    GRP1 = 0x1C,
+    pub const GRP1: usize = 0x1C;
     /// $1D   0000 00x0   Graphics Enable Missle 0
-    ENAM0 = 0x1D,
+    pub const ENAM0: usize = 0x1D;
     /// $1E   0000 00x0   Graphics Enable Missle 1
-    ENAM1 = 0x1E,
+    pub const ENAM1: usize = 0x1E;
     /// $1F   0000 00x0   Graphics Enable Ball
-    ENABL = 0x1F,
+    pub const ENABL: usize = 0x1F;
     /// $20   xxxx 0000   Horizontal Motion Player 0
-    HMP0 = 0x20,
+    pub const HMP0: usize = 0x20;
     /// $21   xxxx 0000   Horizontal Motion Player 1
-    HMP1 = 0x21,
+    pub const HMP1: usize = 0x21;
     /// $22   xxxx 0000   Horizontal Motion Missle 0
-    HMM0 = 0x22,
+    pub const HMM0: usize = 0x22;
     /// $23   xxxx 0000   Horizontal Motion Missle 1
-    HMM1 = 0x23,
+    pub const HMM1: usize = 0x23;
     /// $24   xxxx 0000   Horizontal Motion Ball
-    HMBL = 0x24,
+    pub const HMBL: usize = 0x24;
     /// $25   0000 000x   Vertical Delay Player 0
-    VDELP0 = 0x25,
+    pub const VDELP0: usize = 0x25;
     /// $26   0000 000x   Vertical Delay Player 1
-    VDELP1 = 0x26,
+    pub const VDELP1: usize = 0x26;
     /// $27   0000 000x   Vertical Delay Ball
-    VDELBL = 0x27,
+    pub const VDELBL: usize = 0x27;
     /// $28   0000 00x0   Reset Missle 0 to Player 0
-    RESMP0 = 0x28,
+    pub const RESMP0: usize = 0x28;
     /// $29   0000 00x0   Reset Missle 1 to Player 1
-    RESMP1 = 0x29,
+    pub const RESMP1: usize = 0x29;
     /// $2A   ---- ----   Apply Horizontal Motion
-    HMOVE = 0x2A,
+    pub const HMOVE: usize = 0x2A;
     /// $2B   ---- ----   Clear Horizontal Move Registers
-    HMCLR = 0x2B,
+    pub const HMCLR: usize = 0x2B;
     /// $2C   ---- ----   Clear Collision Latches
-    CXCLR = 0x2C,
+    pub const CXCLR: usize = 0x2C;
 }
 
 #[rustfmt::skip]

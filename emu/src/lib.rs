@@ -1,4 +1,5 @@
 #![no_std]
+extern crate alloc;
 
 pub mod cmn;
 pub mod cpu;
@@ -31,7 +32,6 @@ pub mod bits {
 
 #[cfg(test)]
 mod tests {
-
     macro_rules! check_display {
         ($buffer:expr, $expected:expr) => {
             assert!($buffer.len() > 0 && $buffer[0].len() > 0, "Buffer is empty");

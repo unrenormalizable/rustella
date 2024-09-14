@@ -6,8 +6,9 @@ use a2600_emu::{cmn, cpu, mem};
 use std::{collections::HashSet, fs};
 
 fn main() {
+    let mmap = Box::new(mem::MMap6502::default());
     let buffer = fs::read("d:/src/u/a2600/lib/tests/klaus_6502_functional_test.bin").unwrap();
-    let mut mem = mem::Memory::new_with_rom(&buffer, cmn::LoHi(0x00, 0x00), mem::mm_6502, false);
+    let mut mem = mem::Memory::new_with_rom(&buffer, cmn::LoHi(0x00, 0x00), mmap, None, false);
     //let buffer = fs::read("D:/bin/Stella-6.7.1/roms/air_raid.bin").unwrap();
     //let mut mem = mem::Memory::new_with_rom(&buffer, cmn::ROM_START_6507, mem::mm_6507, true);
     let mut cpu = cpu::MOS6502::new(&mem);
