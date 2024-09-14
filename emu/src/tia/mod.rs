@@ -3,5 +3,5 @@ mod core;
 mod tv;
 
 pub use cmn::*;
-pub use core::TIA;
+pub use core::{InMemoryTIA, TIA};
 pub use tv::{InMemoryTV, TV};

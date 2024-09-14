@@ -6,7 +6,22 @@ const COUNT_REGISTERS: usize = cmn::Register::CXCLR as usize;
 /// Refer:
 /// - module README.md
 /// - https://www.atarihq.com/danb/files/TIA_HW_Notes.txt
-pub struct TIA<'a> {
+pub trait TIA {
+    fn frame_counter(&self) -> usize;
+
+    fn register(&mut self, reg: cmn::Register) -> u8;
+
+    fn set_register(&mut self, reg: cmn::Register, val: u8);
+
+    fn tick_n(&mut self, n: usize);
+
+    fn tick(&mut self);
+
+    #[allow(non_snake_case)]
+    fn set_RDY(&mut self, state: bool);
+}
+
+pub struct InMemoryTIA<'a> {
     frame_counter: usize,
     frame_cycle_counter: usize,
     registers: [u8; COUNT_REGISTERS],
@@ -15,7 +30,7 @@ pub struct TIA<'a> {
     tv: &'a mut dyn tv::TV,
 }
 
-impl<'a> TIA<'a> {
+impl<'a> InMemoryTIA<'a> {
     pub fn new(tv: &'a mut dyn tv::TV, rdy: &'a mut dyn FnMut(bool)) -> Self {
         Self {
             frame_counter: 0,
@@ -27,13 +42,33 @@ impl<'a> TIA<'a> {
         }
     }
 
+    #[cfg(debug_assertions)]
+    #[inline]
+    fn check_unsupported_register_flags(&self, reg: &cmn::Register, val: u8) {
+        if let cmn::Register::VBLANK = reg {
+            let x = val & !bits::BIT_D1;
+            assert!(x == 0, "Unsupported {reg:?} <= 0x{val:02X}.")
+        }
+
+        assert!(
+            cmn::IMPLEMENTED_REGISTERS[*reg as usize],
+            "{reg:?} is not implemented yet."
+        )
+    }
+}
+
+impl<'a> TIA for InMemoryTIA<'a> {
     /// Number of times VSYNC on is called.
     #[inline]
-    pub fn frame_counter(&self) -> usize {
+    fn frame_counter(&self) -> usize {
         self.frame_counter
     }
 
-    pub fn set_register(&mut self, reg: cmn::Register, val: u8) {
+    fn register(&mut self, reg: cmn::Register) -> u8 {
+        todo!("Read register not implemented yet. {reg:?}")
+    }
+
+    fn set_register(&mut self, reg: cmn::Register, val: u8) {
         #[cfg(debug_assertions)]
         self.check_unsupported_register_flags(&reg, val);
 
@@ -52,11 +87,11 @@ impl<'a> TIA<'a> {
     }
 
     #[inline]
-    pub fn tick_n(&mut self, n: usize) {
+    fn tick_n(&mut self, n: usize) {
         (0..n).for_each(|_| self.tick())
     }
 
-    pub fn tick(&mut self) {
+    fn tick(&mut self) {
         self.frame_cycle_counter += 1;
 
         let offset = (self.frame_cycle_counter - 1) % cmn::CYCLES_PER_SCAN_LINE;
@@ -85,23 +120,9 @@ impl<'a> TIA<'a> {
 
     #[allow(non_snake_case)]
     #[inline]
-    fn set_RDY(&mut self, on: bool) {
-        self.wsync = on;
-        (self.rdy)(on);
-    }
-
-    #[cfg(debug_assertions)]
-    #[inline]
-    fn check_unsupported_register_flags(&self, reg: &cmn::Register, val: u8) {
-        if let cmn::Register::VBLANK = reg {
-            let x = val & !bits::BIT_D1;
-            assert!(x == 0, "Unsupported {reg:?} <= 0x{val:02X}.")
-        }
-
-        assert!(
-            cmn::IMPLEMENTED_REGISTERS[*reg as usize],
-            "{reg:?} is not implemented yet."
-        )
+    fn set_RDY(&mut self, state: bool) {
+        self.wsync = state;
+        (self.rdy)(state);
     }
 }
 
@@ -116,7 +137,7 @@ mod tests {
         let mut tv =
             tv::InMemoryTV::<{ cmn::ntsc::SCAN_LINES }, { cmn::CYCLES_PER_SCAN_LINE }>::default();
         let rdy = &mut nop_rdy;
-        let mut tia = TIA::new(&mut tv, rdy);
+        let mut tia = InMemoryTIA::new(&mut tv, rdy);
 
         tia.tick_n(cmn::ntsc::CYCLES_PER_FRAME * 2);
         assert_eq!(tia.frame_counter(), 0);
@@ -129,7 +150,7 @@ mod tests {
         let mut tv =
             tv::InMemoryTV::<{ cmn::ntsc::SCAN_LINES }, { cmn::CYCLES_PER_SCAN_LINE }>::default();
         let rdy = &mut nop_rdy;
-        let mut tia = TIA::new(&mut tv, rdy);
+        let mut tia = InMemoryTIA::new(&mut tv, rdy);
 
         let colubk = 0x1F;
         tia.set_register(cmn::Register::VBLANK, bits::BIT_D1);
@@ -154,7 +175,7 @@ mod tests {
         let mut tv =
             tv::InMemoryTV::<{ cmn::ntsc::SCAN_LINES }, { cmn::CYCLES_PER_SCAN_LINE }>::default();
         let rdy = &mut nop_rdy;
-        let mut tia = TIA::new(&mut tv, rdy);
+        let mut tia = InMemoryTIA::new(&mut tv, rdy);
 
         tia.set_register(cmn::Register::VSYNC, bits::BIT_D1);
         let colubk = 0xFF;
@@ -187,7 +208,7 @@ mod tests {
         let mut tv =
             tv::InMemoryTV::<{ cmn::ntsc::SCAN_LINES }, { cmn::CYCLES_PER_SCAN_LINE }>::default();
         let rdy = &mut nop_rdy;
-        let mut tia = TIA::new(&mut tv, rdy);
+        let mut tia = InMemoryTIA::new(&mut tv, rdy);
 
         tia.set_register(cmn::Register::VBLANK, bits::BIT_D1);
 
@@ -223,7 +244,7 @@ mod tests {
             // NOTE: This ensures it is not called more than twice.
             assert_eq!(on, waiting_on_wsync.get())
         };
-        let mut tia = TIA::new(&mut tv, &mut rdy);
+        let mut tia = InMemoryTIA::new(&mut tv, &mut rdy);
 
         // 0th scan line.
         tia.tick();
