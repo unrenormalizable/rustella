@@ -1,22 +1,8 @@
-/// https://www.pagetable.com/?p=410
-pub const NMI_VECTOR: LoHi = LoHi(0xFA, 0xFF);
-/// https://www.pagetable.com/?p=410
-pub const RST_VECTOR: LoHi = LoHi(0xFC, 0xFF);
-/// https://www.pagetable.com/?p=410
-pub const IRQ_VECTOR: LoHi = LoHi(0xFE, 0xFF);
-
-pub const TOTAL_MEMORY_SIZE: usize = 0x1_0000;
-pub const ADDRESSABLE_MEMORY_SIZE: usize = 0x1_0000;
-pub const RAM_START: LoHi = LoHi(0x80, 0x00);
-pub const RAM_SIZE: usize = 0x0080;
-
-pub const ROM_START_6507: LoHi = LoHi(0x00, 0x10);
-
 pub struct OpCodeInfo<'a> {
     pub addressing: &'a str,
     pub assembler: &'a str,
     pub bytes: u8,
-    pub cycles: u64,
+    pub cycles: usize,
 }
 
 #[derive(Default, Clone, Copy, PartialEq, Eq, Hash)]
@@ -24,7 +10,7 @@ pub struct LoHi(pub u8, pub u8);
 
 impl core::fmt::Debug for LoHi {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        write!(f, "({:02X}, {:02X})", self.1, self.0)
+        write!(f, "{:02X}{:02X}", self.1, self.0)
     }
 }
 
@@ -63,6 +49,17 @@ impl From<LoHi> for u16 {
     fn from(value: LoHi) -> Self {
         ((value.1 as u16) << 8) + value.0 as u16
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum LineState {
+    Low,
+    High,
+}
+
+pub trait RDYLine {
+    fn rdy(&self) -> LineState;
 }
 
 #[cfg(test)]

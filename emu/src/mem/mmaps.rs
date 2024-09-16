@@ -1,29 +1,9 @@
 use crate::{cmn::*, *};
 
-pub trait MemoryMap {
-    fn map(&self, a: LoHi) -> usize;
-}
-
 /// Base 6502 Memory layout
-#[derive(Default)]
-pub struct MMap6502 {}
-
-impl MemoryMap for MMap6502 {
-    #[inline]
-    fn map(&self, a: LoHi) -> usize {
-        u16::from(a) as usize
-    }
-}
-
-/// Base 6502 Memory layout
-#[derive(Default)]
-pub struct MMap6507 {}
-
-impl MemoryMap for MMap6507 {
-    #[inline]
-    fn map(&self, a: LoHi) -> usize {
-        mm_6507(a)
-    }
+#[inline]
+pub fn mm_6502(a: LoHi) -> usize {
+    u16::from(a) as usize
 }
 
 /// 6507 Memory layout:
@@ -34,7 +14,7 @@ impl MemoryMap for MMap6507 {
 /// - https://forums.atariage.com/topic/192418-mirrored-memory/#comment-2439795
 /// - https://forums.atariage.com/topic/27190-session-5-memory-architecture/#comment-442653
 /// - https://wilsonminesco.com/6502primer/MemMapReqs.html
-fn mm_6507(a: LoHi) -> usize {
+pub fn mm_6507(a: LoHi) -> usize {
     // Step 0. Turn off A13-A15 pins.
     let addr = u16::from(a) as usize & 0b0001_1111_1111_1111;
 

@@ -1,9 +1,8 @@
 use crate::bits;
 use crate::{
     cmn::*,
-    cpu::{opc_impl, opc_info, timer},
+    cpu::{cmn, opc_impl, opc_info, timer},
     mem::Memory,
-    tia,
 };
 use bitflags::bitflags;
 
@@ -45,21 +44,27 @@ impl Default for PSR {
 }
 
 #[allow(non_snake_case)]
-#[derive(Default, Debug)]
+#[derive(Default)]
 /// Refer: https://www.princeton.edu/~mae412/HANDOUTS/Datasheets/6502.pdf
 pub struct MOS6502 {
     A: u8,
-    Y: u8,
     X: u8,
+    Y: u8,
     PC: LoHi,
     S: u8,
     P: PSR,
-    // Other pins
-    rdy: bool,
     // Profiling stuff, maybe move them elsewhere?
     instructions: u64,
-    cycles: u64,
+    cycles: usize,
     duration: u64,
+}
+
+impl core::fmt::Debug for MOS6502 {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        write!(f,
+            "CPU: A: {:02X}, X: {:02X}, Y: {:02X}, PC: {:?}, S: {:02X}, P: {:?}\nMetrics: instructions: {}, cycles: {}, duration: {}",
+            self.A, self.X, self.Y, self.PC, self.S, self.P, self.instructions, self.cycles, self.duration)
+    }
 }
 
 /// References (use multiple to cross check implementation):
@@ -69,17 +74,14 @@ pub type OpCode = dyn Fn(&mut MOS6502, &mut Memory, u8, LoHi) -> Option<LoHi>;
 
 impl MOS6502 {
     pub fn new(mem: &Memory) -> Self {
-        let mut cpu = Self {
-            rdy: true,
-            ..Default::default()
-        };
+        let mut cpu = Self::default();
         cpu.reset_pc(mem);
 
         cpu
     }
 
     #[inline]
-    pub fn tick(&mut self, mem: &mut Memory) {
+    pub fn tick(&mut self, mem: &mut Memory) -> usize {
         let start_time = timer::get_nanoseconds();
         let opc = mem.get(self.PC, 0);
         let res = opc_impl::ALL_OPCODE_ROUTINES[opc as usize](self, mem, opc, self.PC);
@@ -89,9 +91,12 @@ impl MOS6502 {
             self.pc_incr(opc_info::ALL[opc as usize].bytes);
         }
 
+        let cycles = opc_info::ALL[opc as usize].cycles;
         self.instructions += 1;
-        self.cycles += opc_info::ALL[opc as usize].cycles;
+        self.cycles += cycles;
         self.duration += timer::measure_elapsed(start_time);
+
+        cycles
     }
 
     #[inline]
@@ -173,7 +178,7 @@ impl MOS6502 {
         self.instructions
     }
 
-    pub fn cycles(&self) -> u64 {
+    pub fn cycles(&self) -> usize {
         self.cycles
     }
 
@@ -188,20 +193,10 @@ impl MOS6502 {
     }
 
     fn reset_pc(&mut self, mem: &Memory) {
-        let pc_lo = mem.get(RST_VECTOR, 0);
-        let pc_hi = mem.get(RST_VECTOR, 1);
+        let pc_lo = mem.get(cmn::RST_VECTOR, 0);
+        let pc_hi = mem.get(cmn::RST_VECTOR, 1);
 
         self.PC = LoHi(pc_lo, pc_hi);
-    }
-}
-
-impl tia::RDY for MOS6502 {
-    fn state(&self) -> bool {
-        self.rdy
-    }
-
-    fn set_state(&mut self, state: bool) {
-        self.rdy = state;
     }
 }
 

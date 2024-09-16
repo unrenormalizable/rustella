@@ -1,34 +1,27 @@
-use crate::{cmn::*, mem::mmaps, tia};
-use alloc::{boxed::Box, rc::Rc};
-use core::cell::RefCell;
-use core::mem;
+use crate::{cmn::*, mem::cmn, mem::mmaps, tia};
+use alloc::rc::Rc;
+use core::{cell::RefCell, mem};
 
 /// 6502 Memory map: https://wilsonminesco.com/6502primer/MemMapReqs.html
 pub struct Memory {
-    data: [u8; TOTAL_MEMORY_SIZE],
-    map: Box<dyn mmaps::MemoryMap>,
-    tia: Option<Rc<RefCell<dyn tia::TIAReaderWriter>>>,
+    data: [u8; cmn::TOTAL_MEMORY_SIZE],
+    map: fn(LoHi) -> usize,
+    tia: Option<Rc<RefCell<dyn cmn::MemorySegment>>>,
 }
 
 impl Memory {
     pub fn new(init: bool) -> Self {
-        Self::new_with_rom(
-            &[],
-            Default::default(),
-            Box::new(mmaps::MMap6502::default()),
-            None,
-            init,
-        )
+        Self::new_with_rom(&[], Default::default(), mmaps::mm_6502, None, init)
     }
 
     pub fn new_with_rom(
         rom: &[u8],
         rom_start: LoHi,
-        map: Box<dyn mmaps::MemoryMap>,
-        tia: Option<Rc<RefCell<dyn tia::TIAReaderWriter>>>,
+        map: fn(LoHi) -> usize,
+        tia: Option<Rc<RefCell<dyn cmn::MemorySegment>>>,
         init: bool,
     ) -> Self {
-        let mut data = [0u8; TOTAL_MEMORY_SIZE];
+        let mut data = [0u8; cmn::TOTAL_MEMORY_SIZE];
         if init {
             Self::fill_with_pattern(&mut data, 0xdeadbeef_baadf00d)
         }
@@ -41,10 +34,10 @@ impl Memory {
 
     #[inline]
     pub fn get(&self, addr: LoHi, index: u8) -> u8 {
-        let addr = self.map.map(addr + index);
+        let addr = (self.map)(addr + index);
 
         if self.tia.is_some() && addr <= tia::TIA_MAX_ADDRESS {
-            self.tia.as_ref().unwrap().borrow().get(addr)
+            self.tia.as_ref().unwrap().borrow().read(addr)
         } else {
             self.data[addr]
         }
@@ -52,10 +45,10 @@ impl Memory {
 
     #[inline]
     pub fn set(&mut self, addr: LoHi, index: u8, value: u8) {
-        let addr = self.map.map(addr + index);
+        let addr = (self.map)(addr + index);
 
         if self.tia.is_some() && addr <= tia::TIA_MAX_ADDRESS {
-            self.tia.as_ref().unwrap().borrow_mut().set(addr, value);
+            self.tia.as_ref().unwrap().borrow_mut().write(addr, value);
         } else {
             self.data[addr] = value;
         }
@@ -70,7 +63,7 @@ impl Memory {
     }
 
     pub fn load(&mut self, bytes: &[u8], start: LoHi) {
-        let start = self.map.map(start);
+        let start = (self.map)(start);
         self.data[start..start + bytes.len()].copy_from_slice(bytes);
     }
 }

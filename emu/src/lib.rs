@@ -32,7 +32,7 @@ pub mod bits {
 
 #[cfg(test)]
 mod tests {
-    macro_rules! check_display {
+    macro_rules! check_2D_array {
         ($buffer:expr, $expected:expr) => {
             assert!($buffer.len() > 0 && $buffer[0].len() > 0, "Buffer is empty");
             $buffer.iter().enumerate().for_each(|(r, buf)| {
@@ -68,5 +68,5 @@ mod tests {
         };
     }
 
-    pub(crate) use check_display;
+    pub(crate) use check_2D_array;
 }

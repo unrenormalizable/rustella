@@ -1,6 +1,6 @@
 --- Symbol List (sorted by symbol)
 0.FREE_BYTES             0000                  
-1.CLEAR_STACK            f805              (R )
+1.CLEAR_STACK            f806              (R )
 AUDC0                    0015                  
 AUDC1                    0016                  
 AUDF0                    0017                  
@@ -41,15 +41,15 @@ INPT3                    000b
 INPT4                    000c                  
 INPT5                    000d                  
 INTIM                    0284                  
-Kernel                   f832              (R )
-KernelLoop               f83a              (R )
+Kernel                   f833              (R )
+KernelLoop               f83b              (R )
 macro.h                  0000 ????         (R )
-Main                     f80a              (R )
-NO_ILLEGAL_OPCODES       0000 ????         (R )
+Main                     f80b              (R )
+NO_ILLEGAL_OPCODES       0001              (R )
 NUSIZ0                   0004                  
 NUSIZ1                   0005                  
-osLoop                   f84a              (R )
-OverScan                 f842              (R )
+osLoop                   f84b              (R )
+OverScan                 f843              (R )
 PF0                      000d                  
 PF1                      000e                  
 PF2                      000f                  
@@ -76,15 +76,15 @@ TIM64T                   0296
 TIM8T                    0295                  
 TIMINT                   0285                  
 VBLANK                   0001              (R )
-vbLoop                   f82c              (R )
+vbLoop                   f82d              (R )
 vcs.h                    0000 ????         (R )
 VDELBL                   0027                  
 VDELP0                   0025                  
 VDELP1                   0026                  
 VERSION_MACRO            006d                  
 VERSION_VCS              006a                  
-VerticalBlank            f82a              (R )
-VerticalSync             f819              (R )
+VerticalBlank            f82b              (R )
+VerticalSync             f81a              (R )
 VSYNC                    0000              (R )
 WSYNC                    0002              (R )
 --- End of Symbol List.

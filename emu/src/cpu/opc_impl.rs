@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
 
 use crate::bits;
-use crate::cmn::{LoHi, IRQ_VECTOR};
-use crate::cpu::{am, core::*};
+use crate::cmn::LoHi;
+use crate::cpu::{am, cmn::IRQ_VECTOR, core::*};
 use crate::mem::Memory;
 
 fn illegal(cpu: &mut MOS6502, _: &mut Memory, opc: u8, _: LoHi) -> Option<LoHi> {

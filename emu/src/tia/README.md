@@ -1,8 +1,10 @@
 # TIA Technical Notes
 
-- Display [From [2004_28c3-4711-Ultimate_Atari_2600_Talk ](link_generated_on_download)]
+- Display [From [Atari 2600 VCS Programming](https://www.slideshare.net/slideshow/atari-2600programming/23550414#92)]
 
-  <img src="https://remnote-user-data.s3.amazonaws.com/wySbIIHb79aRNF_M6IZegsR3n7qXXKPAQ4tOctIyaq5makgJ_sRfoFMEHcBfjtVQ0VRFlZpB_bR79eD8muqh4LW1Gw1GpiV4K7I2YdVdyOfg8hor6LSXgELYOjNzVBJI.png" alt="TV frame" width="400"/>
+  <a href="Atari 2600 VCS Programming" target="_blank">
+    <img src="https://github.com/user-attachments/assets/4d3cee7d-b308-4d85-b5bb-c320f9cfc721" alt="TV frame" width="600"/>
+  </a>
 
 - TV
     - NTSC / PAL / SECAM
@@ -25,14 +27,26 @@
         - VSYNC on + 3 x WSYNC + VSYNC off = TV gets starts a new frame
         - VBLANK on = beam doesn't draw but scans
         - WSYNC = halt CPU till beam returns to start of next line (h.blank + display)
-    - 1 frame structure (Atari's research data shows max TV compat) 
-        - ![](https://remnote-user-data.s3.amazonaws.com/Hicks-Cw6w6fNK_BFr72CacRgYqLfVCrlZJkWhCPUxjMWEWLbgSpeXolPfWfc5UkIF68ZxdqQ8YHFbGdFzwBf10Ktn5vx3WBolY4KmrsUfcqSeRoKv9MygLfAlaZls5h.png)
-        - VerticalSync = VSYNC on + 3 x WSYNC / game logic + VSYNC off 
-            - ![](https://remnote-user-data.s3.amazonaws.com/bVIXlowFCkEvGEWp_qIwxOvAWNPhm_KGjeLNhrtffITsaWAgbF3ccmAoliNvCsGxPr7HY7CSaS4MJYR1XQjeG45-XXICJ2iuLTcY487u8u1J2zDwV96pGJPYD5IrSLhC.png)
+    - 1 frame structure (Atari's research data shows max TV compat)
+
+       <img src="https://github.com/user-attachments/assets/86062a90-b55f-477e-8314-3fd8adcac042" alt="Frame stucture" width="400"/>
+
+        - VerticalSync = VSYNC on + 3 x WSYNC / game logic + VSYNC off
+
+          <img src="https://github.com/user-attachments/assets/b86c87cc-50ce-41ba-907c-4bfb679f4fef" alt="Vertical sync" width="400"/> 
+
         - VerticalBlank = 37/45 WSYNC / game logic
-            - ![](https://remnote-user-data.s3.amazonaws.com/h0bBRzUMZsjJBieXtSVwUyr820aXyfCeIeDtcZE74bkmhb-d0m3ImEOCmBkadDFcw200T3R4n_q-Daj9OpZ7nbR9mgVlEkemz6qF6dtHaVAhQmKA6CP5MMLJBpU_LQa9.png)
+
+          <img src="https://github.com/user-attachments/assets/de8be6d2-f6ca-4ab2-bf8e-415a9be1b4fa" alt="Vertical blank" width="400"/>
+
         - Display: VBLANK off + 192/228 display 
+
+          <img src="https://github.com/user-attachments/assets/0bf242de-ed97-4fc9-8b71-4de7a484a16d" alt="Display" width="400"/>
+        
         - Overscan: VBLANK on + 30/36 WSYNC 
+
+          <img src="https://github.com/user-attachments/assets/72aebc9c-fde0-46e5-b922-2e8fcfbe299d" alt="Overscan" width="400"/>
+        
     - 1 line = 68 cycle horizontal blank + 160 cycle display
     - horizontal timing handled by TIA
         - WSYNC stops CPU till start of next line
