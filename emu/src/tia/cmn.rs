@@ -1,45 +1,4 @@
-pub const PIXELS_PER_SCAN_LINE: usize = CYCLES_PER_SCAN_LINE;
-pub const CYCLES_PER_SCAN_LINE: usize = COL_DRAWABLE_AREA_END;
-pub const CYCLES_PER_SCAN_LINE_HORIZONTAL_BLANK: usize = COL_HORIZONTAL_BLANK_LEN;
-pub const CYCLES_PER_SCAN_LINE_DRAWABLE_AREA: usize = COL_HORIZONTAL_BLANK_LEN;
-
-pub const COL_HORIZONTAL_BLANK_START: usize = 0;
-pub const COL_HORIZONTAL_BLANK_LEN: usize = 68;
-pub const COL_HORIZONTAL_BLANK_END: usize = COL_HORIZONTAL_BLANK_START + COL_HORIZONTAL_BLANK_LEN;
-
-pub const COL_DRAWABLE_AREA_START: usize = COL_HORIZONTAL_BLANK_LEN;
-pub const COL_DRAWABLE_AREA_LEN: usize = 160;
-pub const COL_DRAWABLE_AREA_END: usize = COL_DRAWABLE_AREA_START + COL_DRAWABLE_AREA_LEN;
-
-pub const ROW_VERTICAL_SYNC_START: usize = 0;
-pub const ROW_VERTICAL_SYNC_LEN: usize = 3;
-pub const ROW_VERTICAL_SYNC_END: usize = ROW_VERTICAL_SYNC_START + ROW_VERTICAL_SYNC_LEN;
-
-pub mod ntsc {
-    pub const ROW_VERTICAL_BLANK_START: usize = super::ROW_VERTICAL_SYNC_END;
-    pub const ROW_VERTICAL_BLANK_LEN: usize = 37;
-    pub const ROW_VERTICAL_BLANK_END: usize = ROW_VERTICAL_BLANK_START + ROW_VERTICAL_BLANK_LEN;
-
-    pub const ROW_DRAWABLE_AREA_START: usize = ROW_VERTICAL_BLANK_END;
-    pub const ROW_DRAWABLE_AREA_LEN: usize = 192;
-    pub const ROW_DRAWABLE_AREA_END: usize = ROW_DRAWABLE_AREA_START + ROW_DRAWABLE_AREA_LEN;
-
-    pub const ROW_OVERSCAN_START: usize = ROW_DRAWABLE_AREA_END;
-    pub const ROW_OVERSCAN_LEN: usize = 30;
-    pub const ROW_OVERSCAN_END: usize = ROW_OVERSCAN_START + ROW_OVERSCAN_LEN;
-
-    pub const SCAN_LINES: usize = ROW_OVERSCAN_END;
-    pub const CYCLES_PER_VERTICAL_SYNC: usize =
-        super::ROW_VERTICAL_SYNC_LEN * super::CYCLES_PER_SCAN_LINE;
-    pub const CYCLES_PER_VERTICAL_BLANK: usize =
-        ROW_VERTICAL_BLANK_LEN * super::CYCLES_PER_SCAN_LINE;
-    pub const CYCLES_PER_OVERSCAN: usize = ROW_OVERSCAN_LEN * super::CYCLES_PER_SCAN_LINE;
-    pub const CYCLES_PER_DRAWABLE_AREA_AND_HBLANK: usize = CYCLES_PER_FRAME
-        - CYCLES_PER_VERTICAL_SYNC
-        - CYCLES_PER_VERTICAL_BLANK
-        - CYCLES_PER_OVERSCAN;
-    pub const CYCLES_PER_FRAME: usize = SCAN_LINES * super::CYCLES_PER_SCAN_LINE;
-}
+use super::{core, tv};
 
 pub const TIA_MAX_ADDRESS: usize = 0x003F;
 
@@ -204,3 +163,9 @@ pub static IMPLEMENTED_REGISTERS: &[(bool, &str); TIA_MAX_ADDRESS + 1] = &[
     (false, "????"),    // = $3E
     (false, "????"),    // = $3F
 ];
+
+pub type NtscTV = tv::InMemoryTV<262, 228>;
+pub type NtscTIA = core::InMemoryTIA<262, 228>;
+pub fn ntsc_tv_config() -> tv::TVConfig<262, 228> {
+    tv::TVConfig::<262, 228>::new(3, 37, 192, 68)
+}

@@ -20,7 +20,7 @@ pub struct InMemoryTIA<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
     clk: usize,
     /// 0..(PIXELS_PER_SCANLINE / 4)
     hcount: usize,
-    registers: [u8; cmn::TIA_MAX_ADDRESS],
+    registers: [u8; cmn::TIA_MAX_ADDRESS + 1],
     tv: Rc<RefCell<dyn TV<SCANLINES, PIXELS_PER_SCANLINE>>>,
     rdy: LineState,
 }
@@ -33,7 +33,7 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
         Self {
             clk: 0,
             hcount: 0,
-            registers: [0x00; cmn::TIA_MAX_ADDRESS],
+            registers: [0x00; cmn::TIA_MAX_ADDRESS + 1],
             tv,
             rdy: LineState::Low,
         }
@@ -50,10 +50,6 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
         if self.clk == PIXELS_PER_SCANLINE - 1 {
             self.set_rdy(LineState::High);
         }
-    }
-
-    fn set_rdy(&mut self, rdy: LineState) {
-        self.rdy = rdy;
     }
 
     #[cfg(debug_assertions)]
@@ -117,6 +113,10 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> RDYLine
 {
     fn rdy(&self) -> LineState {
         self.rdy
+    }
+
+    fn set_rdy(&mut self, rdy: LineState) {
+        self.rdy = rdy;
     }
 }
 

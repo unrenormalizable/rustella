@@ -51,15 +51,18 @@ impl From<LoHi> for u16 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum LineState {
+    #[default]
     Low,
     High,
 }
 
 pub trait RDYLine {
     fn rdy(&self) -> LineState;
+
+    fn set_rdy(&mut self, rdy: LineState);
 }
 
 #[cfg(test)]
