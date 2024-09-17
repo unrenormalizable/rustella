@@ -1,0 +1,11 @@
+name = "rsw"
+version = "0.1.0"
+
+interval = 50
+
+cli = "pnpm"
+
+[[crates]]
+name = "emu-wasm"
+link = true
+

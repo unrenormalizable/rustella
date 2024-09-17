@@ -1,6 +1,7 @@
 [package]
-name = "a2600_emu"
+name = "rustella"
 version = "0.1.0"
+authors = ["unrenormalizable <unrenormalizable@gmain.com>"]
 edition = "2021"
 
 [dependencies]

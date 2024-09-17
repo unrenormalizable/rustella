@@ -3,4 +3,5 @@ resolver = "2"
 members = [
     "emu",
     "hw_dbg",
+    "web/emu-wasm",
 ]

@@ -153,7 +153,7 @@ pub fn cmd_line() -> ClapEditor<Commands> {
             reed.with_history(Box::new(
                 FileBackedHistory::with_file(
                     10000,
-                    homedir::my_home().unwrap().unwrap().join(".a2600.rs"),
+                    homedir::my_home().unwrap().unwrap().join(".rustella"),
                 )
                 .unwrap(),
             ))

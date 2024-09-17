@@ -2,7 +2,7 @@ use crate::cmn::OpCodeInfo;
 
 /*
 To regenerate this run
-$map = @{}; gc -Raw "D:\src\u\a2600\lib\src\opcodes.json" | ConvertFrom-Json | sort -Property opc | % { $map[$_.opc] = '/* 0x{0:x2} */ OpCodeInfo {{ addressing: "{1}", assembler: "{2}", bytes: {3}, cycles: {}", }},' -f ($_.opc, $_.addressing, $_.assembler, $_.bytes, $_.cycles) }
+$map = @{}; gc -Raw "D:\src\u\s\lib\src\opcodes.json" | ConvertFrom-Json | sort -Property opc | % { $map[$_.opc] = '/* 0x{0:x2} */ OpCodeInfo {{ addressing: "{1}", assembler: "{2}", bytes: {3}, cycles: {}", }},' -f ($_.opc, $_.addressing, $_.assembler, $_.bytes, $_.cycles) }
 0..0xff | % { $opc = "{0:X2}" -f $_; if ($map.Contains($opc)) { "    {0}" -f $map[$opc] } else { '    /* 0x{0} */
  OpCodeInfo {{ addressing: "?", assembler: "???", bytes: 1, cycles: 0", },' -f $opc } }
 */

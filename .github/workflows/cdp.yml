@@ -1,5 +1,9 @@
 name: cdp
 
+env:
+  VERCEL_ORG_ID: ${{secrets.VERCEL_ORG_ID}}
+  VERCEL_PROJECT_ID: ${{secrets.VERCEL_PROJECT_ID}}
+
 on:
   push:
     branches: [master]
@@ -10,8 +14,22 @@ on:
     branches: [master]
 
 jobs:
+  createbuildvars:
+    name: Create build variables
+    runs-on: ubuntu-latest
+    outputs:
+      buildversion: ${{steps.createbuildversion.outputs.buildversion}}
+      buildcommit: ${{steps.createbuildcommit.outputs.buildcommit}}
+    steps:
+      - id: createbuildversion
+        run: echo "buildversion=$(date +'%y.%m%d').${{github.run_number}}" >> "$GITHUB_OUTPUT"
+
+      - id: createbuildcommit
+        run: echo "buildcommit=${{github.sha}}" >> "$GITHUB_OUTPUT"
+
   build-test-rust:
     name: Build & test rust
+    needs: createbuildvars
     strategy:
       matrix:
         os:
@@ -64,6 +82,7 @@ jobs:
 
   lint-rust:
     name: Lint rust
+    needs: createbuildvars
     strategy:
       matrix:
         os:
@@ -92,9 +111,80 @@ jobs:
         run: |
           cargo clippy --all-targets --all-features -- -D warnings
 
+  build-lint-test-web:
+    name: Build, lint, test web
+    needs: createbuildvars
+    strategy:
+      matrix:
+        os:
+          - windows-latest
+          - ubuntu-latest
+    runs-on: ${{matrix.os}}
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          version: 9
+          run_install: false
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Install Rust tools
+        continue-on-error: false
+        run: |
+          cd web
+          cargo install wasm-pack rsw 
+
+      - name: Install pnpm packages (cex)
+        run: |
+          cd web
+          pnpm install --frozen-lockfile --strict-peer-dependencies
+
+      - name: Install pnpm packages (web)
+        run: |
+          cd web
+          pnpm install --frozen-lockfile --strict-peer-dependencies
+
+      - name: Check code format (web)
+        run: |
+          cd web
+          pnpm format
+
+      - name: Lint code (web)
+        run: |
+          cd web
+          pnpm lint
+
+      - name: Test (web)
+        run: |
+          cd web
+          pnpm test
+
+      - name: Build & deploy
+        run: |
+          cd web
+          cmd /c set VITE_
+          vercel pull --yes --environment=production --token=${{secrets.VERCEL_TOKEN}}
+          vercel build --prod --token=${{secrets.VERCEL_TOKEN}}
+          vercel deploy --prebuilt --prod --token=${{secrets.VERCEL_TOKEN}}
+        env:
+          VITE_APP_VERSION: ${{needs.createbuildvars.outputs.buildversion}}
+          VITE_APP_COMMIT_ID: ${{needs.createbuildvars.outputs.buildcommit}}
+          VITE_APP_AI_INSTRUMENTATION_KEY: ${{secrets.AZURE_CREDENTIALS_KSAPPLICATIONS_AI_KEY}}
+
   finish:
     name: Finish
-    needs: [build-test-rust, lint-rust]
+    needs: [build-test-rust, lint-rust, build-lint-test-web]
     runs-on: ubuntu-latest
     steps:
       - run: echo "Done..."

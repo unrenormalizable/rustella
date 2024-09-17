@@ -1,4 +1,4 @@
-use a2600_emu::{cmn, cpu, mem};
+use rustella::{cmn, cpu, mem};
 use std::{fs, path::PathBuf};
 
 /* NOTE: This is not complete yet. ADC/SBC bin & dec part of the tests are not done. */

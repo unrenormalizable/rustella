@@ -40,10 +40,10 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
     }
 
     fn tick_core(&mut self) {
-        let color = if bits::tst_bits(self.registers[cmn::regs::VBLANK], bits::BIT_D1) {
+        let color = if bits::tst_bits(self.registers[cmn::read_regs::VBLANK], bits::BIT_D1) {
             0x00
         } else {
-            self.registers[cmn::regs::COLUBK]
+            self.registers[cmn::read_regs::COLUBK]
         };
         self.tv.borrow_mut().render_pixel(color);
 
@@ -55,9 +55,9 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
     #[cfg(debug_assertions)]
     #[inline]
     fn check_unsupported_register_flags(&self, addr: usize, val: u8) {
-        let (supported, name) = cmn::IMPLEMENTED_REGISTERS[addr];
+        let (supported, name) = cmn::read_regs::IMPLEMENTED_REGISTERS[addr];
 
-        if let cmn::regs::VBLANK = addr {
+        if let cmn::read_regs::VBLANK = addr {
             assert!(
                 val & !bits::BIT_D1 == 0,
                 "{name} ({addr:02X}) for value 0x{addr:02X} is not implemented yet."
@@ -86,7 +86,7 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> MemorySegment
     for InMemoryTIA<SCANLINES, PIXELS_PER_SCANLINE>
 {
     fn read(&self, addr: usize) -> u8 {
-        let (_, name) = cmn::IMPLEMENTED_REGISTERS[addr];
+        let (_, name) = cmn::read_regs::IMPLEMENTED_REGISTERS[addr];
         todo!("Read for {name} ({addr:02X}) is not implemented yet.")
     }
 
@@ -94,11 +94,11 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> MemorySegment
         #[cfg(debug_assertions)]
         self.check_unsupported_register_flags(reg, val);
 
-        if let cmn::regs::WSYNC = reg {
+        if let cmn::read_regs::WSYNC = reg {
             self.set_rdy(LineState::Low);
         }
 
-        if let cmn::regs::VSYNC = reg {
+        if let cmn::read_regs::VSYNC = reg {
             if bits::tst_bits(val, bits::BIT_D1) {
                 self.tv.borrow_mut().vsync();
             }
@@ -153,7 +153,7 @@ mod tests {
         assert_eq!(tia.rdy(), LineState::Low);
         tia.tick();
         assert_eq!(tia.rdy(), LineState::Low);
-        tia.write(cmn::regs::WSYNC, 0x00);
+        tia.write(cmn::read_regs::WSYNC, 0x00);
         assert_eq!(tia.rdy(), LineState::Low);
         (0..=ticks).for_each(|_| tia.tick());
         assert_eq!(tia.rdy(), LineState::High);
@@ -175,13 +175,13 @@ mod tests {
         let tv = Rc::new(RefCell::new(InMemoryTV::<5, 3>::new_testable(0, 0, cfg)));
         let mut tia = InMemoryTIA::new(tv.clone());
 
-        tia.write(cmn::regs::VBLANK, bits::BIT_D1);
-        tia.write(cmn::regs::COLUBK, 0xFF);
-        tia.write(cmn::regs::VSYNC, bits::BIT_D1);
+        tia.write(cmn::read_regs::VBLANK, bits::BIT_D1);
+        tia.write(cmn::read_regs::COLUBK, 0xFF);
+        tia.write(cmn::read_regs::VSYNC, bits::BIT_D1);
         assert_eq!(tia.rdy(), LineState::Low);
 
         // VSYNC
-        tia.write(cmn::regs::WSYNC, 0x00);
+        tia.write(cmn::read_regs::WSYNC, 0x00);
         (0..cfg.pixels_per_scanline()).for_each(|i| {
             assert_eq!(tia.rdy(), LineState::Low, "{i}");
             tia.tick();
@@ -189,7 +189,7 @@ mod tests {
         assert_eq!(tia.rdy(), LineState::High);
 
         // VBLANK
-        tia.write(cmn::regs::WSYNC, 0x00);
+        tia.write(cmn::read_regs::WSYNC, 0x00);
         (0..cfg.pixels_per_scanline()).for_each(|i| {
             assert_eq!(tia.rdy(), LineState::Low, "{i}");
             tia.tick();
@@ -197,9 +197,9 @@ mod tests {
         assert_eq!(tia.rdy(), LineState::High);
 
         // Draw - 0
-        tia.write(cmn::regs::VBLANK, 0x00);
-        tia.write(cmn::regs::COLUBK, 0x10);
-        tia.write(cmn::regs::WSYNC, 0x00);
+        tia.write(cmn::read_regs::VBLANK, 0x00);
+        tia.write(cmn::read_regs::COLUBK, 0x10);
+        tia.write(cmn::read_regs::WSYNC, 0x00);
         (0..cfg.pixels_per_scanline()).for_each(|i| {
             assert_eq!(tia.rdy(), LineState::Low, "{i}");
             tia.tick();
@@ -207,17 +207,17 @@ mod tests {
         assert_eq!(tia.rdy(), LineState::High);
 
         // Draw - 1
-        tia.write(cmn::regs::COLUBK, 0x20);
-        tia.write(cmn::regs::WSYNC, 0x00);
+        tia.write(cmn::read_regs::COLUBK, 0x20);
+        tia.write(cmn::read_regs::WSYNC, 0x00);
         (0..cfg.pixels_per_scanline()).for_each(|_| {
             assert_eq!(tia.rdy(), LineState::Low);
             tia.tick();
         });
 
         // Overscan
-        tia.write(cmn::regs::VBLANK, bits::BIT_D1);
-        tia.write(cmn::regs::COLUBK, 0xEE);
-        tia.write(cmn::regs::WSYNC, 0x00);
+        tia.write(cmn::read_regs::VBLANK, bits::BIT_D1);
+        tia.write(cmn::read_regs::COLUBK, 0xEE);
+        tia.write(cmn::read_regs::WSYNC, 0x00);
         (0..cfg.pixels_per_scanline()).for_each(|_| {
             assert_eq!(tia.rdy(), LineState::Low);
             tia.tick();
@@ -237,12 +237,12 @@ mod tests {
         let tv = Rc::new(RefCell::new(TestableTV::new_testable(scanline, pixel, cfg)));
         let mut tia = InMemoryTIA::new(tv.clone());
 
-        tia.write(cmn::regs::COLUBK, 0x03);
+        tia.write(cmn::read_regs::COLUBK, 0x03);
         tia.tick();
-        tia.write(cmn::regs::VSYNC, bits::BIT_D1);
+        tia.write(cmn::read_regs::VSYNC, bits::BIT_D1);
         (0..cfg.pixels_per_scanline()).for_each(|_| tia.tick());
-        tia.write(cmn::regs::VSYNC, 0x00);
-        tia.write(cmn::regs::COLUBK, 0x02);
+        tia.write(cmn::read_regs::VSYNC, 0x00);
+        tia.write(cmn::read_regs::COLUBK, 0x02);
         tia.tick();
         tia.tick();
 
@@ -258,14 +258,14 @@ mod tests {
         let mut tia = InMemoryTIA::new(tv.clone());
 
         (0..cfg.pixels_per_scanline()).for_each(|_| tia.tick());
-        tia.write(cmn::regs::COLUBK, 0x03);
-        tia.write(cmn::regs::VBLANK, 0x00);
+        tia.write(cmn::read_regs::COLUBK, 0x03);
+        tia.write(cmn::read_regs::VBLANK, 0x00);
         (0..cfg.pixels_per_scanline()).for_each(|_| tia.tick());
-        tia.write(cmn::regs::COLUBK, 0x02);
-        tia.write(cmn::regs::VBLANK, bits::BIT_D1);
+        tia.write(cmn::read_regs::COLUBK, 0x02);
+        tia.write(cmn::read_regs::VBLANK, bits::BIT_D1);
         (0..cfg.pixels_per_scanline()).for_each(|_| tia.tick());
-        tia.write(cmn::regs::COLUBK, 0x02);
-        tia.write(cmn::regs::VBLANK, 0x00);
+        tia.write(cmn::read_regs::COLUBK, 0x02);
+        tia.write(cmn::read_regs::VBLANK, 0x00);
         (0..cfg.pixels_per_scanline()).for_each(|_| tia.tick());
 
         assert_eq!(tv.borrow().buffer()[1], [0x00, 0x03, 0x03]);

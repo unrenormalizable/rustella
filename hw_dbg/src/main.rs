@@ -2,11 +2,11 @@ mod cmds;
 mod color_term;
 mod repl;
 
-use a2600_emu::{cmn, cpu, mem};
+use rustella::{cmn, cpu, mem};
 use std::{collections::HashSet, fs};
 
 fn main() {
-    let buffer = fs::read("d:/src/u/a2600/lib/tests/klaus_6502_functional_test.bin").unwrap();
+    let buffer = fs::read("d:/src/u/s/lib/tests/klaus_6502_functional_test.bin").unwrap();
     let mut mem =
         mem::Memory::new_with_rom(&buffer, cmn::LoHi::default(), mem::mm_6502, None, false);
     //let buffer = fs::read("D:/bin/Stella-6.7.1/roms/air_raid.bin").unwrap();

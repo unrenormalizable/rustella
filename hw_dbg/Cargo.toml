@@ -1,10 +1,11 @@
 [package]
-name = "a2600_hw_dbg"
+name = "rustella_hw_dbg"
 version = "0.1.0"
+authors = ["unrenormalizable <unrenormalizable@gmain.com>"]
 edition = "2021"
 
 [dependencies]
-a2600_emu = { path = "../emu" }
+rustella = { path = "../emu" }
 clap = "4.5.16"
 reedline = "0.32.0"
 clap-repl = "0.3.0"

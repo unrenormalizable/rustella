@@ -1,4 +1,4 @@
-use a2600_emu::{cmn, cmn::RDYLine, cpu::*, mem, tia, tia::TIA};
+use rustella::{cmn, cmn::RDYLine, cpu::*, mem, tia, tia::TIA};
 use std::{cell::RefCell, rc::Rc};
 use std::{fs, path::PathBuf};
 

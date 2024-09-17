@@ -1,8 +1,13 @@
-use core::arch::x86_64::_rdtsc;
-
+#[cfg(target_arch = "x86_64")]
 #[inline(never)]
 pub fn get_nanoseconds() -> u64 {
-    unsafe { _rdtsc() }
+    unsafe { core::arch::x86_64::_rdtsc() }
+}
+
+#[cfg(not(target_arch = "x86_64"))]
+#[inline(never)]
+pub fn get_nanoseconds() -> u64 {
+    0
 }
 
 pub fn measure_elapsed(start: u64) -> u64 {
