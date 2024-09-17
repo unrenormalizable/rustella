@@ -10,24 +10,26 @@ use core::{cell::RefCell, fmt::Debug};
 /// Refer:
 /// - module README.md
 /// - https://www.atarihq.com/danb/files/TIA_HW_Notes.txt
-pub trait TIA: MemorySegment + RDYLine + Debug {
+pub trait TIA: MemorySegment + RDYLine {
     fn tick(&mut self);
 }
 
 #[derive(Debug)]
-pub struct InMemoryTIA {
-    /// 0..228
+pub struct InMemoryTIA<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> {
+    /// 0..PIXELS_PER_SCANLINE
     clk: usize,
-    /// 0..57
+    /// 0..(PIXELS_PER_SCANLINE / 4)
     hcount: usize,
     registers: [u8; cmn::TIA_MAX_ADDRESS],
-    tv: Rc<RefCell<dyn TV>>,
+    tv: Rc<RefCell<dyn TV<SCANLINES, PIXELS_PER_SCANLINE>>>,
     rdy: LineState,
 }
 
 #[allow(dead_code)]
-impl InMemoryTIA {
-    pub fn new(tv: Rc<RefCell<dyn TV>>) -> Self {
+impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
+    InMemoryTIA<SCANLINES, PIXELS_PER_SCANLINE>
+{
+    pub fn new(tv: Rc<RefCell<dyn TV<SCANLINES, PIXELS_PER_SCANLINE>>>) -> Self {
         Self {
             clk: 0,
             hcount: 0,
@@ -38,15 +40,16 @@ impl InMemoryTIA {
     }
 
     fn tick_core(&mut self) {
-        // HBLANK, VSYNC, WSYNC
-
-        let color = if !bits::tst_bits(self.registers[cmn::regs::VBLANK], bits::BIT_D1) {
+        let color = if bits::tst_bits(self.registers[cmn::regs::VBLANK], bits::BIT_D1) {
             0x00
         } else {
             self.registers[cmn::regs::COLUBK]
         };
-
         self.tv.borrow_mut().render_pixel(color);
+
+        if self.clk == PIXELS_PER_SCANLINE - 1 {
+            self.set_rdy(LineState::High);
+        }
     }
 
     fn set_rdy(&mut self, rdy: LineState) {
@@ -72,16 +75,20 @@ impl InMemoryTIA {
     }
 }
 
-impl TIA for InMemoryTIA {
+impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> TIA
+    for InMemoryTIA<SCANLINES, PIXELS_PER_SCANLINE>
+{
     fn tick(&mut self) {
         self.tick_core();
 
-        self.clk = (self.clk + 1) % cmn::CYCLES_PER_SCAN_LINE;
+        self.clk = (self.clk + 1) % self.tv.borrow().config().pixels_per_scanline();
         self.hcount = self.clk / 4;
     }
 }
 
-impl MemorySegment for InMemoryTIA {
+impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> MemorySegment
+    for InMemoryTIA<SCANLINES, PIXELS_PER_SCANLINE>
+{
     fn read(&self, addr: usize) -> u8 {
         let (_, name) = cmn::IMPLEMENTED_REGISTERS[addr];
         todo!("Read for {name} ({addr:02X}) is not implemented yet.")
@@ -91,232 +98,182 @@ impl MemorySegment for InMemoryTIA {
         #[cfg(debug_assertions)]
         self.check_unsupported_register_flags(reg, val);
 
-        //if let cmn::regs::WSYNC = reg {
-        //    self.set_rdy(LineState::Low);
-        //}
+        if let cmn::regs::WSYNC = reg {
+            self.set_rdy(LineState::Low);
+        }
 
-        //if let cmn::regs::VSYNC = reg {
-        //    if bits::tst_bits(val, bits::BIT_D1) {
-        //        self.tv.borrow_mut().vsync();
-        //    }
-        //}
+        if let cmn::regs::VSYNC = reg {
+            if bits::tst_bits(val, bits::BIT_D1) {
+                self.tv.borrow_mut().vsync();
+            }
+        }
 
         self.registers[reg] = val;
     }
 }
 
-impl RDYLine for InMemoryTIA {
+impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> RDYLine
+    for InMemoryTIA<SCANLINES, PIXELS_PER_SCANLINE>
+{
     fn rdy(&self) -> LineState {
         self.rdy
     }
 }
 
-//impl TIA for InMemoryTIA {
-//    fn tick(&mut self) {
-//        self.frame_cycle_counter += 1;
+// WSYNC, VSYNC, VBLANK, COLUBCK
 
-//        let offset = (self.frame_cycle_counter - 1) % cmn::CYCLES_PER_SCAN_LINE;
-//        if self.wsync && offset == 0 {
-//            self.rdy(false);
-//        }
-//        if offset < cmn::COL_DRAWABLE_AREA_START {
-//            return;
-//        }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::tia::tv::*;
+    use test_case::test_case;
 
-//        let scan_line = (self.frame_cycle_counter - 1) / cmn::CYCLES_PER_SCAN_LINE;
-//        if scan_line < cmn::ROW_VERTICAL_SYNC_END {
-//            return;
-//        }
+    const PIXELS_PER_SCANLINE: usize = 3;
+    const SCANLINES: usize = 3;
 
-//        if !bits::tst_bits(self.registers[cmn::regs::VBLANK], bits::BIT_D1) {
-//            return;
-//        }
+    /// TV Layout
+    ///
+    ///    012   
+    ///   ┌───┐  
+    ///  0│xxx│  
+    ///  1│x  │  
+    ///  2│x  │  
+    ///   └───┘            
+    type TestableTVConfig = TVConfig<SCANLINES, PIXELS_PER_SCANLINE>;
 
-//        self.tv
-//            .borrow_mut()
-//            .render(scan_line, offset, self.registers[cmn::regs::COLUBK]);
-//    }
+    type TestableTV = InMemoryTV<SCANLINES, PIXELS_PER_SCANLINE>;
 
-//    #[allow(non_snake_case)]
-//    fn connect_rdy(&mut self, rdy: Rc<RefCell<dyn RDY>>) {
-//        self.rdy = rdy.clone();
-//    }
+    #[test_case(0, 0, 3)]
+    #[test_case(1, 1, 2)]
+    #[test_case(2, 2, 1)]
+    fn test_wsync(scanline: usize, pixel: usize, ticks: usize) {
+        let tv = TestableTV::new_testable(scanline, pixel, TestableTVConfig::default());
+        let mut tia = InMemoryTIA::new(Rc::new(RefCell::new(tv)));
 
-//    #[allow(non_snake_case)]
-//    #[inline]
-//    fn rdy(&mut self, state: bool) {
-//        self.wsync = state;
-//        self.rdy.borrow_mut().set_state(state);
-//    }
-//}
+        assert_eq!(tia.rdy(), LineState::Low);
+        tia.tick();
+        assert_eq!(tia.rdy(), LineState::Low);
+        tia.write(cmn::regs::WSYNC, 0x00);
+        assert_eq!(tia.rdy(), LineState::Low);
+        (0..=ticks).for_each(|_| tia.tick());
+        assert_eq!(tia.rdy(), LineState::High);
+    }
 
-//#[allow(non_snake_case)]
-//#[cfg(test)]
-//mod tests {
-//    use super::*;
-//    use crate::tests::*;
+    /// The standard solid display from any atari game writing tutorial.
+    ///                     
+    ///   012               
+    ///  ┌───┐              
+    /// 0│xxx│ -> vsync     
+    /// 1│x  │ -> vblank    
+    /// 2│x  │              
+    /// 3│x  │              
+    /// 4│x  │ -> overscan  
+    ///  └───┘              
+    #[test]
+    fn render_solid_display() {
+        let cfg = solid_display_config();
+        let tv = Rc::new(RefCell::new(InMemoryTV::<5, 3>::new_testable(0, 0, cfg)));
+        let mut tia = InMemoryTIA::new(tv.clone());
 
-//    #[test]
-//    fn render_empty_frame() {
-//        let tv =
-//            tv::InMemoryTV::<{ cmn::ntsc::SCAN_LINES }, { cmn::CYCLES_PER_SCAN_LINE }>::default();
-//        let tv = Rc::new(RefCell::new(tv));
-//        let mut tia = InMemoryTIA::new(tv.clone());
+        tia.write(cmn::regs::VBLANK, bits::BIT_D1);
+        tia.write(cmn::regs::COLUBK, 0xFF);
+        tia.write(cmn::regs::VSYNC, bits::BIT_D1);
+        assert_eq!(tia.rdy(), LineState::Low);
 
-//        tia.tick_n(cmn::ntsc::CYCLES_PER_FRAME * 2);
-//        assert_eq!(tia.frame_counter(), 0);
+        // VSYNC
+        tia.write(cmn::regs::WSYNC, 0x00);
+        (0..cfg.pixels_per_scanline()).for_each(|i| {
+            assert_eq!(tia.rdy(), LineState::Low, "{i}");
+            tia.tick();
+        });
+        assert_eq!(tia.rdy(), LineState::High);
 
-//        check_display!(tv.borrow().buffer(), 0x00);
-//    }
+        // VBLANK
+        tia.write(cmn::regs::WSYNC, 0x00);
+        (0..cfg.pixels_per_scanline()).for_each(|i| {
+            assert_eq!(tia.rdy(), LineState::Low, "{i}");
+            tia.tick();
+        });
+        assert_eq!(tia.rdy(), LineState::High);
 
-//    #[test]
-//    fn render_with_VBLANK_always_on() {
-//        let tv =
-//            tv::InMemoryTV::<{ cmn::ntsc::SCAN_LINES }, { cmn::CYCLES_PER_SCAN_LINE }>::default();
-//        let tv = Rc::new(RefCell::new(tv));
-//        let mut tia = InMemoryTIA::new(tv.clone());
+        // Draw - 0
+        tia.write(cmn::regs::VBLANK, 0x00);
+        tia.write(cmn::regs::COLUBK, 0x10);
+        tia.write(cmn::regs::WSYNC, 0x00);
+        (0..cfg.pixels_per_scanline()).for_each(|i| {
+            assert_eq!(tia.rdy(), LineState::Low, "{i}");
+            tia.tick();
+        });
+        assert_eq!(tia.rdy(), LineState::High);
 
-//        let colubk = 0x1F;
-//        tia.set(cmn::regs::VBLANK, bits::BIT_D1);
-//        tia.set(cmn::regs::COLUBK, colubk);
+        // Draw - 1
+        tia.write(cmn::regs::COLUBK, 0x20);
+        tia.write(cmn::regs::WSYNC, 0x00);
+        (0..cfg.pixels_per_scanline()).for_each(|_| {
+            assert_eq!(tia.rdy(), LineState::Low);
+            tia.tick();
+        });
 
-//        tia.tick_n(cmn::ntsc::CYCLES_PER_FRAME);
+        // Overscan
+        tia.write(cmn::regs::VBLANK, bits::BIT_D1);
+        tia.write(cmn::regs::COLUBK, 0xEE);
+        tia.write(cmn::regs::WSYNC, 0x00);
+        (0..cfg.pixels_per_scanline()).for_each(|_| {
+            assert_eq!(tia.rdy(), LineState::Low);
+            tia.tick();
+        });
+        assert_eq!(tia.rdy(), LineState::High);
 
-//        check_display!(
-//            tv.borrow().buffer(),
-//            (
-//                cmn::ntsc::ROW_VERTICAL_BLANK_START,
-//                cmn::COL_DRAWABLE_AREA_START,
-//                cmn::ntsc::ROW_OVERSCAN_END,
-//                cmn::COL_DRAWABLE_AREA_END,
-//            ),
-//            (colubk, 0x00)
-//        );
-//    }
+        assert_eq!(tv.borrow().buffer()[0], [0x00, 0x00, 0x00]);
+        assert_eq!(tv.borrow().buffer()[1], [0x00, 0x00, 0x00]);
+        assert_eq!(tv.borrow().buffer()[2], [0x00, 0x10, 0x10]);
+        assert_eq!(tv.borrow().buffer()[3], [0x00, 0x20, 0x20]);
+        assert_eq!(tv.borrow().buffer()[4], [0x00, 0x00, 0x00]);
+    }
 
-//    #[test]
-//    fn render_solid_display() {
-//        let tv =
-//            tv::InMemoryTV::<{ cmn::ntsc::SCAN_LINES }, { cmn::CYCLES_PER_SCAN_LINE }>::default();
-//        let tv = Rc::new(RefCell::new(tv));
-//        let mut tia = InMemoryTIA::new(tv.clone());
+    #[test_case(1, 2)]
+    fn test_vsync(scanline: usize, pixel: usize) {
+        let cfg = TestableTVConfig::default();
+        let tv = Rc::new(RefCell::new(TestableTV::new_testable(scanline, pixel, cfg)));
+        let mut tia = InMemoryTIA::new(tv.clone());
 
-//        tia.set(cmn::regs::VSYNC, bits::BIT_D1);
-//        let colubk = 0xFF;
-//        tia.set(cmn::regs::COLUBK, colubk);
+        tia.write(cmn::regs::COLUBK, 0x03);
+        tia.tick();
+        tia.write(cmn::regs::VSYNC, bits::BIT_D1);
+        (0..cfg.pixels_per_scanline()).for_each(|_| tia.tick());
+        tia.write(cmn::regs::VSYNC, 0x00);
+        tia.write(cmn::regs::COLUBK, 0x02);
+        tia.tick();
+        tia.tick();
 
-//        tia.set(cmn::regs::VBLANK, 0x00);
-//        tia.tick_n(cmn::ntsc::CYCLES_PER_VERTICAL_SYNC);
-//        tia.set(cmn::regs::VSYNC, 0x00);
-//        tia.tick_n(cmn::ntsc::CYCLES_PER_VERTICAL_BLANK);
-//        tia.set(cmn::regs::VBLANK, bits::BIT_D1);
-//        tia.tick_n(cmn::ntsc::CYCLES_PER_DRAWABLE_AREA_AND_HBLANK);
-//        tia.set(cmn::regs::VBLANK, 0x00);
-//        tia.tick_n(cmn::ntsc::CYCLES_PER_OVERSCAN);
+        assert_eq!(tv.borrow().buffer()[0], [0x00, 0x00, 0x00]);
+        assert_eq!(tv.borrow().buffer()[1], [0x00, 0x02, 0x03]);
+        assert_eq!(tv.borrow().buffer()[2], [0x00, 0x00, 0x00]);
+    }
 
-//        assert_eq!(tia.frame_counter(), 1);
-//        check_display!(
-//            tv.borrow().buffer(),
-//            (
-//                cmn::ntsc::ROW_DRAWABLE_AREA_START,
-//                cmn::COL_DRAWABLE_AREA_START,
-//                cmn::ntsc::ROW_DRAWABLE_AREA_END,
-//                cmn::COL_DRAWABLE_AREA_END
-//            ),
-//            (colubk, 0x00)
-//        );
-//    }
+    #[test]
+    fn test_vblank() {
+        let cfg = solid_display_config();
+        let tv = Rc::new(RefCell::new(InMemoryTV::<5, 3>::new_testable(0, 0, cfg)));
+        let mut tia = InMemoryTIA::new(tv.clone());
 
-//    #[test]
-//    fn with_VSYNC() {
-//        let tv =
-//            tv::InMemoryTV::<{ cmn::ntsc::SCAN_LINES }, { cmn::CYCLES_PER_SCAN_LINE }>::default();
-//        let tv = Rc::new(RefCell::new(tv));
-//        let mut tia = InMemoryTIA::new(tv.clone());
+        (0..cfg.pixels_per_scanline()).for_each(|_| tia.tick());
+        tia.write(cmn::regs::COLUBK, 0x03);
+        tia.write(cmn::regs::VBLANK, 0x00);
+        (0..cfg.pixels_per_scanline()).for_each(|_| tia.tick());
+        tia.write(cmn::regs::COLUBK, 0x02);
+        tia.write(cmn::regs::VBLANK, bits::BIT_D1);
+        (0..cfg.pixels_per_scanline()).for_each(|_| tia.tick());
+        tia.write(cmn::regs::COLUBK, 0x02);
+        tia.write(cmn::regs::VBLANK, 0x00);
+        (0..cfg.pixels_per_scanline()).for_each(|_| tia.tick());
 
-//        tia.set(cmn::regs::VBLANK, bits::BIT_D1);
+        assert_eq!(tv.borrow().buffer()[1], [0x00, 0x03, 0x03]);
+        assert_eq!(tv.borrow().buffer()[2], [0x00, 0x00, 0x00]);
+        assert_eq!(tv.borrow().buffer()[3], [0x00, 0x02, 0x02]);
+    }
 
-//        tia.set(cmn::regs::COLUBK, 0x11);
-//        tia.tick_n(cmn::ntsc::CYCLES_PER_VERTICAL_SYNC);
-//        tia.tick_n(cmn::CYCLES_PER_SCAN_LINE);
-
-//        tia.set(cmn::regs::VSYNC, bits::BIT_D1);
-//        tia.set(cmn::regs::COLUBK, 0x22);
-//        tia.tick_n(cmn::ntsc::CYCLES_PER_VERTICAL_SYNC);
-//        tia.set(cmn::regs::VSYNC, 0x00);
-//        tia.tick_n(cmn::CYCLES_PER_SCAN_LINE);
-//        assert_eq!(tia.frame_counter(), 1);
-//        check_display!(
-//            tv.borrow().buffer(),
-//            (
-//                cmn::ntsc::ROW_VERTICAL_BLANK_START,
-//                cmn::COL_DRAWABLE_AREA_START,
-//                cmn::ntsc::ROW_VERTICAL_BLANK_START + 1,
-//                cmn::COL_DRAWABLE_AREA_END
-//            ),
-//            (0x22, 0x00)
-//        );
-//    }
-
-//    #[test]
-//    fn with_WSYNC() {
-//        let tv =
-//            tv::InMemoryTV::<{ cmn::ntsc::SCAN_LINES }, { cmn::CYCLES_PER_SCAN_LINE }>::default();
-//        let tv = Rc::new(RefCell::new(tv));
-//        let rdy = Rc::new(RefCell::new(SpyRDY::new(false)));
-//        let mut tia = InMemoryTIA::new(tv);
-//        tia.connect_rdy(rdy.clone());
-
-//        // 0th scan line.
-//        tia.tick();
-//        assert!(!rdy.borrow().state());
-//        tia.set(cmn::regs::WSYNC, 0x00);
-//        assert!(rdy.borrow().state());
-//        tia.tick();
-//        assert!(rdy.borrow().state());
-//        tia.tick_n(cmn::CYCLES_PER_SCAN_LINE - 3);
-//        assert!(rdy.borrow().state());
-//        tia.tick();
-//        assert!(rdy.borrow().state());
-//        // 1st scan line.
-//        tia.tick();
-//        assert!(!rdy.borrow().state());
-//        tia.tick_n(10 * cmn::CYCLES_PER_SCAN_LINE - 1);
-//        assert!(!rdy.borrow().state());
-//        // 11th scan line.
-//        tia.tick();
-//        assert!(!rdy.borrow().state());
-//        tia.set(cmn::regs::WSYNC, 0x00);
-//        assert!(rdy.borrow().state());
-//        tia.tick();
-//        assert!(rdy.borrow().state());
-//        tia.tick_n(cmn::CYCLES_PER_SCAN_LINE - 3);
-//        assert!(rdy.borrow().state());
-//        tia.tick();
-//        assert!(rdy.borrow().state());
-//        tia.tick();
-//        assert!(!rdy.borrow().state());
-//    }
-
-//    struct SpyRDY {
-//        state: bool,
-//    }
-
-//    impl SpyRDY {
-//        pub fn new(state: bool) -> Self {
-//            Self { state }
-//        }
-//    }
-
-//    impl RDY for SpyRDY {
-//        fn state(&self) -> bool {
-//            self.state
-//        }
-
-//        fn set_state(&mut self, state: bool) {
-//            self.state = !self.state;
-//            // NOTE: This ensures it is not called more than twice.
-//            assert_eq!(state, self.state);
-//        }
-//    }
-//}
+    fn solid_display_config() -> TVConfig<5, 3> {
+        TVConfig::<5, 3>::new(1, 1, 2, 1)
+    }
+}
