@@ -111,14 +111,13 @@ jobs:
         run: |
           cargo clippy --all-targets --all-features -- -D warnings
 
-  build-lint-test-web:
-    name: Build, lint, test web
+  build-lint-test-deploy-web:
+    name: Build, lint, test, deploy web
     needs: createbuildvars
     strategy:
       matrix:
         os:
           - windows-latest
-          - ubuntu-latest
     runs-on: ${{matrix.os}}
     steps:
       - uses: actions/checkout@v1
@@ -184,7 +183,7 @@ jobs:
 
   finish:
     name: Finish
-    needs: [build-test-rust, lint-rust, build-lint-test-web]
+    needs: [build-test-rust, lint-rust, build-lint-test-deploy-web]
     runs-on: ubuntu-latest
     steps:
       - run: echo "Done..."
