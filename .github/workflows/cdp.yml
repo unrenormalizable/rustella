@@ -159,7 +159,6 @@ jobs:
           pnpm format
 
       - name: Lint code
-        continue-on-error: true # TODO: Remove this once we figure out the failures
         run: |
           cd web
           pnpm lint

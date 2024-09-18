@@ -9,8 +9,8 @@
     "rsw": "rsw build",
     "preview": "rsw build && vite preview",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
-    "format": "prettier ./src *.json *.cjs *.js *.htm* --check",
-    "format:fix": "prettier ./src *.json *.cjs *.js  *.htm* --write",
+    "format": "prettier ./src *.json *.cjs *.js *.htm* --end-of-line crlf --check",
+    "format:fix": "prettier ./src *.json *.cjs *.js  *.htm* --end-of-line crlf --write",
     "test:watch": "vitest",
     "test": "vitest --run"
   },

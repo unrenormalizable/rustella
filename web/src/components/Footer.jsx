@@ -10,10 +10,6 @@ const Footer = ({ appVersion, commitId }) => {
         href={`${repoUrl}/commit/${commitId}`}
         target="_blank"
       >{`${appVersion}`}</a>
-      <span> &bull; </span>
-      <a href="https://discord.gg/8FMz2ZpSXK" target="_blank">
-        ideas? contribute?
-      </a>
     </div>
   )
 }

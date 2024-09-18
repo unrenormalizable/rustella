@@ -6,6 +6,8 @@
 
 ## What?
 
+> Deployed at [rustella](https://rustella.vercel.app/).
+
 ![image](https://github.com/user-attachments/assets/812f6e79-a023-4fff-8241-93f8d1af6d33)
 
 ## Why?
