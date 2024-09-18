@@ -3,15 +3,16 @@ mod color_term;
 mod repl;
 
 use rustella::{cmn, cpu, mem};
-use std::{collections::HashSet, fs};
+use std::{cell::Cell, collections::HashSet, fs, rc::Rc};
 
 fn main() {
+    let rdy = Rc::new(Cell::new(cmn::LineState::Low));
     let buffer = fs::read("d:/src/u/s/lib/tests/klaus_6502_functional_test.bin").unwrap();
     let mut mem =
         mem::Memory::new_with_rom(&buffer, cmn::LoHi::default(), mem::mm_6502, None, false);
     //let buffer = fs::read("D:/bin/Stella-6.7.1/roms/air_raid.bin").unwrap();
     //let mut mem = mem::Memory::new_with_rom(&buffer, cmn::ROM_START_6507, mem::mm_6507, true);
-    let mut cpu = cpu::MOS6502::new(&mem);
+    let mut cpu = cpu::MOS6502::new(rdy.clone(), &mem);
     cpu.set_pc(cmn::LoHi(0x00, 0x04));
 
     let mut break_points = HashSet::new();

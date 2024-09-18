@@ -1,6 +1,10 @@
-use rustella::{cmn, cmn::RDYLine, cpu::*, mem, tia, tia::TIA};
-use std::{cell::RefCell, rc::Rc};
-use std::{fs, path::PathBuf};
+use rustella::{cmn, cpu::*, mem, tia, tia::TIA};
+use std::{
+    cell::{Cell, RefCell},
+    fs,
+    path::PathBuf,
+    rc::Rc,
+};
 
 /// Test suite from https://forums.atariage.com/blogs/entry/11109-step-1-generate-a-stable-display/
 #[test]
@@ -15,9 +19,10 @@ fn spiceware_collect_1_stable_display() {
     .iter()
     .collect();
 
+    let rdy = Rc::new(Cell::new(cmn::LineState::Low));
     let buffer = fs::read(bin_path).unwrap();
     let tv = Rc::new(RefCell::new(tia::NtscTV::new(tia::ntsc_tv_config())));
-    let tia = Rc::new(RefCell::new(tia::NtscTIA::new(tv.clone())));
+    let tia = Rc::new(RefCell::new(tia::NtscTIA::new(rdy.clone(), tv.clone())));
     let mut mem = mem::Memory::new_with_rom(
         &buffer,
         cmn::LoHi(0x00, 0xF8),
@@ -25,7 +30,7 @@ fn spiceware_collect_1_stable_display() {
         Some(tia.clone()),
         true,
     );
-    let cpu = Rc::new(RefCell::new(MOS6502::new(&mem)));
+    let cpu = Rc::new(RefCell::new(MOS6502::new(rdy.clone(), &mem)));
 
     for _ in 0..1000000 {
         let cycles = cpu.borrow_mut().tick(&mut mem);
@@ -33,8 +38,6 @@ fn spiceware_collect_1_stable_display() {
         for _ in 0..(cycles * 3) {
             tia.borrow_mut().tick();
         }
-
-        cpu.borrow_mut().set_rdy(tia.borrow().rdy());
     }
 
     (0..41usize).for_each(|n| {

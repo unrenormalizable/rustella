@@ -1,5 +1,5 @@
 use rustella::{cmn, cpu, mem};
-use std::{fs, path::PathBuf};
+use std::{cell::Cell, fs, path::PathBuf, rc::Rc};
 
 /* NOTE: This is not complete yet. ADC/SBC bin & dec part of the tests are not done. */
 
@@ -17,7 +17,8 @@ fn klaus_6502_65c02_functional_tests_main() {
     let buffer = fs::read(bin_path).unwrap();
     let mut mem =
         mem::Memory::new_with_rom(&buffer, cmn::LoHi(0x00, 0x00), mem::mm_6502, None, true);
-    let mut cpu = cpu::MOS6502::new(&mem);
+    let rdy = Rc::new(Cell::new(cmn::LineState::High));
+    let mut cpu = cpu::MOS6502::new(rdy.clone(), &mem);
     cpu.set_pc(cmn::LoHi(0x00, 0x04));
 
     for _ in 0..54483 {

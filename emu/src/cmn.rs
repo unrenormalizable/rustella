@@ -1,9 +1,5 @@
-pub struct OpCodeInfo<'a> {
-    pub addressing: &'a str,
-    pub assembler: &'a str,
-    pub bytes: u8,
-    pub cycles: usize,
-}
+use alloc::rc::Rc;
+use core::{cell::Cell, fmt::Debug};
 
 #[derive(Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LoHi(pub u8, pub u8);
@@ -59,11 +55,7 @@ pub enum LineState {
     High,
 }
 
-pub trait RDYLine {
-    fn rdy(&self) -> LineState;
-
-    fn set_rdy(&mut self, rdy: LineState);
-}
+pub type Line = Rc<Cell<LineState>>;
 
 #[cfg(test)]
 mod tests {

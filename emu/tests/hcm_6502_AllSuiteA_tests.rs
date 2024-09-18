@@ -1,5 +1,5 @@
 use rustella::{cmn, cpu::*, mem};
-use std::{fs, path::PathBuf};
+use std::{cell::Cell, fs, path::PathBuf, rc::Rc};
 
 /// Test suite from https://codegolf.stackexchange.com/q/12844.
 #[test]
@@ -15,7 +15,8 @@ fn hcm_6502_allsuitea_tests_main() {
     let buffer = fs::read(bin_path).unwrap();
     let mut mem =
         mem::Memory::new_with_rom(&buffer, cmn::LoHi(0x00, 0x40), mem::mm_6502, None, true);
-    let mut cpu = MOS6502::new(&mem);
+    let rdy = Rc::new(Cell::new(cmn::LineState::High));
+    let mut cpu = MOS6502::new(rdy.clone(), &mem);
 
     for _ in 0..615 {
         cpu.tick(&mut mem);

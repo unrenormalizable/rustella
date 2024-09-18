@@ -1,6 +1,6 @@
 use crate::{
     bits,
-    cmn::{LineState, RDYLine},
+    cmn::{Line, LineState},
     mem::MemorySegment,
     tia::{cmn, tv::TV},
 };
@@ -10,7 +10,7 @@ use core::{cell::RefCell, fmt::Debug};
 /// Refer:
 /// - module README.md
 /// - https://www.atarihq.com/danb/files/TIA_HW_Notes.txt
-pub trait TIA: MemorySegment + RDYLine {
+pub trait TIA: MemorySegment {
     fn tick(&mut self);
 }
 
@@ -22,20 +22,20 @@ pub struct InMemoryTIA<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
     hcount: usize,
     registers: [u8; cmn::TIA_MAX_ADDRESS + 1],
     tv: Rc<RefCell<dyn TV<SCANLINES, PIXELS_PER_SCANLINE>>>,
-    rdy: LineState,
+    rdy: Line,
 }
 
 #[allow(dead_code)]
 impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
     InMemoryTIA<SCANLINES, PIXELS_PER_SCANLINE>
 {
-    pub fn new(tv: Rc<RefCell<dyn TV<SCANLINES, PIXELS_PER_SCANLINE>>>) -> Self {
+    pub fn new(rdy: Line, tv: Rc<RefCell<dyn TV<SCANLINES, PIXELS_PER_SCANLINE>>>) -> Self {
         Self {
             clk: 0,
             hcount: 0,
             registers: [0x00; cmn::TIA_MAX_ADDRESS + 1],
             tv,
-            rdy: LineState::Low,
+            rdy,
         }
     }
 
@@ -48,7 +48,7 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
         self.tv.borrow_mut().render_pixel(color);
 
         if self.clk == PIXELS_PER_SCANLINE - 1 {
-            self.set_rdy(LineState::High);
+            self.rdy.set(LineState::High);
         }
     }
 
@@ -95,7 +95,7 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> MemorySegment
         self.check_unsupported_register_flags(reg, val);
 
         if let cmn::read_regs::WSYNC = reg {
-            self.set_rdy(LineState::Low);
+            self.rdy.set(LineState::Low);
         }
 
         if let cmn::read_regs::VSYNC = reg {
@@ -108,24 +108,13 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> MemorySegment
     }
 }
 
-impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> RDYLine
-    for InMemoryTIA<SCANLINES, PIXELS_PER_SCANLINE>
-{
-    fn rdy(&self) -> LineState {
-        self.rdy
-    }
-
-    fn set_rdy(&mut self, rdy: LineState) {
-        self.rdy = rdy;
-    }
-}
-
 // WSYNC, VSYNC, VBLANK, COLUBCK
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::tia::tv::*;
+    use core::cell::Cell;
     use test_case::test_case;
 
     const PIXELS_PER_SCANLINE: usize = 3;
@@ -147,16 +136,17 @@ mod tests {
     #[test_case(1, 1, 2)]
     #[test_case(2, 2, 1)]
     fn test_wsync(scanline: usize, pixel: usize, ticks: usize) {
+        let rdy = Rc::new(Cell::new(LineState::Low));
         let tv = TestableTV::new_testable(scanline, pixel, TestableTVConfig::default());
-        let mut tia = InMemoryTIA::new(Rc::new(RefCell::new(tv)));
+        let mut tia = InMemoryTIA::new(rdy.clone(), Rc::new(RefCell::new(tv)));
 
-        assert_eq!(tia.rdy(), LineState::Low);
+        assert_eq!(rdy.get(), LineState::Low);
         tia.tick();
-        assert_eq!(tia.rdy(), LineState::Low);
+        assert_eq!(rdy.get(), LineState::Low);
         tia.write(cmn::read_regs::WSYNC, 0x00);
-        assert_eq!(tia.rdy(), LineState::Low);
+        assert_eq!(rdy.get(), LineState::Low);
         (0..=ticks).for_each(|_| tia.tick());
-        assert_eq!(tia.rdy(), LineState::High);
+        assert_eq!(rdy.get(), LineState::High);
     }
 
     /// The standard solid display from any atari game writing tutorial.
@@ -171,46 +161,47 @@ mod tests {
     ///  └───┘              
     #[test]
     fn render_solid_display() {
+        let rdy = Rc::new(Cell::new(LineState::Low));
         let cfg = solid_display_config();
         let tv = Rc::new(RefCell::new(InMemoryTV::<5, 3>::new_testable(0, 0, cfg)));
-        let mut tia = InMemoryTIA::new(tv.clone());
+        let mut tia = InMemoryTIA::new(rdy.clone(), tv.clone());
 
         tia.write(cmn::read_regs::VBLANK, bits::BIT_D1);
         tia.write(cmn::read_regs::COLUBK, 0xFF);
         tia.write(cmn::read_regs::VSYNC, bits::BIT_D1);
-        assert_eq!(tia.rdy(), LineState::Low);
+        assert_eq!(rdy.get(), LineState::Low);
 
         // VSYNC
         tia.write(cmn::read_regs::WSYNC, 0x00);
         (0..cfg.pixels_per_scanline()).for_each(|i| {
-            assert_eq!(tia.rdy(), LineState::Low, "{i}");
+            assert_eq!(rdy.get(), LineState::Low, "{i}");
             tia.tick();
         });
-        assert_eq!(tia.rdy(), LineState::High);
+        assert_eq!(rdy.get(), LineState::High);
 
         // VBLANK
         tia.write(cmn::read_regs::WSYNC, 0x00);
         (0..cfg.pixels_per_scanline()).for_each(|i| {
-            assert_eq!(tia.rdy(), LineState::Low, "{i}");
+            assert_eq!(rdy.get(), LineState::Low, "{i}");
             tia.tick();
         });
-        assert_eq!(tia.rdy(), LineState::High);
+        assert_eq!(rdy.get(), LineState::High);
 
         // Draw - 0
         tia.write(cmn::read_regs::VBLANK, 0x00);
         tia.write(cmn::read_regs::COLUBK, 0x10);
         tia.write(cmn::read_regs::WSYNC, 0x00);
         (0..cfg.pixels_per_scanline()).for_each(|i| {
-            assert_eq!(tia.rdy(), LineState::Low, "{i}");
+            assert_eq!(rdy.get(), LineState::Low, "{i}");
             tia.tick();
         });
-        assert_eq!(tia.rdy(), LineState::High);
+        assert_eq!(rdy.get(), LineState::High);
 
         // Draw - 1
         tia.write(cmn::read_regs::COLUBK, 0x20);
         tia.write(cmn::read_regs::WSYNC, 0x00);
         (0..cfg.pixels_per_scanline()).for_each(|_| {
-            assert_eq!(tia.rdy(), LineState::Low);
+            assert_eq!(rdy.get(), LineState::Low);
             tia.tick();
         });
 
@@ -219,10 +210,10 @@ mod tests {
         tia.write(cmn::read_regs::COLUBK, 0xEE);
         tia.write(cmn::read_regs::WSYNC, 0x00);
         (0..cfg.pixels_per_scanline()).for_each(|_| {
-            assert_eq!(tia.rdy(), LineState::Low);
+            assert_eq!(rdy.get(), LineState::Low);
             tia.tick();
         });
-        assert_eq!(tia.rdy(), LineState::High);
+        assert_eq!(rdy.get(), LineState::High);
 
         assert_eq!(tv.borrow().buffer()[0], [0x00, 0x00, 0x00]);
         assert_eq!(tv.borrow().buffer()[1], [0x00, 0x00, 0x00]);
@@ -233,9 +224,10 @@ mod tests {
 
     #[test_case(1, 2)]
     fn test_vsync(scanline: usize, pixel: usize) {
+        let rdy = Rc::new(Cell::new(LineState::Low));
         let cfg = TestableTVConfig::default();
         let tv = Rc::new(RefCell::new(TestableTV::new_testable(scanline, pixel, cfg)));
-        let mut tia = InMemoryTIA::new(tv.clone());
+        let mut tia = InMemoryTIA::new(rdy.clone(), tv.clone());
 
         tia.write(cmn::read_regs::COLUBK, 0x03);
         tia.tick();
@@ -253,9 +245,10 @@ mod tests {
 
     #[test]
     fn test_vblank() {
+        let rdy = Rc::new(Cell::new(LineState::Low));
         let cfg = solid_display_config();
         let tv = Rc::new(RefCell::new(InMemoryTV::<5, 3>::new_testable(0, 0, cfg)));
-        let mut tia = InMemoryTIA::new(tv.clone());
+        let mut tia = InMemoryTIA::new(rdy.clone(), tv.clone());
 
         (0..cfg.pixels_per_scanline()).for_each(|_| tia.tick());
         tia.write(cmn::read_regs::COLUBK, 0x03);

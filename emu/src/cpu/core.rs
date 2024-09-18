@@ -54,7 +54,7 @@ pub struct MOS6502 {
     S: u8,
     P: PSR,
     // Other pins.
-    rdy: LineState,
+    rdy: Line,
     // Profiling stuff, maybe move them elsewhere?
     instructions: u64,
     cycles: usize,
@@ -75,9 +75,9 @@ impl core::fmt::Debug for MOS6502 {
 pub type OpCode = dyn Fn(&mut MOS6502, &mut Memory, u8, LoHi) -> Option<LoHi>;
 
 impl MOS6502 {
-    pub fn new(mem: &Memory) -> Self {
+    pub fn new(rdy: Line, mem: &Memory) -> Self {
         let mut cpu = Self {
-            rdy: LineState::High,
+            rdy,
             ..Default::default()
         };
         cpu.reset_pc(mem);
@@ -87,7 +87,7 @@ impl MOS6502 {
 
     #[inline]
     pub fn tick(&mut self, mem: &mut Memory) -> usize {
-        if let LineState::Low = self.rdy() {
+        if let LineState::Low = self.rdy.get() {
             return 0;
         }
 
@@ -206,16 +206,6 @@ impl MOS6502 {
         let pc_hi = mem.get(cmn::RST_VECTOR, 1);
 
         self.PC = LoHi(pc_lo, pc_hi);
-    }
-}
-
-impl RDYLine for MOS6502 {
-    fn rdy(&self) -> LineState {
-        self.rdy
-    }
-
-    fn set_rdy(&mut self, rdy: LineState) {
-        self.rdy = rdy;
     }
 }
 
