@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently \"rsw watch\" \"vite\"",
     "build": "rsw build && vite build",
-    "rsw": "rsw",
+    "rsw": "rsw build",
     "preview": "rsw build && vite preview",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier ./src *.json *.cjs *.js *.htm* --check",

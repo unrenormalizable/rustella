@@ -144,15 +144,15 @@ jobs:
           cd web
           cargo install wasm-pack rsw 
 
-      - name: Install pnpm packages (cex)
-        run: |
-          cd web
-          pnpm install --frozen-lockfile --strict-peer-dependencies
-
       - name: Install pnpm packages (web)
         run: |
           cd web
           pnpm install --frozen-lockfile --strict-peer-dependencies
+
+      - name: rsw build
+        run: |
+          cd web
+          pnpm rsw
 
       - name: Check code format (web)
         run: |
