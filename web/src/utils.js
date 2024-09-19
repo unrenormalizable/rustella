@@ -4,14 +4,21 @@ export const sleep = (ms) =>
   })
 
 export const fetcher = async (url) => {
-  const res = await fetch(url)
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/octet-stream',
+    },
+    responseType: 'arraybuffer',
+  })
+
   if (!res.ok) {
-    const error = new Error('An error occurred while fetching the data.')
-    error.info = await res.json()
-    error.status = res.status
+    const error = new Error(
+      `An error occurred while fetching the data from '${url}'.`
+    )
     throw error
   }
 
-  const json = await res.json()
-  return json
+  const bin = await res.arrayBuffer()
+  return bin
 }

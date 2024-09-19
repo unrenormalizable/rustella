@@ -1,10 +1,13 @@
 #![no_std]
 extern crate alloc;
 
+mod atari;
 pub mod cmn;
 pub mod cpu;
 pub mod mem;
 pub mod tia;
+
+pub use atari::NtscAtari;
 
 pub mod bits {
     pub const BIT_D0: u8 = 0x01 << 0;

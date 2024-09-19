@@ -163,8 +163,11 @@ pub mod read_regs {
     ];
 }
 
-pub type NtscTV = tv::InMemoryTV<262, 228>;
-pub type NtscTIA = core::InMemoryTIA<262, 228>;
-pub fn ntsc_tv_config() -> tv::TVConfig<262, 228> {
-    tv::TVConfig::<262, 228>::new(3, 37, 192, 68)
+pub const NTSC_SCANLINES: usize = 262;
+pub const NTSC_PIXELS_PER_SCANLINE: usize = 228;
+
+pub type NtscTV = tv::InMemoryTV<NTSC_SCANLINES, NTSC_PIXELS_PER_SCANLINE>;
+pub type NtscTIA = core::InMemoryTIA<NTSC_SCANLINES, NTSC_PIXELS_PER_SCANLINE>;
+pub fn ntsc_tv_config() -> tv::TVConfig<NTSC_SCANLINES, NTSC_PIXELS_PER_SCANLINE> {
+    tv::TVConfig::<NTSC_SCANLINES, NTSC_PIXELS_PER_SCANLINE>::new(3, 37, 192, 68)
 }

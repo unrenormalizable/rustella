@@ -5,7 +5,7 @@ use crate::{
     tia::{cmn, tv::TV},
 };
 use alloc::rc::Rc;
-use core::{cell::RefCell, fmt::Debug};
+use core::cell::RefCell;
 
 /// Refer:
 /// - module README.md
@@ -14,7 +14,6 @@ pub trait TIA: MemorySegment {
     fn tick(&mut self);
 }
 
-#[derive(Debug)]
 pub struct InMemoryTIA<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> {
     /// 0..PIXELS_PER_SCANLINE
     clk: usize,

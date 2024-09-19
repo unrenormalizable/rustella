@@ -4,9 +4,10 @@
 
 > Built with [**rust-analyzer.vs**](https://marketplace.visualstudio.com/items?itemName=kitamstudios.RustAnalyzer&ssr=false#overview) (free Visual Studio 2022 Extension)
 
-## What?
-
+> [!NOTE]
 > Deployed at [rustella](https://rustella.vercel.app/).
+
+## What?
 
 ![image](https://github.com/user-attachments/assets/812f6e79-a023-4fff-8241-93f8d1af6d33)
 

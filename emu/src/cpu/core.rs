@@ -44,7 +44,7 @@ impl Default for PSR {
 }
 
 #[allow(non_snake_case)]
-#[derive(Default)]
+#[derive(Default, Clone)]
 /// Refer: https://www.princeton.edu/~mae412/HANDOUTS/Datasheets/6502.pdf
 pub struct MOS6502 {
     A: u8,
@@ -83,6 +83,13 @@ impl MOS6502 {
         cpu.reset_pc(mem);
 
         cpu
+    }
+
+    pub fn reset_pc(&mut self, mem: &Memory) {
+        let pc_lo = mem.get(cmn::RST_VECTOR, 0);
+        let pc_hi = mem.get(cmn::RST_VECTOR, 1);
+
+        self.PC = LoHi(pc_lo, pc_hi);
     }
 
     #[inline]
@@ -199,13 +206,6 @@ impl MOS6502 {
     #[inline]
     fn pc_incr(&mut self, index: u8) {
         self.PC += index;
-    }
-
-    fn reset_pc(&mut self, mem: &Memory) {
-        let pc_lo = mem.get(cmn::RST_VECTOR, 0);
-        let pc_hi = mem.get(cmn::RST_VECTOR, 1);
-
-        self.PC = LoHi(pc_lo, pc_hi);
     }
 }
 

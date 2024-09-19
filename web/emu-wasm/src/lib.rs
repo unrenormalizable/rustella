@@ -1,39 +1,49 @@
-use rustella::cpu;
+use rustella::*;
+use std::cell::RefCell;
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
-extern "C" {
-    fn alert(s: &str);
+thread_local! {
+    static ATARI: RefCell<NtscAtari> = RefCell::new(NtscAtari::default());
 }
 
-#[wasm_bindgen]
-pub fn greet() {
-    alert("Hello, emu-wasm!");
+macro_rules! console_log {
+    ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
+}
+
+#[wasm_bindgen(start)]
+fn initialize() {
+    set_panic_hook();
+    console_log!("Initialized emu_wasm...");
 }
 
 #[derive(Default)]
 #[wasm_bindgen]
-pub struct ThreeVectors {
-    addr1: u16,
-    addr2: u16,
-    addr3: u16,
+pub struct Atari {}
+
+#[allow(non_snake_case)]
+#[wasm_bindgen]
+impl Atari {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    #[wasm_bindgen(js_name = "loadROM")]
+    pub fn load_rom(&self, addr: u16, data: &[u8]) {
+        ATARI.with_borrow_mut(|a| a.load_rom(addr, data))
+    }
+
+    pub fn tick(&self) {
+        ATARI.with_borrow_mut(|a| a.tick())
+    }
 }
 
 #[wasm_bindgen]
-impl ThreeVectors {
-    #[wasm_bindgen(constructor)]
-    pub fn new() -> Self {
-        Self {
-            addr1: cpu::NMI_VECTOR.into(),
-            addr2: cpu::RST_VECTOR.into(),
-            addr3: cpu::IRQ_VECTOR.into(),
-        }
-    }
+extern "C" {
+    fn alert(s: &str);
 
-    pub fn add_all(&self) -> u16 {
-        set_panic_hook();
-        self.addr1.wrapping_add(self.addr2).wrapping_add(self.addr3)
-    }
+    #[wasm_bindgen(js_namespace = console, js_name = log)]
+    fn log(s: &str);
 }
 
 pub fn set_panic_hook() {

@@ -1,9 +1,10 @@
 /* eslint-disable react-refresh/only-export-components */
 /* eslint-disable no-plusplus */
 /* eslint-disable no-bitwise */
-/* eslint-disable no-alert */
 import { useEffect, useRef, useState } from 'react'
-import init, { ThreeVectors } from 'rustella-wasm'
+import useSWR from 'swr'
+import init, { Atari } from 'rustella-wasm'
+import { fetcher } from '../utils'
 
 const padNumber = (num, places) => String(num).padStart(places, '0')
 
@@ -21,7 +22,7 @@ const draw = (context, data, buffer, x1, y1, x2, y2) => {
   context.putImageData(data, 0, 0)
 }
 
-const drawFrame = (count, setFpsText, context, data, buffer) => {
+const drawFrame = (count, setFps, context, data, buffer) => {
   const start = Date.now()
   draw(
     context,
@@ -32,14 +33,28 @@ const drawFrame = (count, setFpsText, context, data, buffer) => {
     500 + 100 * Math.sin((count * Math.PI) / 100),
     500 + 100 * Math.cos((count * Math.PI) / 100)
   )
-  setFpsText(Date.now() - start)
+  setFps(Date.now() - start)
 }
 
 const TV = () => {
+  const [initialized, setInitialized] = useState(false)
   const canvasRef = useRef(null)
   const [fps, setFps] = useState(0)
+  const { data: romData } = useSWR('collect.bin', fetcher, {
+    suspense: true,
+  })
+
   useEffect(() => {
-    init()
+    init().then(() => setInitialized(true))
+  })
+
+  useEffect(() => {
+    if (!initialized) {
+      return () => {}
+    }
+
+    const atari = new Atari()
+    atari.loadROM(0xf800, new Uint8Array(romData))
 
     const canvas = canvasRef.current
     const context = canvas.getContext('2d')
@@ -55,17 +70,12 @@ const TV = () => {
     return () => {
       clearInterval(interval)
     }
-  }, [])
+  }, [romData, initialized])
 
   return (
     <div className="flex flex-col">
       <canvas className="mx-10 my-3" ref={canvasRef} />
-      <button
-        type="button"
-        onClick={() => alert(`${new ThreeVectors().add_all()} must be 65524`)}
-      >
-        {`${padNumber(Math.trunc(1000 / fps), 3)} fps`}
-      </button>
+      <div className="mx-auto">{`${padNumber(Math.trunc(1000 / fps), 3)} fps`}</div>
     </div>
   )
 }

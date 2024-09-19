@@ -14,7 +14,7 @@ pub struct TVConfig<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> {
     draw_pixels: usize,
 }
 
-pub trait TV<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>: Debug {
+pub trait TV<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> {
     fn config(&self) -> &TVConfig<SCANLINES, PIXELS_PER_SCANLINE>;
 
     /// Render current pixel with the given color.
