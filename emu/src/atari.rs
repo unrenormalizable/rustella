@@ -31,11 +31,13 @@ impl NtscAtari {
         self.cpu.borrow_mut().reset_pc(&self.mem);
     }
 
-    pub fn tick(&mut self) {
-        let cycles = self.cpu.borrow_mut().tick(&mut self.mem);
-        let cycles = if cycles == 0 { 1 } else { cycles };
-        for _ in 0..(cycles * 3) {
-            self.tia.borrow_mut().tick();
+    pub fn tick(&mut self, loops: usize) {
+        for _ in 0..loops {
+            let cycles = self.cpu.borrow_mut().tick(&mut self.mem);
+            let cycles = if cycles == 0 { 1 } else { cycles };
+            for _ in 0..(cycles * 3) {
+                self.tia.borrow_mut().tick();
+            }
         }
     }
 

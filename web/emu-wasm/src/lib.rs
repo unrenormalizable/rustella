@@ -19,6 +19,16 @@ fn initialize() {
     console_log!("Initialized emu_wasm...");
 }
 
+#[allow(non_snake_case)]
+#[wasm_bindgen(js_name = ntscColorMap)]
+pub fn ntsc_color_map() -> js_sys::Uint32Array {
+    let cfg = tia::ntsc_tv_config();
+    let map = cfg.color_map();
+    let js_map = js_sys::Uint32Array::new_with_length(map.len() as u32);
+    js_map.copy_from(map);
+    js_map
+}
+
 #[derive(Default)]
 #[wasm_bindgen]
 pub struct Atari {}
@@ -41,8 +51,8 @@ impl Atari {
         ATARI.with_borrow_mut(|a| a.load_rom(addr, data))
     }
 
-    pub fn tick(&self) {
-        ATARI.with_borrow_mut(|a| a.tick())
+    pub fn tick(&self, loops: usize) {
+        ATARI.with_borrow_mut(|a| a.tick(loops))
     }
 }
 

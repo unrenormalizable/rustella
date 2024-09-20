@@ -7,13 +7,13 @@ pub struct NtscWebTV {
     /// Number of times VSYNC has been called.
     curr_scanline: usize,
     curr_pixel: usize,
-    curr_scanline_buffer: [u32; tia::NTSC_PIXELS_PER_SCANLINE],
+    video_buffer: [u8; tia::NTSC_PIXELS_PER_SCANLINE * tia::NTSC_SCANLINES],
     /// JS callback.
-    render_scanline_fn: JsValue,
+    render_frame_fn: JsValue,
 }
 
 impl NtscWebTV {
-    pub fn new(render_scanline_fn: JsValue) -> Self {
+    pub fn new(render_frame_fn: JsValue) -> Self {
         let config = tia::ntsc_tv_config();
 
         if config.pixels_per_scanline() != (config.hblank_pixels() + config.draw_pixels()) {
@@ -33,8 +33,8 @@ impl NtscWebTV {
             curr_scanline: 0,
             curr_pixel: 0,
             config,
-            curr_scanline_buffer: [0x00; tia::NTSC_PIXELS_PER_SCANLINE],
-            render_scanline_fn,
+            video_buffer: [0x00; tia::NTSC_PIXELS_PER_SCANLINE * tia::NTSC_SCANLINES],
+            render_frame_fn,
         }
     }
 
@@ -47,21 +47,17 @@ impl NtscWebTV {
             return;
         }
 
-        self.curr_scanline_buffer[self.curr_pixel] = 1 + self.config.color_map()[color as usize];
+        self.video_buffer[tia::NTSC_PIXELS_PER_SCANLINE * self.curr_scanline + self.curr_pixel] =
+            color;
     }
 
     fn send_scanline_to_js(&self) {
-        let js_pixel_arr =
-            js_sys::Uint32Array::new_with_length(self.curr_scanline_buffer.len() as u32);
-        js_pixel_arr.copy_from(&self.curr_scanline_buffer);
-        self.render_scanline_fn
+        let js_pixel_arr = js_sys::Uint8Array::new_with_length(self.video_buffer.len() as u32);
+        js_pixel_arr.copy_from(&self.video_buffer);
+        self.render_frame_fn
             .clone()
             .unchecked_into::<js_sys::Function>()
-            .call2(
-                &JsValue::null(),
-                &JsValue::from(self.curr_scanline),
-                &js_pixel_arr,
-            )
+            .call1(&JsValue::null(), &js_pixel_arr)
             .unwrap();
     }
 }
@@ -76,16 +72,14 @@ impl tia::TV<{ tia::NTSC_SCANLINES }, { tia::NTSC_PIXELS_PER_SCANLINE }> for Nts
 
         let offset = self.curr_pixel + 1;
         self.curr_pixel = offset % tia::NTSC_PIXELS_PER_SCANLINE;
-        let new_scanline =
+        self.curr_scanline =
             (self.curr_scanline + offset / tia::NTSC_PIXELS_PER_SCANLINE) % tia::NTSC_SCANLINES;
-        if new_scanline != self.curr_scanline {
-            self.send_scanline_to_js();
-            self.curr_scanline = new_scanline;
-        }
     }
 
     fn vsync(&mut self) {
         self.curr_scanline = 0;
         self.curr_pixel = 0;
+
+        self.send_scanline_to_js();
     }
 }

@@ -22,9 +22,7 @@ fn spiceware_collect_1_stable_display() {
     let buffer = fs::read(bin_path).unwrap();
     atari.load_rom(0xF800u16, &buffer);
 
-    for _ in 0..1000000 {
-        atari.tick();
-    }
+    atari.tick(1000000);
 
     for n in 0..41usize {
         assert!(
