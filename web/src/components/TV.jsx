@@ -10,22 +10,33 @@ const padNumber = (num, places) => String(num).padStart(places, '0')
 const WIDTH = 228
 const HEIGHT = 262
 
-const renderFrame = (setFrames, frames, colorMap, context) => (pixels) => {
+const drawLine = (ctx, x1, y1, x2, y2, color) => {
+  ctx.beginPath()
+  ctx.moveTo(x1, y1)
+  ctx.lineTo(x2, y2)
+  ctx.strokeStyle = color
+  ctx.stroke()
+}
+
+const renderFrame = (setTotalFrames, colorMap, context) => (pixels) => {
   const data = context.createImageData(WIDTH, HEIGHT)
   const buffer = new Uint32Array(data.data.buffer)
   for (let i = 0; i < pixels.length; i++) {
     buffer[i] = colorMap.map[pixels[i]]
   }
   context.putImageData(data, 0, 0)
-  setFrames(frames + 1)
+  drawLine(context, 0, 3, WIDTH, 3, 'red')
+  drawLine(context, 0, 40, WIDTH, 40, 'red')
+  drawLine(context, 0, 232, WIDTH, 232, 'red')
+  setTotalFrames((x) => x + 1)
 }
 
 const TV = () => {
   const [initialized, setInitialized] = useState(false)
   const [colorMap, setColorMap] = useState({})
-  const [startTime, setStartTime] = useState({ start: Date.now() })
+  const [totalTime, setTotalTime] = useState(0)
+  const [totalFrames, setTotalFrames] = useState(0)
   const canvasRef = useRef(null)
-  const [frames, setFrames] = useState(0)
   const { data: romData } = useSWR('collect.bin', fetcher, {
     suspense: true,
   })
@@ -34,7 +45,7 @@ const TV = () => {
     ;(async () => {
       await init()
       setInitialized(true)
-      setStartTime({ start: Date.now() })
+      setTotalTime(0)
       setColorMap({ map: ntscColorMap() })
     })()
   }, [])
@@ -46,17 +57,19 @@ const TV = () => {
 
     const canvas = canvasRef.current
     const context = canvas.getContext('2d', { willReadFrequently: true })
-    const atari = new Atari(renderFrame(setFrames, frames, colorMap, context))
+    const atari = new Atari(renderFrame(setTotalFrames, colorMap, context))
     atari.loadROM(0xf800, new Uint8Array(romData))
 
     const interval = setInterval(() => {
+      const start = Date.now()
       atari.tick(20000)
+      setTotalTime((x) => x + Date.now() - start)
     }, 10)
 
     return () => {
       clearInterval(interval)
     }
-  }, [initialized, frames, colorMap, romData])
+  }, [initialized, colorMap, romData])
 
   return (
     <div className="flex flex-col">
@@ -66,7 +79,7 @@ const TV = () => {
         height={HEIGHT}
         ref={canvasRef}
       />
-      <div className="mx-auto">{`${padNumber(Math.trunc((frames * 1000) / (Date.now() - startTime.start)), 3)} fps`}</div>
+      <div className="mx-auto">{`${padNumber(Math.trunc((totalFrames * 1000) / totalTime), 3)} fps`}</div>
     </div>
   )
 }
