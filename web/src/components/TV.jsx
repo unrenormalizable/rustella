@@ -1,6 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
 /* eslint-disable no-plusplus */
-/* eslint-disable no-bitwise */
 import { useEffect, useRef, useState } from 'react'
 import useSWR from 'swr'
 import init, { Atari } from 'rustella-wasm'
@@ -8,31 +7,19 @@ import { fetcher } from '../utils'
 
 const padNumber = (num, places) => String(num).padStart(places, '0')
 
-const WIDTH = 300
-const HEIGHT = 300
+const WIDTH = 228
+const HEIGHT = 262
 
-const draw = (context, data, buffer, x1, y1, x2, y2) => {
-  let i = 0
-  for (let y = 0; y < HEIGHT; y++)
-    for (let x = 0; x < WIDTH; x++) {
-      const d1 = (Math.sqrt((x - x1) * (x - x1) + (y - y1) * (y - y1)) / 10) & 1
-      const d2 = (Math.sqrt((x - x2) * (x - x2) + (y - y2) * (y - y2)) / 10) & 1
-      buffer[i++] = d1 === d2 ? 0xff000000 : 0xffffffff
-    }
-  context.putImageData(data, 0, 0)
-}
-
-const drawFrame = (count, setFps, context, data, buffer) => {
+const renderScanline = (setFps, context) => (scanline, pixels) => {
   const start = Date.now()
-  draw(
-    context,
-    data,
-    buffer,
-    300 + 300 * Math.sin((count * Math.PI) / 180),
-    300 + 300 * Math.cos((count * Math.PI) / 180),
-    500 + 100 * Math.sin((count * Math.PI) / 100),
-    500 + 100 * Math.cos((count * Math.PI) / 100)
-  )
+
+  const data = context.getImageData(0, scanline, scanline + WIDTH, 1)
+  const buffer = new Uint32Array(data.data.buffer)
+
+  for (let i = 0; i < pixels.length; i++) {
+    buffer[i] = pixels[i]
+  }
+  context.putImageData(data, 0, scanline)
   setFps(Date.now() - start)
 }
 
@@ -53,19 +40,14 @@ const TV = () => {
       return () => {}
     }
 
-    const atari = new Atari()
-    atari.loadROM(0xf800, new Uint8Array(romData))
-
     const canvas = canvasRef.current
     const context = canvas.getContext('2d')
-    const data = context.createImageData(WIDTH, HEIGHT)
-    const buffer = new Uint32Array(data.data.buffer)
+    const atari = new Atari(renderScanline(setFps, context))
+    atari.loadROM(0xf800, new Uint8Array(romData))
 
-    let count = 10
     const interval = setInterval(() => {
-      drawFrame(count, setFps, context, data, buffer)
-      count++
-    }, 20)
+      atari.tick()
+    }, 5)
 
     return () => {
       clearInterval(interval)
@@ -74,7 +56,12 @@ const TV = () => {
 
   return (
     <div className="flex flex-col">
-      <canvas className="mx-10 my-3" ref={canvasRef} />
+      <canvas
+        className="mx-auto my-3 h-[50%] w-[50%] bg-black"
+        width={WIDTH}
+        height={HEIGHT}
+        ref={canvasRef}
+      />
       <div className="mx-auto">{`${padNumber(Math.trunc(1000 / fps), 3)} fps`}</div>
     </div>
   )

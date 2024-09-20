@@ -266,6 +266,6 @@ mod tests {
     }
 
     fn solid_display_config() -> TVConfig<5, 3> {
-        TVConfig::<5, 3>::new(1, 1, 2, 1)
+        TVConfig::<5, 3>::new(1, 1, 2, 1, [0x00; 256])
     }
 }

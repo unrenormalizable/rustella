@@ -12,6 +12,8 @@ pub struct TVConfig<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> {
     pixels_per_scanline: usize,
     hblank_pixels: usize,
     draw_pixels: usize,
+    // colors
+    color_map: [u32; 256],
 }
 
 pub trait TV<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> {
@@ -84,11 +86,11 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
     }
 
     fn render_pixel_core(&mut self, color: u8) {
-        if self.curr_scanline < self.config.vsync_scanlines {
+        if self.curr_scanline < self.config.vsync_scanlines() {
             return;
         }
 
-        if self.curr_pixel < self.config.hblank_pixels {
+        if self.curr_pixel < self.config.hblank_pixels() {
             return;
         }
 
@@ -130,6 +132,7 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> Default
             pixels_per_scanline: PIXELS_PER_SCANLINE,
             hblank_pixels: 1,
             draw_pixels: PIXELS_PER_SCANLINE - 1,
+            color_map: [0x00u32; 256],
         }
     }
 }
@@ -142,6 +145,7 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
         vblank_scanlines: usize,
         draw_scanlines: usize,
         hblank_pixels: usize,
+        color_map: [u32; 256],
     ) -> Self {
         Self {
             scanlines: SCANLINES,
@@ -152,7 +156,13 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
             pixels_per_scanline: PIXELS_PER_SCANLINE,
             hblank_pixels,
             draw_pixels: PIXELS_PER_SCANLINE - hblank_pixels,
+            color_map,
         }
+    }
+
+    #[inline]
+    pub fn color_map(&self) -> &[u32; 256] {
+        &self.color_map
     }
 
     #[inline]

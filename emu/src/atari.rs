@@ -6,17 +6,13 @@ pub struct NtscAtari {
     cpu: Rc<RefCell<cpu::MOS6502>>,
     mem: mem::Memory,
     tia: Rc<RefCell<dyn tia::TIA>>,
-    tv: Rc<RefCell<tia::InMemoryTV<{ tia::NTSC_SCANLINES }, { tia::NTSC_PIXELS_PER_SCANLINE }>>>,
 }
 
-impl Default for NtscAtari {
-    fn default() -> Self {
+impl NtscAtari {
+    pub fn new(
+        tv: Rc<RefCell<dyn tia::TV<{ tia::NTSC_SCANLINES }, { tia::NTSC_PIXELS_PER_SCANLINE }>>>,
+    ) -> Self {
         let rdy = Rc::new(Cell::new(cmn::LineState::Low));
-
-        let tv = Rc::new(RefCell::new(tia::InMemoryTV::<
-            { tia::NTSC_SCANLINES },
-            { tia::NTSC_PIXELS_PER_SCANLINE },
-        >::new(tia::ntsc_tv_config())));
         let tia = Rc::new(RefCell::new(tia::NtscTIA::new(rdy.clone(), tv.clone())));
         let mem = mem::Memory::new_with_rom(
             &[],
@@ -27,11 +23,9 @@ impl Default for NtscAtari {
         );
         let cpu = Rc::new(RefCell::new(cpu::MOS6502::new(rdy.clone(), &mem)));
 
-        Self { cpu, mem, tia, tv }
+        Self { cpu, mem, tia }
     }
-}
 
-impl NtscAtari {
     pub fn load_rom(&mut self, addr: u16, data: &[u8]) {
         self.mem.load(data, addr.into());
         self.cpu.borrow_mut().reset_pc(&self.mem);
@@ -47,9 +41,5 @@ impl NtscAtari {
 
     pub fn cpu_state(&self) -> cpu::MOS6502 {
         self.cpu.borrow().clone()
-    }
-
-    pub fn tv_screen_state(&self) -> [[u8; tia::NTSC_PIXELS_PER_SCANLINE]; tia::NTSC_SCANLINES] {
-        self.tv.borrow().buffer()
     }
 }

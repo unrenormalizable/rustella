@@ -1,9 +1,12 @@
+mod web_tv;
+
 use rustella::*;
 use std::cell::RefCell;
+use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 
 thread_local! {
-    static ATARI: RefCell<NtscAtari> = RefCell::new(NtscAtari::default());
+    static ATARI: RefCell<NtscAtari> = panic!("initialized not called.");
 }
 
 macro_rules! console_log {
@@ -24,8 +27,13 @@ pub struct Atari {}
 #[wasm_bindgen]
 impl Atari {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(render_scanline_fn: JsValue) -> Self {
+        let tv = web_tv::NtscWebTV::new(render_scanline_fn);
+        let atari = NtscAtari::new(Rc::new(RefCell::new(tv)));
+
+        ATARI.set(atari);
+
+        Self {}
     }
 
     #[wasm_bindgen(js_name = "loadROM")]
