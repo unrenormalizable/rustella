@@ -1,8 +1,8 @@
-use crate::bits;
+use crate::{bits, timer};
 use crate::{
     cmn::*,
-    cpu::{cmn, opc_impl, opc_info, timer},
-    mem::Memory,
+    cpu::{cmn, opc_impl, opc_info},
+    riot::Memory,
 };
 use bitflags::bitflags;
 

@@ -114,6 +114,7 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> TV<SCANLINES, PIX
     }
 
     fn vsync(&mut self) {
+        self.frame_counter += 1;
         self.curr_scanline = 0;
         self.curr_pixel = 0;
     }

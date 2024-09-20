@@ -1,4 +1,4 @@
-use crate::{cmn::*, mem::cmn, mem::mmaps, tia};
+use crate::{cmn::*, riot::cmn, riot::mmaps, tia};
 use alloc::rc::Rc;
 use core::{cell::RefCell, mem};
 

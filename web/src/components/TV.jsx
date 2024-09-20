@@ -41,7 +41,7 @@ const TV = () => {
     }
 
     const canvas = canvasRef.current
-    const context = canvas.getContext('2d')
+    const context = canvas.getContext('2d', { willReadFrequently: true })
     const atari = new Atari(renderScanline(setFps, context))
     atari.loadROM(0xf800, new Uint8Array(romData))
 

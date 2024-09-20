@@ -4,8 +4,9 @@ extern crate alloc;
 mod atari;
 pub mod cmn;
 pub mod cpu;
-pub mod mem;
+pub mod riot;
 pub mod tia;
+pub mod timer;
 
 pub use atari::NtscAtari;
 

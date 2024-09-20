@@ -63,5 +63,7 @@ fn spiceware_collect_1_stable_display() {
         );
     }
 
+    assert_eq!(tv.borrow().frame_counter(), 55);
+
     assert_eq!(atari.cpu_state().pc(), cmn::LoHi(0x4D, 0xF8));
 }

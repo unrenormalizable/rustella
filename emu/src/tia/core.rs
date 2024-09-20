@@ -1,7 +1,7 @@
 use crate::{
     bits,
     cmn::{Line, LineState},
-    mem::MemorySegment,
+    riot::MemorySegment,
     tia::{cmn, tv::TV},
 };
 use alloc::rc::Rc;

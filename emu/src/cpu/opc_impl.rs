@@ -3,7 +3,7 @@
 use crate::bits;
 use crate::cmn::LoHi;
 use crate::cpu::{am, cmn::IRQ_VECTOR, core::*};
-use crate::mem::Memory;
+use crate::riot::Memory;
 
 fn illegal(cpu: &mut MOS6502, _: &mut Memory, opc: u8, _: LoHi) -> Option<LoHi> {
     unimplemented!("Illegal opcode {opc:02X}. CPU state: {cpu:?}")

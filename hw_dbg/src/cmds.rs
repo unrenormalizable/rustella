@@ -1,9 +1,14 @@
 use super::{color_term::VTerm, repl};
-use rustella::{bits, cmn::LoHi, cpu, mem};
+use rustella::{bits, cmn::LoHi, cpu, riot};
 use std::collections::HashSet;
 use std::path::PathBuf;
 
-pub fn go(cpu: &mut cpu::MOS6502, mem: &mut mem::Memory, break_points: &HashSet<LoHi>, count: u64) {
+pub fn go(
+    cpu: &mut cpu::MOS6502,
+    mem: &mut riot::Memory,
+    break_points: &HashSet<LoHi>,
+    count: u64,
+) {
     let mut count = count;
     loop {
         cpu.tick(mem);
@@ -21,7 +26,7 @@ pub fn go(cpu: &mut cpu::MOS6502, mem: &mut mem::Memory, break_points: &HashSet<
     registers(cpu, mem, break_points);
 }
 
-pub fn registers(cpu: &cpu::MOS6502, mem: &mem::Memory, bps: &HashSet<LoHi>) {
+pub fn registers(cpu: &cpu::MOS6502, mem: &riot::Memory, bps: &HashSet<LoHi>) {
     let pc = cpu.pc();
     let (_, bytes_str, instr_str, _, _) = disassemble_one_instruction(mem, bps, pc);
 
@@ -63,7 +68,7 @@ pub fn set_register(cpu: &mut cpu::MOS6502, reg: repl::Register, val: u16) {
     }
 }
 
-pub fn memory(mem: &mem::Memory, start: u16) {
+pub fn memory(mem: &riot::Memory, start: u16) {
     let start = LoHi::from(start);
 
     for r in 0..8u8 {
@@ -83,7 +88,7 @@ pub fn memory(mem: &mem::Memory, start: u16) {
 
 pub fn disassemble(
     cpu: &cpu::MOS6502,
-    mem: &mem::Memory,
+    mem: &riot::Memory,
     bps: &HashSet<LoHi>,
     start: u16,
     count: u64,
@@ -107,7 +112,7 @@ pub fn disassemble(
     }
 }
 
-pub fn load(mem: &mut mem::Memory, start: u16, path: PathBuf) {
+pub fn load(mem: &mut riot::Memory, start: u16, path: PathBuf) {
     let start = LoHi::from(start);
     let bytes = std::fs::read(path.clone());
     if bytes.is_err() {
@@ -134,7 +139,7 @@ pub fn break_points(break_points: &HashSet<LoHi>) {
 }
 
 fn disassemble_one_instruction(
-    mem: &mem::Memory,
+    mem: &riot::Memory,
     bps: &HashSet<LoHi>,
     pc: LoHi,
 ) -> (u8, String, String, &'static str, usize) {

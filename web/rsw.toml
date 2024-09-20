@@ -8,4 +8,4 @@ cli = "pnpm"
 [[crates]]
 name = "emu-wasm"
 link = true
-
+profile = "release"

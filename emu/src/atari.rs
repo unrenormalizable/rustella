@@ -1,10 +1,10 @@
-use crate::{cmn, cpu, mem, tia};
+use crate::{cmn, cpu, riot, tia};
 use alloc::rc::Rc;
 use core::cell::{Cell, RefCell};
 
 pub struct NtscAtari {
     cpu: Rc<RefCell<cpu::MOS6502>>,
-    mem: mem::Memory,
+    mem: riot::Memory,
     tia: Rc<RefCell<dyn tia::TIA>>,
 }
 
@@ -14,10 +14,10 @@ impl NtscAtari {
     ) -> Self {
         let rdy = Rc::new(Cell::new(cmn::LineState::Low));
         let tia = Rc::new(RefCell::new(tia::NtscTIA::new(rdy.clone(), tv.clone())));
-        let mem = mem::Memory::new_with_rom(
+        let mem = riot::Memory::new_with_rom(
             &[],
             cmn::LoHi(0x00, 0x00),
-            mem::mm_6507,
+            riot::mm_6507,
             Some(tia.clone()),
             true,
         );
