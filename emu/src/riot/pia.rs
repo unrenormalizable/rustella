@@ -11,17 +11,15 @@ pub trait PIA6532: MemorySegment {
 
 #[derive(Default)]
 pub struct InMemory6532 {
-    timer_with_factor: (u8, u16),
+    timer_clk: usize,
+    timer_count: u8,
+    timer_factor: u16,
 }
 
 impl PIA6532 for InMemory6532 {
     fn tick(&mut self, cycles: usize) {
-        if self.timer_with_factor.0 != 0 && self.timer_with_factor.1 != 0 {
-            let timer = self
-                .timer_with_factor
-                .0
-                .saturating_sub((cycles / self.timer_with_factor.1 as usize) as u8);
-            self.timer_with_factor = (timer, self.timer_with_factor.1)
+        for _ in 0..cycles {
+            self.one_tick();
         }
     }
 }
@@ -32,7 +30,7 @@ impl MemorySegment for InMemory6532 {
         self.check_read_unsupported_register_flags(addr);
 
         if addr == regs::INTIM {
-            return self.timer_with_factor.0;
+            return self.timer_count;
         }
 
         0
@@ -42,17 +40,25 @@ impl MemorySegment for InMemory6532 {
         #[cfg(debug_assertions)]
         self.check_write_unsupported_register_flags(addr, val);
 
-        self.timer_with_factor = match addr {
+        (self.timer_count, self.timer_factor) = match addr {
             regs::TIM1T => (val, 1),
             regs::TIM8T => (val, 8),
             regs::TIM64T => (val, 64),
             regs::T1024T => (val, 1024),
             _ => panic!("Should have failed in check_write_unsupported_register_flags."),
         };
+        self.timer_clk = self.timer_count as usize * self.timer_factor as usize;
     }
 }
 
 impl InMemory6532 {
+    fn one_tick(&mut self) {
+        if self.timer_clk != 0 {
+            self.timer_clk = self.timer_clk - 1;
+            self.timer_count = self.timer_clk.div_ceil(self.timer_factor as usize) as u8;
+        }
+    }
+
     #[cfg(debug_assertions)]
     #[inline]
     fn check_read_unsupported_register_flags(&self, addr: usize) {
@@ -84,7 +90,7 @@ pub mod regs {
     pub const SWBCNT: usize = 0x0283;
     /// Timer output (read only)
     pub const INTIM: usize = 0x0284;
-    pub const RX0285: usize = 0x0285;
+    pub const TIMINT: usize = 0x0285;
     pub const RX0286: usize = 0x0286;
     pub const RX0287: usize = 0x0287;
     pub const RX0288: usize = 0x0288;
@@ -124,7 +130,7 @@ pub mod regs {
         (false, false, "SWCHB"),   // 0x282	SWCHB	Port B; console switches (read only)
         (false, false, "SWBCNT"),  // 0x283	SWBCNT	Port B DDR (hardwired as input)
         (true , false, "INTIM"),   // 0x284	INTIM	Timer output (read only)
-        (false, false, "RX0285"),  // 
+        (false, false, "TIMINT"),  // 0x285 TIMINT  ???
         (false, false, "RX0286"),  // 
         (false, false, "RX0287"),  // 
         (false, false, "RX0288"),  // 
@@ -158,6 +164,37 @@ pub mod regs {
 mod tests {
     use super::*;
     use test_case::test_case;
+
+    #[test]
+    fn simple_timer_test() {
+        let mut pia = InMemory6532::default();
+
+        pia.write(regs::TIM8T, 1);
+        assert_eq!(pia.read(regs::INTIM), 1);
+
+        pia.tick(1);
+        assert_eq!(pia.read(regs::INTIM), 1);
+        pia.tick(1);
+        assert_eq!(pia.read(regs::INTIM), 1);
+        pia.tick(1);
+        assert_eq!(pia.read(regs::INTIM), 1);
+        pia.tick(1);
+        assert_eq!(pia.read(regs::INTIM), 1);
+        pia.tick(1);
+        assert_eq!(pia.read(regs::INTIM), 1);
+        pia.tick(1);
+        assert_eq!(pia.read(regs::INTIM), 1);
+        pia.tick(1);
+        assert_eq!(pia.read(regs::INTIM), 1);
+        pia.tick(1);
+        assert_eq!(pia.read(regs::INTIM), 0);
+        pia.tick(1);
+        assert_eq!(pia.read(regs::INTIM), 0);
+        pia.tick(1);
+        assert_eq!(pia.read(regs::INTIM), 0);
+        pia.tick(1);
+        assert_eq!(pia.read(regs::INTIM), 0);
+    }
 
     #[test_case(regs::TIM1T, 2, 0, 2; "TIM1T 0 cycles")]
     #[test_case(regs::TIM1T, 2, 1, 1; "TIM1T less cycles")]

@@ -26,8 +26,8 @@ const renderFrame = (setTotalFrames, colorMap, context) => (pixels) => {
   }
   context.putImageData(data, 0, 0)
   drawLine(context, 0, 3, WIDTH, 3, 'red')
-  drawLine(context, 0, 40, WIDTH, 40, 'red')
-  drawLine(context, 0, 232, WIDTH, 232, 'red')
+  drawLine(context, 0, 39, WIDTH, 40, 'red')
+  drawLine(context, 0, 233, WIDTH, 232, 'red')
   setTotalFrames((x) => x + 1)
 }
 
@@ -37,7 +37,7 @@ const TV = () => {
   const [totalTime, setTotalTime] = useState(0)
   const [totalFrames, setTotalFrames] = useState(0)
   const canvasRef = useRef(null)
-  const { data: romData } = useSWR('collect.bin', fetcher, {
+  const { data: romData } = useSWR('/2/collect.bin', fetcher, {
     suspense: true,
   })
 

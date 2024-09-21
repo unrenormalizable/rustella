@@ -1,0 +1,1 @@
+D:\src\u\s\tools\dasm.exe collect.asm -f3 -v0 -ID:\src\u\s\tools\machines\atari2600 -oD:\src\u\s\emu\tests\spiceware_collect\2\collect.bin -sD:\src\u\s\emu\tests\spiceware_collect\2\collect.sym -lD:\src\u\s\emu\tests\spiceware_collect\2\collect.lst -DNO_ILLEGAL_OPCODES=1

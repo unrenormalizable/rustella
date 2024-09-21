@@ -5,23 +5,22 @@ import tailwindcss from 'tailwindcss'
 import { ViteRsw } from 'vite-plugin-rsw'
 import { viteStaticCopy } from 'vite-plugin-static-copy'
 
-// https://vitejs.dev/config/
+const targets = [...Array(2).keys()].map((i) => ({
+  src: normalizePath(
+    path.resolve(
+      __dirname,
+      `../emu/tests/spiceware_collect/${i + 1}/collect.bin`
+    )
+  ),
+  dest: `./${i + 1}`,
+}))
+
 export default defineConfig({
   plugins: [
     react(),
     ViteRsw(),
     viteStaticCopy({
-      targets: [
-        {
-          src: normalizePath(
-            path.resolve(
-              __dirname,
-              '../emu/tests/spiceware_collect/1/collect.bin'
-            )
-          ),
-          dest: './',
-        },
-      ],
+      targets,
     }),
   ],
   css: {

@@ -13,7 +13,7 @@ impl NtscAtari {
     pub fn new(
         tv: Rc<RefCell<dyn tia::TV<{ tia::NTSC_SCANLINES }, { tia::NTSC_PIXELS_PER_SCANLINE }>>>,
     ) -> Self {
-        let rdy = Rc::new(Cell::new(cmn::LineState::Low));
+        let rdy = Rc::new(Cell::new(cmn::LineState::High));
         let tia = Rc::new(RefCell::new(tia::NtscTIA::new(rdy.clone(), tv.clone())));
         let pia = Rc::new(RefCell::new(riot::InMemory6532::default()));
         let mem = riot::Memory::new_with_rom(
@@ -38,10 +38,8 @@ impl NtscAtari {
         for _ in 0..loops {
             let cycles = self.cpu.borrow_mut().tick(&mut self.mem);
             let cycles = if cycles == 0 { 1 } else { cycles };
-            for _ in 0..(cycles * 3) {
-                self.tia.borrow_mut().tick();
-                self.pia.borrow_mut().tick(1);
-            }
+            self.tia.borrow_mut().tick(cycles * 3);
+            self.pia.borrow_mut().tick(cycles);
         }
     }
 
