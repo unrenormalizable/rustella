@@ -1,24 +1,29 @@
-use crate::{cmn::*, riot::cmn, riot::mmaps, tia};
+use crate::{
+    cmn::*,
+    riot::{cmn, mmaps, pia},
+    tia,
+};
 use alloc::rc::Rc;
 use core::{cell::RefCell, mem};
 
-/// 6502 Memory map: https://wilsonminesco.com/6502primer/MemMapReqs.html
 pub struct Memory {
     data: [u8; cmn::TOTAL_MEMORY_SIZE],
-    map: fn(LoHi) -> usize,
+    mmap: fn(LoHi) -> usize,
     tia: Option<Rc<RefCell<dyn cmn::MemorySegment>>>,
+    iot: Option<Rc<RefCell<dyn cmn::MemorySegment>>>,
 }
 
 impl Memory {
     pub fn new(init: bool) -> Self {
-        Self::new_with_rom(&[], Default::default(), mmaps::mm_6502, None, init)
+        Self::new_with_rom(&[], Default::default(), mmaps::mm_6502, None, None, init)
     }
 
     pub fn new_with_rom(
         rom: &[u8],
         rom_start: LoHi,
-        map: fn(LoHi) -> usize,
+        mmap: fn(LoHi) -> usize,
         tia: Option<Rc<RefCell<dyn cmn::MemorySegment>>>,
+        iot: Option<Rc<RefCell<dyn cmn::MemorySegment>>>,
         init: bool,
     ) -> Self {
         let mut data = [0u8; cmn::TOTAL_MEMORY_SIZE];
@@ -26,7 +31,12 @@ impl Memory {
             Self::fill_with_pattern(&mut data, 0xdeadbeef_baadf00d)
         }
 
-        let mut ret = Self { data, map, tia };
+        let mut ret = Self {
+            data,
+            mmap,
+            tia,
+            iot,
+        };
         ret.load(rom, rom_start);
 
         ret
@@ -34,10 +44,14 @@ impl Memory {
 
     #[inline]
     pub fn get(&self, addr: LoHi, index: u8) -> u8 {
-        let addr = (self.map)(addr + index);
+        let addr = (self.mmap)(addr + index);
 
         if self.tia.is_some() && addr <= tia::TIA_MAX_ADDRESS {
             self.tia.as_ref().unwrap().borrow().read(addr)
+        } else if self.iot.is_some()
+            && (pia::IOT_MIN_ADDRESS..=pia::IOT_MAX_ADDRESS).contains(&addr)
+        {
+            self.iot.as_ref().unwrap().borrow_mut().read(addr)
         } else {
             self.data[addr]
         }
@@ -45,10 +59,14 @@ impl Memory {
 
     #[inline]
     pub fn set(&mut self, addr: LoHi, index: u8, value: u8) {
-        let addr = (self.map)(addr + index);
+        let addr = (self.mmap)(addr + index);
 
         if self.tia.is_some() && addr <= tia::TIA_MAX_ADDRESS {
             self.tia.as_ref().unwrap().borrow_mut().write(addr, value);
+        } else if self.iot.is_some()
+            && (pia::IOT_MIN_ADDRESS..=pia::IOT_MAX_ADDRESS).contains(&addr)
+        {
+            self.iot.as_ref().unwrap().borrow_mut().write(addr, value);
         } else {
             self.data[addr] = value;
         }
@@ -63,7 +81,7 @@ impl Memory {
     }
 
     pub fn load(&mut self, bytes: &[u8], start: LoHi) {
-        let start = (self.map)(start);
+        let start = (self.mmap)(start);
         self.data[start..start + bytes.len()].copy_from_slice(bytes);
     }
 }

@@ -15,8 +15,14 @@ fn klaus_6502_65c02_functional_tests_main() {
     .collect();
 
     let buffer = fs::read(bin_path).unwrap();
-    let mut mem =
-        riot::Memory::new_with_rom(&buffer, cmn::LoHi(0x00, 0x00), riot::mm_6502, None, true);
+    let mut mem = riot::Memory::new_with_rom(
+        &buffer,
+        cmn::LoHi(0x00, 0x00),
+        riot::mm_6502,
+        None,
+        None,
+        true,
+    );
     let rdy = Rc::new(Cell::new(cmn::LineState::High));
     let mut cpu = cpu::MOS6502::new(rdy.clone(), &mem);
     cpu.set_pc(cmn::LoHi(0x00, 0x04));

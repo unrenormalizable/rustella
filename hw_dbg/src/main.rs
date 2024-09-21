@@ -8,8 +8,14 @@ use std::{cell::Cell, collections::HashSet, fs, rc::Rc};
 fn main() {
     let rdy = Rc::new(Cell::new(cmn::LineState::Low));
     let buffer = fs::read("d:/src/u/s/lib/tests/klaus_6502_functional_test.bin").unwrap();
-    let mut mem =
-        riot::Memory::new_with_rom(&buffer, cmn::LoHi::default(), riot::mm_6502, None, false);
+    let mut mem = riot::Memory::new_with_rom(
+        &buffer,
+        cmn::LoHi::default(),
+        riot::mm_6502,
+        None,
+        None,
+        false,
+    );
     //let buffer = fs::read("D:/bin/Stella-6.7.1/roms/air_raid.bin").unwrap();
     //let mut mem = mem::Memory::new_with_rom(&buffer, cmn::ROM_START_6507, mem::mm_6507, true);
     let mut cpu = cpu::MOS6502::new(rdy.clone(), &mem);

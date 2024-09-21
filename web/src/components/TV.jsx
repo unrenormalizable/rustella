@@ -72,14 +72,15 @@ const TV = () => {
   }, [initialized, colorMap, romData])
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col items-center">
       <canvas
-        className="mx-auto my-3 h-[50%] w-[50%] bg-black"
+        className="bg-black"
+        style={{ transform: 'scale(2.0, 1.0)' }}
         width={WIDTH}
         height={HEIGHT}
         ref={canvasRef}
       />
-      <div className="mx-auto">{`${padNumber(Math.trunc((totalFrames * 1000) / totalTime), 3)} fps`}</div>
+      <div className="">{`${padNumber(Math.trunc((totalFrames * 1000) / totalTime), 3)} fps`}</div>
     </div>
   )
 }
