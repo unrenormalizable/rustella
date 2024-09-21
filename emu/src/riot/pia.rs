@@ -54,7 +54,7 @@ impl MemorySegment for InMemory6532 {
 impl InMemory6532 {
     fn one_tick(&mut self) {
         if self.timer_clk != 0 {
-            self.timer_clk = self.timer_clk - 1;
+            self.timer_clk -= 1;
             self.timer_count = self.timer_clk.div_ceil(self.timer_factor as usize) as u8;
         }
     }
