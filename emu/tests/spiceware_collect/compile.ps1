@@ -1,1 +1,17 @@
-D:\src\u\s\tools\dasm.exe collect.asm -f3 -v0 -ID:\src\u\s\tools\machines\atari2600 -oD:\src\u\s\emu\tests\spiceware_collect\2\collect.bin -sD:\src\u\s\emu\tests\spiceware_collect\2\collect.sym -lD:\src\u\s\emu\tests\spiceware_collect\2\collect.lst -DNO_ILLEGAL_OPCODES=1
+param(
+  [Parameter(Mandatory)]
+  [String] $AsmFile
+
+  ,[Parameter(Mandatory)]
+  [String] $OutName
+)
+
+$asmFile = $AsmFile | Resolve-Path
+$asmDir = Split-Path $asmFile
+$toolsDir = Join-Path $PSScriptRoot "../../../tools" | Resolve-Path
+$asmFileName = $OutName
+
+$flags = @("-DNO_ILLEGAL_OPCODES=1")
+
+& "$toolsDir\dasm.exe" "$asmFile" -f3 -v0 "-I$toolsDir\machines\atari2600" "-o$asmDir\$asmFileName.bin" "-s$asmDir\$asmFileName.sym" "-l$asmDir\$asmFileName.lst" @flags
+

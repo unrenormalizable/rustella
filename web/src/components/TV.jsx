@@ -1,14 +1,28 @@
-/* eslint-disable react-refresh/only-export-components */
-/* eslint-disable no-plusplus */
 import { useEffect, useRef, useState } from 'react'
 import useSWR from 'swr'
 import init, { ntscColorMap, Atari } from 'rustella-wasm'
 import { fetcher } from '../utils'
 
-const padNumber = (num, places) => String(num).padStart(places, '0')
+const roms = [
+  {
+    name: 'Step 1 - Generate a Stable Display',
+    url: '/1/collect.bin',
+    start_addr: 0xf800,
+  },
+  {
+    name: 'Step 2 - Timers',
+    url: '/2/collect.bin',
+    start_addr: 0xf800,
+  },
+  {
+    name: 'Step 3 - Score & Timer display',
+    url: '/3/collect.bin',
+    start_addr: 0xf800,
+  },
+]
 
-const WIDTH = 228
-const HEIGHT = 262
+const TV_WIDTH = 228
+const TV_HEIGHT = 262
 
 const drawLine = (ctx, x1, y1, x2, y2, color) => {
   ctx.beginPath()
@@ -19,25 +33,27 @@ const drawLine = (ctx, x1, y1, x2, y2, color) => {
 }
 
 const renderFrame = (setTotalFrames, colorMap, context) => (pixels) => {
-  const data = context.createImageData(WIDTH, HEIGHT)
+  const data = context.createImageData(TV_WIDTH, TV_HEIGHT)
   const buffer = new Uint32Array(data.data.buffer)
-  for (let i = 0; i < pixels.length; i++) {
-    buffer[i] = colorMap.map[pixels[i]]
+  for (let i = 0; i < pixels.length; i += 1) {
+    buffer[i] = colorMap.map[pixels[i] / 2]
   }
   context.putImageData(data, 0, 0)
-  drawLine(context, 0, 3, WIDTH, 3, 'red')
-  drawLine(context, 0, 39, WIDTH, 40, 'red')
-  drawLine(context, 0, 233, WIDTH, 232, 'red')
+  drawLine(context, 67, 0, 67, TV_HEIGHT, 'red')
+  drawLine(context, 0, 3, TV_WIDTH, 3, 'red')
+  drawLine(context, 0, 39, TV_WIDTH, 40, 'red')
+  drawLine(context, 0, 233, TV_WIDTH, 232, 'red')
   setTotalFrames((x) => x + 1)
 }
 
 const TV = () => {
+  const [selectedROM, setSelectedROM] = useState(0)
   const [initialized, setInitialized] = useState(false)
   const [colorMap, setColorMap] = useState({})
   const [totalTime, setTotalTime] = useState(0)
   const [totalFrames, setTotalFrames] = useState(0)
   const canvasRef = useRef(null)
-  const { data: romData } = useSWR('/2/collect.bin', fetcher, {
+  const { data: romData } = useSWR(roms[selectedROM].url, fetcher, {
     suspense: true,
   })
 
@@ -58,7 +74,7 @@ const TV = () => {
     const canvas = canvasRef.current
     const context = canvas.getContext('2d', { willReadFrequently: true })
     const atari = new Atari(renderFrame(setTotalFrames, colorMap, context))
-    atari.loadROM(0xf800, new Uint8Array(romData))
+    atari.loadROM(roms[selectedROM].start_addr, new Uint8Array(romData))
 
     const interval = setInterval(() => {
       const start = Date.now()
@@ -69,20 +85,35 @@ const TV = () => {
     return () => {
       clearInterval(interval)
     }
-  }, [initialized, colorMap, romData])
+  }, [initialized, colorMap, selectedROM, romData])
+
+  const dropDownItems = roms.map((r, i) => (
+    <option key={r.name} value={i}>
+      {r.name}
+    </option>
+  ))
 
   return (
     <div className="flex flex-col items-center">
+      <select
+        className="mb-1"
+        value={selectedROM}
+        onChange={(e) => setSelectedROM(e.target.value)}
+      >
+        {dropDownItems}
+      </select>{' '}
       <canvas
         className="bg-black"
         style={{ transform: 'scale(2.0, 1.0)' }}
-        width={WIDTH}
-        height={HEIGHT}
+        width={TV_WIDTH}
+        height={TV_HEIGHT}
         ref={canvasRef}
       />
-      <div className="">{`${padNumber(Math.trunc((totalFrames * 1000) / totalTime), 3)} fps`}</div>
+      <figcaption className="mb-2 text-xs">{roms[selectedROM].name}</figcaption>
+      <div>{`${String(Math.trunc((totalFrames * 1000) / totalTime)).padStart(3, '0')} fps`}</div>
     </div>
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export default TV

@@ -1,8 +1,11 @@
 [package]
 name = "rustella_hw_dbg"
-version = "0.1.0"
-authors = ["unrenormalizable <unrenormalizable@gmain.com>"]
 edition = "2021"
+version = "0.1.0"
+description = "Atari 2600 Emulator written in Rust (wasm interface)"
+repository = "https://github.com/unrenormalizable/rustella/"
+license = "Attribution-NonCommercial-ShareAlike 4.0 International"
+authors = ["unrenormalizable <unrenormalizable@gmail.com>"]
 
 [dependencies]
 rustella = { path = "../emu" }

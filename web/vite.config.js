@@ -5,7 +5,7 @@ import tailwindcss from 'tailwindcss'
 import { ViteRsw } from 'vite-plugin-rsw'
 import { viteStaticCopy } from 'vite-plugin-static-copy'
 
-const targets = [...Array(2).keys()].map((i) => ({
+const targets = [...Array(3).keys()].map((i) => ({
   src: normalizePath(
     path.resolve(
       __dirname,

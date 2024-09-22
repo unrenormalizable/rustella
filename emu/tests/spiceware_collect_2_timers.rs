@@ -1,4 +1,4 @@
-use rustella::{cmn, tia, NtscAtari};
+use rustella::{cmn, tia, tia::TV, NtscAtari};
 use std::{cell::RefCell, fs, path::PathBuf, rc::Rc};
 
 /// Test suite from https://forums.atariage.com/blogs/entry/11112-step-2-timers/
@@ -24,40 +24,35 @@ fn spiceware_collect_2_timers() {
 
     atari.tick(1000000);
 
-    for n in 0..42usize {
-        assert!(
-            tv.borrow().buffer()[n].iter().all(|&x| x == 0),
-            "vsync & vblank areas should have all values colubk = 0."
-        );
-    }
+    let buffer = tv.borrow().buffer();
     // TODO: This is a bug. It should be all zeros from 0..40
-    for n in 42..43usize {
-        assert!(
-            tv.borrow().buffer()[n][0..67].iter().all(|&x| x == 0),
-            "scanline {n} hblank area should have all values colubk = 0."
-        );
-        assert!(
-            tv.borrow().buffer()[n][68..].iter().all(|&x| x == 1),
-            "scanline {n} draw area should have all values colubk = 1."
+    for sl in buffer.iter().take(43usize) {
+        assert_eq!(
+            sl,
+            &[0x00; tia::NTSC_PIXELS_PER_SCANLINE],
+            "vsync & vblank areas should have all values colubk = 0",
         );
     }
     let mut colubk = 192;
     // TODO: This is a bug. It should be all rainbows from from 40..232
-    for n in 43..235usize {
-        assert!(
-            tv.borrow().buffer()[n][0..67].iter().all(|&x| x == 0),
-            "scanline {n} hblank area should have all values colubk = 0."
+    for sl in buffer.iter().take(235usize).skip(43) {
+        assert_eq!(
+            &sl[0..67],
+            &[0x00; 67],
+            "scanline hblank area should have all values colubk = 0."
         );
-        assert!(
-            tv.borrow().buffer()[n][68..].iter().all(|&x| x == colubk),
-            "scanline {n} draw area should have all values colubk = {colubk}."
+        assert_eq!(
+            &sl[68..],
+            &[colubk & !0x1; 160],
+            "scanline draw area should have all values colubk = {colubk}.",
         );
         colubk -= 1;
     }
-    for n in 235..262 {
-        assert!(
-            tv.borrow().buffer()[n].iter().all(|&x| x == 0),
-            "overscan area should have all values colubk = 0."
+    for sl in buffer.iter().skip(235) {
+        assert_eq!(
+            sl,
+            &[0x00; tia::NTSC_PIXELS_PER_SCANLINE],
+            "overscan area should have all values colubk = 0.",
         );
     }
 

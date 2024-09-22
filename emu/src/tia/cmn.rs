@@ -2,7 +2,7 @@ use super::{core, tv};
 
 pub const TIA_MAX_ADDRESS: usize = 0x003F;
 
-pub mod read_regs {
+pub mod regs {
     /// $00   0000 00x0   Vertical Sync Set-Clear
     pub const VSYNC: usize = 0x00;
     /// $01   xx00 00x0   Vertical Blank Set-Clear
@@ -95,71 +95,71 @@ pub mod read_regs {
     pub const CXCLR: usize = 0x2C;
 
     #[rustfmt::skip]
-    pub static IMPLEMENTED_REGISTERS: &[(bool, &str); super::TIA_MAX_ADDRESS + 1] = &[
-        (true , "VSYNC"),   // = $00   0000 00x0   Vertical Sync Set-Clear
-        (true , "VBLANK"),  // = $01   xx00 00x0   Vertical Blank Set-Clear
-        (true , "WSYNC"),   // = $02   ---- ----   Wait for Horizontal Blank
-        (false, "RSYNC"),   // = $03   ---- ----   Reset Horizontal Sync Counter
-        (false, "NUSIZ0"),  // = $04   00xx 0xxx   Number-Size player/missle 0
-        (false, "NUSIZ1"),  // = $05   00xx 0xxx   Number-Size player/missle 1
-        (false, "COLUP0"),  // = $06   xxxx xxx0   Color-Luminance Player 0
-        (false, "COLUP1"),  // = $07   xxxx xxx0   Color-Luminance Player 1
-        (false, "COLUPF"),  // = $08   xxxx xxx0   Color-Luminance Playfield
-        (true , "COLUBK"),  // = $09   xxxx xxx0   Color-Luminance Background
-        (false, "CTRLPF"),  // = $0A   00xx 0xxx   Control Playfield, Ball, Collisions
-        (false, "REFP0"),   // = $0B   0000 x000   Reflection Player 0
-        (false, "REFP1"),   // = $0C   0000 x000   Reflection Player 1
-        (false, "PF0"),     // = $0D   xxxx 0000   Playfield Register Byte 0
-        (false, "PF1"),     // = $0E   xxxx xxxx   Playfield Register Byte 1
-        (false, "PF2"),     // = $0F   xxxx xxxx   Playfield Register Byte 2
-        (false, "RESP0"),   // = $10   ---- ----   Reset Player 0
-        (false, "RESP1"),   // = $11   ---- ----   Reset Player 1
-        (false, "RESM0"),   // = $12   ---- ----   Reset Missle 0
-        (false, "RESM1"),   // = $13   ---- ----   Reset Missle 1
-        (false, "RESBL"),   // = $14   ---- ----   Reset Ball
-        (false, "AUDC0"),   // = $15   0000 xxxx   Audio Control 0
-        (false, "AUDC1"),   // = $16   0000 xxxx   Audio Control 1
-        (false, "AUDF0"),   // = $17   000x xxxx   Audio Frequency 0
-        (false, "AUDF1"),   // = $18   000x xxxx   Audio Frequency 1
-        (false, "AUDV0"),   // = $19   0000 xxxx   Audio Volume 0
-        (false, "AUDV1"),   // = $1A   0000 xxxx   Audio Volume 1
-        (false, "GRP0"),    // = $1B   xxxx xxxx   Graphics Register Player 0
-        (false, "GRP1"),    // = $1C   xxxx xxxx   Graphics Register Player 1
-        (false, "ENAM0"),   // = $1D   0000 00x0   Graphics Enable Missle 0
-        (false, "ENAM1"),   // = $1E   0000 00x0   Graphics Enable Missle 1
-        (false, "ENABL"),   // = $1F   0000 00x0   Graphics Enable Ball
-        (false, "HMP0"),    // = $20   xxxx 0000   Horizontal Motion Player 0
-        (false, "HMP1"),    // = $21   xxxx 0000   Horizontal Motion Player 1
-        (false, "HMM0"),    // = $22   xxxx 0000   Horizontal Motion Missle 0
-        (false, "HMM1"),    // = $23   xxxx 0000   Horizontal Motion Missle 1
-        (false, "HMBL"),    // = $24   xxxx 0000   Horizontal Motion Ball
-        (false, "VDELP0"),  // = $25   0000 000x   Vertical Delay Player 0
-        (false, "VDELP1"),  // = $26   0000 000x   Vertical Delay Player 1
-        (false, "VDELBL"),  // = $27   0000 000x   Vertical Delay Ball
-        (false, "RESMP0"),  // = $28   0000 00x0   Reset Missle 0 to Player 0
-        (false, "RESMP1"),  // = $29   0000 00x0   Reset Missle 1 to Player 1
-        (false, "HMOVE"),   // = $2A   ---- ----   Apply Horizontal Motion
-        (false, "HMCLR"),   // = $2B   ---- ----   Clear Horizontal Move Registers
-        (false, "CXCLR"),   // = $2C   ---- ----   Clear Collision Latches
-        (false, "????"),    // = $2D
-        (false, "????"),    // = $2E
-        (false, "????"),    // = $2F
-        (false, "????"),    // = $30
-        (false, "????"),    // = $31
-        (false, "????"),    // = $32
-        (false, "????"),    // = $33
-        (false, "????"),    // = $34
-        (false, "????"),    // = $35
-        (false, "????"),    // = $36
-        (false, "????"),    // = $37
-        (false, "????"),    // = $38
-        (false, "????"),    // = $39
-        (false, "????"),    // = $3A
-        (false, "????"),    // = $3B
-        (false, "????"),    // = $3C
-        (false, "????"),    // = $3D
-        (false, "????"),    // = $3E
-        (false, "????"),    // = $3F
+    pub static IMPLEMENTED_REGISTERS: &[(bool, u8, &str); super::TIA_MAX_ADDRESS + 1] = &[
+        (true , 0b_0000_0010, "VSYNC"),   // = $00   0000 00x0   Vertical Sync Set-Clear
+        (true , 0b_1100_0010, "VBLANK"),  // = $01   xx00 00x0   Vertical Blank Set-Clear
+        (true , 0b_0000_0000, "WSYNC"),   // = $02   ---- ----   Wait for Horizontal Blank
+        (false, 0b_0000_0000, "RSYNC"),   // = $03   ---- ----   Reset Horizontal Sync Counter
+        (false, 0b_0011_0111, "NUSIZ0"),  // = $04   00xx 0xxx   Number-Size player/missle 0
+        (false, 0b_0011_0111, "NUSIZ1"),  // = $05   00xx 0xxx   Number-Size player/missle 1
+        (false, 0b_1111_1110, "COLUP0"),  // = $06   xxxx xxx0   Color-Luminance Player 0
+        (false, 0b_1111_1110, "COLUP1"),  // = $07   xxxx xxx0   Color-Luminance Player 1
+        (false, 0b_1111_1110, "COLUPF"),  // = $08   xxxx xxx0   Color-Luminance Playfield
+        (true , 0b_1111_1110, "COLUBK"),  // = $09   xxxx xxx0   Color-Luminance Background
+        (false, 0b_0011_0111, "CTRLPF"),  // = $0A   00xx 0xxx   Control Playfield, Ball, Collisions
+        (false, 0b_0000_1000, "REFP0"),   // = $0B   0000 x000   Reflection Player 0
+        (false, 0b_0000_1000, "REFP1"),   // = $0C   0000 x000   Reflection Player 1
+        (false, 0b_1111_0000, "PF0"),     // = $0D   xxxx 0000   Playfield Register Byte 0
+        (false, 0b_1111_1111, "PF1"),     // = $0E   xxxx xxxx   Playfield Register Byte 1
+        (false, 0b_1111_1111, "PF2"),     // = $0F   xxxx xxxx   Playfield Register Byte 2
+        (false, 0b_0000_0000, "RESP0"),   // = $10   ---- ----   Reset Player 0
+        (false, 0b_0000_0000, "RESP1"),   // = $11   ---- ----   Reset Player 1
+        (false, 0b_0000_0000, "RESM0"),   // = $12   ---- ----   Reset Missle 0
+        (false, 0b_0000_0000, "RESM1"),   // = $13   ---- ----   Reset Missle 1
+        (false, 0b_0000_0000, "RESBL"),   // = $14   ---- ----   Reset Ball
+        (false, 0b_0000_1111, "AUDC0"),   // = $15   0000 xxxx   Audio Control 0
+        (false, 0b_0000_1111, "AUDC1"),   // = $16   0000 xxxx   Audio Control 1
+        (false, 0b_0001_1111, "AUDF0"),   // = $17   000x xxxx   Audio Frequency 0
+        (false, 0b_0001_1111, "AUDF1"),   // = $18   000x xxxx   Audio Frequency 1
+        (false, 0b_0000_1111, "AUDV0"),   // = $19   0000 xxxx   Audio Volume 0
+        (false, 0b_0000_1111, "AUDV1"),   // = $1A   0000 xxxx   Audio Volume 1
+        (false, 0b_1111_1111, "GRP0"),    // = $1B   xxxx xxxx   Graphics Register Player 0
+        (false, 0b_1111_1111, "GRP1"),    // = $1C   xxxx xxxx   Graphics Register Player 1
+        (false, 0b_0000_0010, "ENAM0"),   // = $1D   0000 00x0   Graphics Enable Missle 0
+        (false, 0b_0000_0010, "ENAM1"),   // = $1E   0000 00x0   Graphics Enable Missle 1
+        (false, 0b_0000_0010, "ENABL"),   // = $1F   0000 00x0   Graphics Enable Ball
+        (false, 0b_1111_0000, "HMP0"),    // = $20   xxxx 0000   Horizontal Motion Player 0
+        (false, 0b_1111_0000, "HMP1"),    // = $21   xxxx 0000   Horizontal Motion Player 1
+        (false, 0b_1111_0000, "HMM0"),    // = $22   xxxx 0000   Horizontal Motion Missle 0
+        (false, 0b_1111_0000, "HMM1"),    // = $23   xxxx 0000   Horizontal Motion Missle 1
+        (false, 0b_1111_0000, "HMBL"),    // = $24   xxxx 0000   Horizontal Motion Ball
+        (false, 0b_0000_0001, "VDELP0"),  // = $25   0000 000x   Vertical Delay Player 0
+        (false, 0b_0000_0001, "VDELP1"),  // = $26   0000 000x   Vertical Delay Player 1
+        (false, 0b_0000_0001, "VDELBL"),  // = $27   0000 000x   Vertical Delay Ball
+        (false, 0b_0000_0010, "RESMP0"),  // = $28   0000 00x0   Reset Missle 0 to Player 0
+        (false, 0b_0000_0010, "RESMP1"),  // = $29   0000 00x0   Reset Missle 1 to Player 1
+        (false, 0b_0000_0000, "HMOVE"),   // = $2A   ---- ----   Apply Horizontal Motion
+        (false, 0b_0000_0000, "HMCLR"),   // = $2B   ---- ----   Clear Horizontal Move Registers
+        (false, 0b_0000_0000, "CXCLR"),   // = $2C   ---- ----   Clear Collision Latches
+        (false, 0b_0000_0000, "????"),    // = $2D   ---- ----
+        (false, 0b_0000_0000, "????"),    // = $2E   ---- ----
+        (false, 0b_0000_0000, "????"),    // = $2F   ---- ----
+        (false, 0b_0000_0000, "????"),    // = $30   ---- ----
+        (false, 0b_0000_0000, "????"),    // = $31   ---- ----
+        (false, 0b_0000_0000, "????"),    // = $32   ---- ----
+        (false, 0b_0000_0000, "????"),    // = $33   ---- ----
+        (false, 0b_0000_0000, "????"),    // = $34   ---- ----
+        (false, 0b_0000_0000, "????"),    // = $35   ---- ----
+        (false, 0b_0000_0000, "????"),    // = $36   ---- ----
+        (false, 0b_0000_0000, "????"),    // = $37   ---- ----
+        (false, 0b_0000_0000, "????"),    // = $38   ---- ----
+        (false, 0b_0000_0000, "????"),    // = $39   ---- ----
+        (false, 0b_0000_0000, "????"),    // = $3A   ---- ----
+        (false, 0b_0000_0000, "????"),    // = $3B   ---- ----
+        (false, 0b_0000_0000, "????"),    // = $3C   ---- ----
+        (false, 0b_0000_0000, "????"),    // = $3D   ---- ----
+        (false, 0b_0000_0000, "????"),    // = $3E   ---- ----
+        (false, 0b_0000_0000, "????"),    // = $3F   ---- ----
     ];
 }
 
@@ -174,264 +174,136 @@ pub fn ntsc_tv_config() -> tv::TVConfig<NTSC_SCANLINES, NTSC_PIXELS_PER_SCANLINE
         3,
         37,
         192,
-        68,
+        160,
         // From https://www.randomterrain.com/atari-2600-memories-tia-color-charts.html
         [
-            0xFF000000,
-            0xFF000000,
-            0xFF1A1A1A,
-            0xFF1A1A1A,
-            0xFF393939,
-            0xFF393939,
-            0xFF5B5B5B,
-            0xFF5B5B5B,
-            0xFF7E7E7E,
-            0xFF7E7E7E,
-            0xFFA2A2A2,
-            0xFFA2A2A2,
-            0xFFC7C7C7,
-            0xFFC7C7C7,
-            0xFFEDEDED,
-            0xFFEDEDED,
-            0xFF190200,
-            0xFF190200,
-            0xFF3A1F00,
-            0xFF3A1F00,
-            0xFF5D4100,
-            0xFF5D4100,
-            0xFF826400,
-            0xFF826400,
-            0xFFA78800,
-            0xFFA78800,
-            0xFFCCAD00,
-            0xFFCCAD00,
-            0xFFF2D219,
-            0xFFF2D219,
-            0xFFFEFA40,
-            0xFFFEFA40,
-            0xFF370000,
-            0xFF370000,
-            0xFF5E0800,
-            0xFF5E0800,
-            0xFF832700,
-            0xFF832700,
-            0xFFA94900,
-            0xFFA94900,
-            0xFFCF6C00,
-            0xFFCF6C00,
-            0xFFF58F17,
-            0xFFF58F17,
-            0xFFFEB438,
-            0xFFFEB438,
-            0xFFFEDF6F,
-            0xFFFEDF6F,
-            0xFF470000,
-            0xFF470000,
-            0xFF730000,
-            0xFF730000,
-            0xFF981300,
-            0xFF981300,
-            0xFFBE3216,
-            0xFFBE3216,
-            0xFFE45335,
-            0xFFE45335,
-            0xFFFE7657,
-            0xFFFE7657,
-            0xFFFE9C81,
-            0xFFFE9C81,
-            0xFFFEC6BB,
-            0xFFFEC6BB,
-            0xFF440008,
-            0xFF440008,
-            0xFF6F001F,
-            0xFF6F001F,
-            0xFF960640,
-            0xFF960640,
-            0xFFBB2462,
-            0xFFBB2462,
-            0xFFE14585,
-            0xFFE14585,
-            0xFFFE67AA,
-            0xFFFE67AA,
-            0xFFFE8CD6,
-            0xFFFE8CD6,
-            0xFFFEB7F6,
-            0xFFFEB7F6,
-            0xFF2D004A,
-            0xFF2D004A,
-            0xFF570067,
-            0xFF570067,
-            0xFF7D058C,
-            0xFF7D058C,
-            0xFFA122B1,
-            0xFFA122B1,
-            0xFFC743D7,
-            0xFFC743D7,
-            0xFFED65FE,
-            0xFFED65FE,
-            0xFFFE8AF6,
-            0xFFFE8AF6,
-            0xFFFEB5F7,
-            0xFFFEB5F7,
-            0xFF0D0082,
-            0xFF0D0082,
-            0xFF3300A2,
-            0xFF3300A2,
-            0xFF550FC9,
-            0xFF550FC9,
-            0xFF782DF0,
-            0xFF782DF0,
-            0xFF9C4EFE,
-            0xFF9C4EFE,
-            0xFFC372FE,
-            0xFFC372FE,
-            0xFFEB98FE,
-            0xFFEB98FE,
-            0xFFFEC0F9,
-            0xFFFEC0F9,
-            0xFF000091,
-            0xFF000091,
-            0xFF0A05BD,
-            0xFF0A05BD,
-            0xFF2822E4,
-            0xFF2822E4,
-            0xFF4842FE,
-            0xFF4842FE,
-            0xFF6B64FE,
-            0xFF6B64FE,
-            0xFF908AFE,
-            0xFF908AFE,
-            0xFFB7B0FE,
-            0xFFB7B0FE,
-            0xFFDFD8FE,
-            0xFFDFD8FE,
-            0xFF000072,
-            0xFF000072,
-            0xFF001CAB,
-            0xFF001CAB,
-            0xFF033CD6,
-            0xFF033CD6,
-            0xFF205EFD,
-            0xFF205EFD,
-            0xFF4081FE,
-            0xFF4081FE,
-            0xFF64A6FE,
-            0xFF64A6FE,
-            0xFF89CEFE,
-            0xFF89CEFE,
-            0xFFB0F6FE,
-            0xFFB0F6FE,
-            0xFF00103A,
-            0xFF00103A,
-            0xFF00316E,
-            0xFF00316E,
-            0xFF0055A2,
-            0xFF0055A2,
-            0xFF0579C8,
-            0xFF0579C8,
-            0xFF239DEE,
-            0xFF239DEE,
-            0xFF44C2FE,
-            0xFF44C2FE,
-            0xFF68E9FE,
-            0xFF68E9FE,
-            0xFF8FFEFE,
-            0xFF8FFEFE,
-            0xFF001F02,
-            0xFF001F02,
-            0xFF004326,
-            0xFF004326,
-            0xFF006957,
-            0xFF006957,
-            0xFF008D7A,
-            0xFF008D7A,
-            0xFF1BB19E,
-            0xFF1BB19E,
-            0xFF3BD7C3,
-            0xFF3BD7C3,
-            0xFF5DFEE9,
-            0xFF5DFEE9,
-            0xFF86FEFE,
-            0xFF86FEFE,
-            0xFF002403,
-            0xFF002403,
-            0xFF004A05,
-            0xFF004A05,
-            0xFF00700C,
-            0xFF00700C,
-            0xFF09952B,
-            0xFF09952B,
-            0xFF28BA4C,
-            0xFF28BA4C,
-            0xFF49E06E,
-            0xFF49E06E,
-            0xFF6CFE92,
-            0xFF6CFE92,
-            0xFF97FEB5,
-            0xFF97FEB5,
-            0xFF002102,
-            0xFF002102,
-            0xFF004604,
-            0xFF004604,
-            0xFF086B00,
-            0xFF086B00,
-            0xFF289000,
-            0xFF289000,
-            0xFF49B509,
-            0xFF49B509,
-            0xFF6BDB28,
-            0xFF6BDB28,
-            0xFF8FFE49,
-            0xFF8FFE49,
-            0xFFBBFE69,
-            0xFFBBFE69,
-            0xFF001501,
-            0xFF001501,
-            0xFF103600,
-            0xFF103600,
-            0xFF305900,
-            0xFF305900,
-            0xFF537E00,
-            0xFF537E00,
-            0xFF76A300,
-            0xFF76A300,
-            0xFF9AC800,
-            0xFF9AC800,
-            0xFFBFEE1E,
-            0xFFBFEE1E,
-            0xFFE8FE3E,
-            0xFFE8FE3E,
-            0xFF1A0200,
-            0xFF1A0200,
-            0xFF3B1F00,
-            0xFF3B1F00,
-            0xFF5E4100,
-            0xFF5E4100,
-            0xFF836400,
-            0xFF836400,
-            0xFFA88800,
-            0xFFA88800,
-            0xFFCEAD00,
-            0xFFCEAD00,
-            0xFFF4D218,
-            0xFFF4D218,
-            0xFFFEFA40,
-            0xFFFEFA40,
-            0xFF380000,
-            0xFF380000,
-            0xFF5F0800,
-            0xFF5F0800,
-            0xFF842700,
-            0xFF842700,
-            0xFFAA4900,
-            0xFFAA4900,
-            0xFFD06B00,
-            0xFFD06B00,
-            0xFFF68F18,
-            0xFFF68F18,
-            0xFFFEB439,
-            0xFFFEB439,
-            0xFFFEDF70,
-            0xFFFEDF70,
+            0xFF000000, // $00
+            0xFF1A1A1A, // $02
+            0xFF393939, // $04
+            0xFF5B5B5B, // $06
+            0xFF7E7E7E, // $08
+            0xFFA2A2A2, // $0A
+            0xFFC7C7C7, // $0C
+            0xFFEDEDED, // $0E
+            0xFF190200, // $10
+            0xFF3A1F00, // $12
+            0xFF5D4100, // $14
+            0xFF826400, // $16
+            0xFFA78800, // $18
+            0xFFCCAD00, // $1A
+            0xFFF2D219, // $1C
+            0xFFFEFA40, // $1E
+            0xFF370000, // $20
+            0xFF5E0800, // $22
+            0xFF832700, // $24
+            0xFFA94900, // $26
+            0xFFCF6C00, // $28
+            0xFFF58F17, // $2A
+            0xFFFEB438, // $2C
+            0xFFFEDF6F, // $2E
+            0xFF470000, // $30
+            0xFF730000, // $32
+            0xFF981300, // $34
+            0xFFBE3216, // $36
+            0xFFE45335, // $38
+            0xFFFE7657, // $3A
+            0xFFFE9C81, // $3C
+            0xFFFEC6BB, // $3E
+            0xFF440008, // $40
+            0xFF6F001F, // $42
+            0xFF960640, // $44
+            0xFFBB2462, // $46
+            0xFFE14585, // $48
+            0xFFFE67AA, // $4A
+            0xFFFE8CD6, // $4C
+            0xFFFEB7F6, // $4E
+            0xFF2D004A, // $50
+            0xFF570067, // $52
+            0xFF7D058C, // $54
+            0xFFA122B1, // $56
+            0xFFC743D7, // $58
+            0xFFED65FE, // $5A
+            0xFFFE8AF6, // $5C
+            0xFFFEB5F7, // $5E
+            0xFF0D0082, // $60
+            0xFF3300A2, // $62
+            0xFF550FC9, // $64
+            0xFF782DF0, // $66
+            0xFF9C4EFE, // $68
+            0xFFC372FE, // $6A
+            0xFFEB98FE, // $6C
+            0xFFFEC0F9, // $6E
+            0xFF000091, // $70
+            0xFF0A05BD, // $72
+            0xFF2822E4, // $74
+            0xFF4842FE, // $76
+            0xFF6B64FE, // $78
+            0xFF908AFE, // $7A
+            0xFFB7B0FE, // $7C
+            0xFFDFD8FE, // $7E
+            0xFF000072, // $80
+            0xFF001CAB, // $82
+            0xFF033CD6, // $84
+            0xFF205EFD, // $86
+            0xFF4081FE, // $88
+            0xFF64A6FE, // $8A
+            0xFF89CEFE, // $8C
+            0xFFB0F6FE, // $8E
+            0xFF00103A, // $90
+            0xFF00316E, // $92
+            0xFF0055A2, // $94
+            0xFF0579C8, // $96
+            0xFF239DEE, // $98
+            0xFF44C2FE, // $9A
+            0xFF68E9FE, // $9C
+            0xFF8FFEFE, // $9E
+            0xFF001F02, // $A0
+            0xFF004326, // $A2
+            0xFF006957, // $A4
+            0xFF008D7A, // $A6
+            0xFF1BB19E, // $A8
+            0xFF3BD7C3, // $AA
+            0xFF5DFEE9, // $AC
+            0xFF86FEFE, // $AE
+            0xFF002403, // $B0
+            0xFF004A05, // $B2
+            0xFF00700C, // $B4
+            0xFF09952B, // $B6
+            0xFF28BA4C, // $B8
+            0xFF49E06E, // $BA
+            0xFF6CFE92, // $BC
+            0xFF97FEB5, // $BE
+            0xFF002102, // $C0
+            0xFF004604, // $C2
+            0xFF086B00, // $C4
+            0xFF289000, // $C6
+            0xFF49B509, // $C8
+            0xFF6BDB28, // $CA
+            0xFF8FFE49, // $CC
+            0xFFBBFE69, // $CE
+            0xFF001501, // $D0
+            0xFF103600, // $D2
+            0xFF305900, // $D4
+            0xFF537E00, // $D6
+            0xFF76A300, // $D8
+            0xFF9AC800, // $DA
+            0xFFBFEE1E, // $DC
+            0xFFE8FE3E, // $DE
+            0xFF1A0200, // $E0
+            0xFF3B1F00, // $E2
+            0xFF5E4100, // $E4
+            0xFF836400, // $E6
+            0xFFA88800, // $E8
+            0xFFCEAD00, // $EA
+            0xFFF4D218, // $EC
+            0xFFFEFA40, // $EE
+            0xFF380000, // $F0
+            0xFF5F0800, // $F2
+            0xFF842700, // $F4
+            0xFFAA4900, // $F6
+            0xFFD06B00, // $F8
+            0xFFF68F18, // $FA
+            0xFFFEB439, // $FC
+            0xFFFEDF70, // $FE
     ])
 }

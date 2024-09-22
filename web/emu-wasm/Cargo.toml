@@ -1,10 +1,10 @@
 [package]
 name = "rustella-wasm"
+edition = "2021"
+version = "0.1.0"
 description = "Atari 2600 Emulator written in Rust (wasm interface)"
 repository = "https://github.com/unrenormalizable/rustella/"
 license = "Attribution-NonCommercial-ShareAlike 4.0 International"
-version = "0.1.0"
-edition = "2021"
 authors = ["unrenormalizable <unrenormalizable@gmail.com>"]
 
 [lib]

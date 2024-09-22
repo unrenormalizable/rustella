@@ -16,19 +16,6 @@ impl NtscWebTV {
     pub fn new(render_frame_fn: JsValue) -> Self {
         let config = tia::ntsc_tv_config();
 
-        if config.pixels_per_scanline() != (config.hblank_pixels() + config.draw_pixels()) {
-            panic!("Config error. Pixels mismatch.")
-        }
-
-        if config.scanlines()
-            != (config.vsync_scanlines()
-                + config.vblank_scanlines()
-                + config.draw_scanlines()
-                + config.overscan_scanlines())
-        {
-            panic!("Config error. Scanlines mismatch.")
-        }
-
         Self {
             curr_scanline: 0,
             curr_pixel: 0,
@@ -37,21 +24,14 @@ impl NtscWebTV {
             render_frame_fn,
         }
     }
+}
 
-    fn render_pixel_core(&mut self, color: u8) {
-        if self.curr_scanline < self.config.vsync_scanlines() {
-            return;
-        }
-
-        if self.curr_pixel < self.config.hblank_pixels() {
-            return;
-        }
-
-        self.video_buffer[tia::NTSC_PIXELS_PER_SCANLINE * self.curr_scanline + self.curr_pixel] =
-            color;
+impl tia::TV<{ tia::NTSC_SCANLINES }, { tia::NTSC_PIXELS_PER_SCANLINE }> for NtscWebTV {
+    fn config(&self) -> &tia::TVConfig<{ tia::NTSC_SCANLINES }, { tia::NTSC_PIXELS_PER_SCANLINE }> {
+        &self.config
     }
 
-    fn send_scanline_to_js(&self) {
+    fn post_vsync(&self) {
         let js_pixel_arr = js_sys::Uint8Array::new_with_length(self.video_buffer.len() as u32);
         js_pixel_arr.copy_from(&self.video_buffer);
         self.render_frame_fn
@@ -60,26 +40,32 @@ impl NtscWebTV {
             .call1(&JsValue::null(), &js_pixel_arr)
             .unwrap();
     }
-}
 
-impl tia::TV<{ tia::NTSC_SCANLINES }, { tia::NTSC_PIXELS_PER_SCANLINE }> for NtscWebTV {
-    fn config(&self) -> &tia::TVConfig<{ tia::NTSC_SCANLINES }, { tia::NTSC_PIXELS_PER_SCANLINE }> {
-        &self.config
+    fn current_scanline(&self) -> usize {
+        self.curr_scanline
     }
 
-    fn render_pixel(&mut self, color: u8) {
-        self.render_pixel_core(color);
-
-        let offset = self.curr_pixel + 1;
-        self.curr_pixel = offset % tia::NTSC_PIXELS_PER_SCANLINE;
-        self.curr_scanline =
-            (self.curr_scanline + offset / tia::NTSC_PIXELS_PER_SCANLINE) % tia::NTSC_SCANLINES;
+    fn set_current_scanline(&mut self, scanline: usize) {
+        self.curr_scanline = scanline
     }
 
-    fn vsync(&mut self) {
-        self.curr_scanline = 0;
-        self.curr_pixel = 0;
-
-        self.send_scanline_to_js();
+    fn current_pixel(&self) -> usize {
+        self.curr_pixel
     }
+
+    fn set_current_pixel(&mut self, pixel: usize) {
+        self.curr_pixel = pixel
+    }
+
+    fn write_buffer(&mut self, color: u8) {
+        self.video_buffer
+            [tia::NTSC_PIXELS_PER_SCANLINE * self.current_scanline() + self.current_pixel()] =
+            color;
+    }
+
+    fn frame_counter(&self) -> u64 {
+        0
+    }
+
+    fn set_frame_counter(&mut self, _frames: u64) {}
 }

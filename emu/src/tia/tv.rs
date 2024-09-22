@@ -1,29 +1,56 @@
 use core::fmt::Debug;
 
-#[derive(Debug, Clone, Copy)]
-pub struct TVConfig<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> {
-    // Rows.
-    scanlines: usize,
-    vsync_scanlines: usize,
-    vblank_scanlines: usize,
-    draw_scanlines: usize,
-    overscan_scanlines: usize,
-    // Columns.
-    pixels_per_scanline: usize,
-    hblank_pixels: usize,
-    draw_pixels: usize,
-    // colors
-    color_map: [u32; 256],
-}
-
 pub trait TV<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> {
     fn config(&self) -> &TVConfig<SCANLINES, PIXELS_PER_SCANLINE>;
 
     /// Render current pixel with the given color.
-    fn render_pixel(&mut self, color: u8);
+    fn render_pixel(&mut self, color: u8) {
+        self.render_pixel_core(color);
+
+        let offset = self.current_pixel() + 1;
+        self.set_current_pixel(offset % self.config().pixels_per_scanline());
+        self.set_current_scanline(
+            (self.current_scanline() + offset / self.config().pixels_per_scanline())
+                % self.config().scanlines(),
+        );
+    }
+
+    fn render_pixel_core(&mut self, color: u8) {
+        if self.current_scanline() < self.config().vsync_scanlines() {
+            return;
+        }
+
+        if self.current_pixel() < self.config().hblank_pixels() {
+            return;
+        }
+
+        self.write_buffer(color);
+    }
 
     /// Initiate VSYNC.
-    fn vsync(&mut self);
+    fn vsync(&mut self) {
+        self.set_frame_counter(self.frame_counter() + 1);
+        self.set_current_scanline(0);
+        self.set_current_pixel(0);
+
+        self.post_vsync();
+    }
+
+    fn current_scanline(&self) -> usize;
+
+    fn set_current_scanline(&mut self, scanline: usize);
+
+    fn current_pixel(&self) -> usize;
+
+    fn set_current_pixel(&mut self, pixel: usize);
+
+    fn write_buffer(&mut self, color: u8);
+
+    fn post_vsync(&self);
+
+    fn frame_counter(&self) -> u64;
+
+    fn set_frame_counter(&mut self, frames: u64);
 }
 
 #[derive(Debug)]
@@ -50,19 +77,6 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
         pixel: usize,
         config: TVConfig<SCANLINES, PIXELS_PER_SCANLINE>,
     ) -> Self {
-        if config.pixels_per_scanline() != (config.hblank_pixels() + config.draw_pixels()) {
-            panic!("Config error. Pixels mismatch.")
-        }
-
-        if config.scanlines()
-            != (config.vsync_scanlines()
-                + config.vblank_scanlines()
-                + config.draw_scanlines()
-                + config.overscan_scanlines())
-        {
-            panic!("Config error. Scanlines mismatch.")
-        }
-
         Self {
             frame_counter: 0,
             curr_scanline: scanline,
@@ -77,24 +91,8 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
         self.buffer
     }
 
-    pub fn frame_counter(&self) -> u64 {
-        self.frame_counter
-    }
-
     pub fn duration(&self) -> u64 {
         self.duration
-    }
-
-    fn render_pixel_core(&mut self, color: u8) {
-        if self.curr_scanline < self.config.vsync_scanlines() {
-            return;
-        }
-
-        if self.curr_pixel < self.config.hblank_pixels() {
-            return;
-        }
-
-        self.buffer[self.curr_scanline][self.curr_pixel] = color;
     }
 }
 
@@ -105,18 +103,34 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> TV<SCANLINES, PIX
         &self.config
     }
 
-    fn render_pixel(&mut self, color: u8) {
-        self.render_pixel_core(color);
+    fn post_vsync(&self) {}
 
-        let offset = self.curr_pixel + 1;
-        self.curr_pixel = offset % PIXELS_PER_SCANLINE;
-        self.curr_scanline = (self.curr_scanline + offset / PIXELS_PER_SCANLINE) % SCANLINES;
+    fn current_scanline(&self) -> usize {
+        self.curr_scanline
     }
 
-    fn vsync(&mut self) {
-        self.frame_counter += 1;
-        self.curr_scanline = 0;
-        self.curr_pixel = 0;
+    fn set_current_scanline(&mut self, scanline: usize) {
+        self.curr_scanline = scanline
+    }
+
+    fn current_pixel(&self) -> usize {
+        self.curr_pixel
+    }
+
+    fn set_current_pixel(&mut self, pixel: usize) {
+        self.curr_pixel = pixel
+    }
+
+    fn write_buffer(&mut self, color: u8) {
+        self.buffer[self.current_scanline()][self.current_pixel()] = color;
+    }
+
+    fn frame_counter(&self) -> u64 {
+        self.frame_counter
+    }
+
+    fn set_frame_counter(&mut self, frames: u64) {
+        self.frame_counter = frames
     }
 }
 
@@ -124,18 +138,30 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> Default
     for TVConfig<SCANLINES, PIXELS_PER_SCANLINE>
 {
     fn default() -> Self {
-        Self {
-            scanlines: SCANLINES,
-            vsync_scanlines: 1,
-            vblank_scanlines: 0,
-            draw_scanlines: SCANLINES - 1,
-            overscan_scanlines: 0,
-            pixels_per_scanline: PIXELS_PER_SCANLINE,
-            hblank_pixels: 1,
-            draw_pixels: PIXELS_PER_SCANLINE - 1,
-            color_map: [0x00u32; 256],
-        }
+        TVConfig::<SCANLINES, PIXELS_PER_SCANLINE>::new(
+            1,
+            0,
+            SCANLINES - 1,
+            PIXELS_PER_SCANLINE - 1,
+            [0x00u32; 128],
+        )
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct TVConfig<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> {
+    // Rows.
+    scanlines: usize,
+    vsync_scanlines: usize,
+    vblank_scanlines: usize,
+    draw_scanlines: usize,
+    overscan_scanlines: usize,
+    // Columns.
+    pixels_per_scanline: usize,
+    hblank_pixels: usize,
+    draw_pixels: usize,
+    // colors
+    color_map: [u32; 128],
 }
 
 impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
@@ -145,24 +171,39 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
         vsync_scanlines: usize,
         vblank_scanlines: usize,
         draw_scanlines: usize,
-        hblank_pixels: usize,
-        color_map: [u32; 256],
+        draw_pixels: usize,
+        color_map: [u32; 128],
     ) -> Self {
-        Self {
+        let ret = Self {
             scanlines: SCANLINES,
             vsync_scanlines,
             vblank_scanlines,
             draw_scanlines,
             overscan_scanlines: SCANLINES - vsync_scanlines - vblank_scanlines - draw_scanlines,
             pixels_per_scanline: PIXELS_PER_SCANLINE,
-            hblank_pixels,
-            draw_pixels: PIXELS_PER_SCANLINE - hblank_pixels,
+            hblank_pixels: PIXELS_PER_SCANLINE - draw_pixels,
+            draw_pixels,
             color_map,
+        };
+
+        if ret.pixels_per_scanline() != (ret.hblank_pixels() + ret.draw_pixels()) {
+            panic!("Config error. Pixels mismatch.")
         }
+
+        if ret.scanlines()
+            != (ret.vsync_scanlines()
+                + ret.vblank_scanlines()
+                + ret.draw_scanlines()
+                + ret.overscan_scanlines())
+        {
+            panic!("Config error. Scanlines mismatch.")
+        }
+
+        ret
     }
 
     #[inline]
-    pub fn color_map(&self) -> &[u32; 256] {
+    pub fn color_map(&self) -> &[u32; 128] {
         &self.color_map
     }
 
