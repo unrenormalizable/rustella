@@ -11,6 +11,7 @@ pub mod timer;
 pub use atari::NtscAtari;
 
 pub mod bits {
+    pub const BIT_00: u8 = 0x00;
     pub const BIT_D0: u8 = 0x01 << 0;
     pub const BIT_D1: u8 = 0x01 << 1;
     pub const BIT_D2: u8 = 0x01 << 2;

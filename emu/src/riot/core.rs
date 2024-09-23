@@ -1,6 +1,6 @@
 use crate::{
     cmn::*,
-    riot::{cmn, mmaps, pia},
+    riot::{cmn, mmaps, IOT_MAX_ADDRESS, IOT_MIN_ADDRESS},
     tia,
 };
 use alloc::rc::Rc;
@@ -48,9 +48,7 @@ impl Memory {
 
         if self.tia.is_some() && addr <= tia::TIA_MAX_ADDRESS {
             self.tia.as_ref().unwrap().borrow().read(addr)
-        } else if self.iot.is_some()
-            && (pia::IOT_MIN_ADDRESS..=pia::IOT_MAX_ADDRESS).contains(&addr)
-        {
+        } else if self.iot.is_some() && (IOT_MIN_ADDRESS..=IOT_MAX_ADDRESS).contains(&addr) {
             self.iot.as_ref().unwrap().borrow_mut().read(addr)
         } else {
             self.data[addr]
@@ -63,9 +61,7 @@ impl Memory {
 
         if self.tia.is_some() && addr <= tia::TIA_MAX_ADDRESS {
             self.tia.as_ref().unwrap().borrow_mut().write(addr, value);
-        } else if self.iot.is_some()
-            && (pia::IOT_MIN_ADDRESS..=pia::IOT_MAX_ADDRESS).contains(&addr)
-        {
+        } else if self.iot.is_some() && (IOT_MIN_ADDRESS..=IOT_MAX_ADDRESS).contains(&addr) {
             self.iot.as_ref().unwrap().borrow_mut().write(addr, value);
         } else {
             self.data[addr] = value;

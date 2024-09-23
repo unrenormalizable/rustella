@@ -7,10 +7,7 @@ import { viteStaticCopy } from 'vite-plugin-static-copy'
 
 const targets = [...Array(3).keys()].map((i) => ({
   src: normalizePath(
-    path.resolve(
-      __dirname,
-      `../emu/tests/spiceware_collect/${i + 1}/collect.bin`
-    )
+    path.resolve(__dirname, `../emu/tests/spiceware_collect/${i + 1}/*.bin`)
   ),
   dest: `./${i + 1}`,
 }))

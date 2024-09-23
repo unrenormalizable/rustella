@@ -50,7 +50,8 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
         {
             0x00
         } else {
-            self.registers[cmn::regs::COLUBK]
+            pf::get_color(self.clk, &self.registers, &self.tv_cfg)
+                .unwrap_or(self.registers[cmn::regs::COLUBK])
         };
 
         self.tv.borrow_mut().render_pixel(color);
@@ -62,19 +63,17 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
 
     #[cfg(debug_assertions)]
     #[inline]
-    fn check_unsupported_register_flags(&self, addr: usize, val: u8) {
-        let (supported, _, name) = cmn::regs::IMPLEMENTED_REGISTERS[addr];
-
-        if let cmn::regs::VBLANK = addr {
-            assert!(
-                val & !bits::BIT_D1 == 0,
-                "{name} ({addr:02X}) for value 0x{addr:02X} is not implemented yet."
-            )
-        }
+    fn check_write_unsupported_register_flags(&self, addr: usize, val: u8) {
+        let (w, _, name, supported_write_mask) = cmn::regs::IMPLEMENTED_REGISTERS[addr];
 
         assert!(
-            val == 0x00 || supported,
-            "{name} ({addr:02X}) is not implemented yet, Value 0x{val:02X}."
+            w || val == 0x00, // NOTE: CLEAN_START macro sets everything to 0x00.
+            "{name} ({addr:02X}) is not implemented yet, Value 0b{val:08b}."
+        );
+
+        assert!(
+            val & !supported_write_mask == 0,
+            "{name} ({addr:02X}) for value 0b{val:08b} is not implemented yet. Supported bits 0b{supported_write_mask:08b}."
         )
     }
 }
@@ -96,16 +95,16 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> MemorySegment
     for InMemoryTIA<SCANLINES, PIXELS_PER_SCANLINE>
 {
     fn read(&self, addr: usize) -> u8 {
-        let (_, _, name) = cmn::regs::IMPLEMENTED_REGISTERS[addr];
+        let (_, _, name, _) = cmn::regs::IMPLEMENTED_REGISTERS[addr];
         todo!("Read for {name} ({addr:02X}) is not implemented yet.")
     }
 
     fn write(&mut self, addr: usize, val: u8) {
-        let (_, selector, _) = cmn::regs::IMPLEMENTED_REGISTERS[addr];
+        let (_, selector, _, _) = cmn::regs::IMPLEMENTED_REGISTERS[addr];
         let val = val & selector;
 
         #[cfg(debug_assertions)]
-        self.check_unsupported_register_flags(addr, val);
+        self.check_write_unsupported_register_flags(addr, val);
 
         if let cmn::regs::WSYNC = addr {
             self.rdy.set(LineState::Low);
@@ -280,5 +279,167 @@ mod tests {
 
     fn solid_display_config() -> TVConfig<5, 3> {
         TVConfig::<5, 3>::new(1, 1, 2, 2, [0x00; 128])
+    }
+}
+
+mod pf {
+    use super::*;
+
+    pub const PLAYFIELD_WIDTH: usize = 20;
+
+    pub static PLAYFIELD_MAP: &[(usize, u8); PLAYFIELD_WIDTH] = &[
+        (cmn::regs::PF0, bits::BIT_D4),
+        (cmn::regs::PF0, bits::BIT_D5),
+        (cmn::regs::PF0, bits::BIT_D6),
+        (cmn::regs::PF0, bits::BIT_D7),
+        (cmn::regs::PF1, bits::BIT_D7),
+        (cmn::regs::PF1, bits::BIT_D6),
+        (cmn::regs::PF1, bits::BIT_D5),
+        (cmn::regs::PF1, bits::BIT_D4),
+        (cmn::regs::PF1, bits::BIT_D3),
+        (cmn::regs::PF1, bits::BIT_D2),
+        (cmn::regs::PF1, bits::BIT_D1),
+        (cmn::regs::PF1, bits::BIT_D0),
+        (cmn::regs::PF2, bits::BIT_D0),
+        (cmn::regs::PF2, bits::BIT_D1),
+        (cmn::regs::PF2, bits::BIT_D2),
+        (cmn::regs::PF2, bits::BIT_D3),
+        (cmn::regs::PF2, bits::BIT_D4),
+        (cmn::regs::PF2, bits::BIT_D5),
+        (cmn::regs::PF2, bits::BIT_D6),
+        (cmn::regs::PF2, bits::BIT_D7),
+    ];
+
+    pub fn get_color<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>(
+        clk: usize,
+        registers: &[u8; cmn::TIA_MAX_ADDRESS + 1],
+        tv_cfg: &TVConfig<SCANLINES, PIXELS_PER_SCANLINE>,
+    ) -> Option<u8> {
+        if registers[cmn::regs::PF0] == 0x00
+            && registers[cmn::regs::PF1] == 0x00
+            && registers[cmn::regs::PF2] == 0x00
+        {
+            return None;
+        }
+
+        let half_screen = tv_cfg.draw_pixels() / 2;
+        let pixels_per_playfield_pixel = half_screen / PLAYFIELD_WIDTH;
+        let pixel = (clk - tv_cfg.hblank_pixels()) % half_screen;
+        let first_half = (clk - tv_cfg.hblank_pixels()) / half_screen == 0;
+
+        let mut map_index = pixel / pixels_per_playfield_pixel;
+        if !first_half && bits::tst_bits(registers[cmn::regs::CTRLPF], bits::BIT_D0) {
+            map_index = PLAYFIELD_WIDTH - map_index - 1;
+        };
+
+        let reg_info = PLAYFIELD_MAP[map_index];
+        if bits::tst_bits(registers[reg_info.0], reg_info.1) {
+            if bits::tst_bits(registers[cmn::regs::CTRLPF], bits::BIT_D1) {
+                if first_half {
+                    Some(registers[cmn::regs::COLUP0])
+                } else {
+                    Some(registers[cmn::regs::COLUP1])
+                }
+            } else {
+                Some(registers[cmn::regs::COLUPF])
+            }
+        } else {
+            None
+        }
+    }
+
+    #[cfg(test)]
+    #[allow(non_snake_case)]
+    mod tests {
+        use super::*;
+        use alloc::vec;
+        use alloc::vec::*;
+        use test_case::test_case;
+
+        type TestableTVConfig = TVConfig<3, { 2 * PLAYFIELD_WIDTH + 1 }>;
+
+        #[test]
+        fn test_no_pf() {
+            let cfg = TestableTVConfig::default();
+            let regs: [u8; cmn::TIA_MAX_ADDRESS + 1] = [0x00; cmn::TIA_MAX_ADDRESS + 1];
+            let x = get_color(68, &regs, &cfg);
+
+            assert_eq!(x, None)
+        }
+
+        #[test_case(0xAA, (0xF0, 0xFF, 0xFF), [Some(0xAA); PLAYFIELD_WIDTH]; "Full")]
+        #[test_case(0x1A, (0xA0, 0x55, 0xAA), [None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A)]; "Alternates")]
+        fn test_pf_patterns(col_pf: u8, pf: (u8, u8, u8), display: [Option<u8>; PLAYFIELD_WIDTH]) {
+            let cfg = TestableTVConfig::default();
+            let mut regs: [u8; cmn::TIA_MAX_ADDRESS + 1] = [0x00; cmn::TIA_MAX_ADDRESS + 1];
+            regs[cmn::regs::COLUPF] = col_pf;
+            regs[cmn::regs::PF0] = pf.0;
+            regs[cmn::regs::PF1] = pf.1;
+            regs[cmn::regs::PF2] = pf.2;
+
+            let obtained: Vec<_> = (1..21usize).map(|x| get_color(x, &regs, &cfg)).collect();
+
+            assert_eq!(obtained, display)
+        }
+
+        #[test_case(0x1A, (0xA0, 0x55, 0xAA), bits::BIT_00, [None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A)]; "Normal")]
+        #[test_case(0x55, (0xF0, 0xFC, 0x00), bits::BIT_D0, [Some(0x55), Some(0x55), Some(0x55), Some(0x55), Some(0x55), Some(0x55), Some(0x55), Some(0x55), Some(0x55), Some(0x55), None, None, None, None, None, None, None, None, None, None]; "Mirror")]
+        fn test_pf_ctrlpf_D0(
+            col_pf: u8,
+            pf: (u8, u8, u8),
+            ctrl_pf: u8,
+            display: [Option<u8>; PLAYFIELD_WIDTH],
+        ) {
+            let cfg = TestableTVConfig::default();
+            let mut regs: [u8; cmn::TIA_MAX_ADDRESS + 1] = [0x00; cmn::TIA_MAX_ADDRESS + 1];
+            regs[cmn::regs::CTRLPF] = ctrl_pf;
+            regs[cmn::regs::COLUPF] = col_pf;
+            regs[cmn::regs::PF0] = pf.0;
+            regs[cmn::regs::PF1] = pf.1;
+            regs[cmn::regs::PF2] = pf.2;
+
+            let left: Vec<_> = (1..21usize).map(|x| get_color(x, &regs, &cfg)).collect();
+            let mut right: Vec<_> = (21..41usize).map(|x| get_color(x, &regs, &cfg)).collect();
+            if ctrl_pf == bits::BIT_D0 {
+                right.reverse()
+            }
+
+            assert_eq!(left, display);
+            assert_eq!(right, display);
+        }
+
+        #[test_case((0x1A, 0x2A, 0x3A), (0xA0, 0x55, 0xAA), bits::BIT_00, vec![None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A)]; "PF color")]
+        #[test_case((0x1A, 0x2A, 0x3A), (0xA0, 0x55, 0xAA), bits::BIT_D1, vec![None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A)]; "Player colors")]
+        fn test_pf_ctrlpf_D1(
+            cols: (u8, u8, u8),
+            pf: (u8, u8, u8),
+            ctrl_pf: u8,
+            display: Vec<Option<u8>>,
+        ) {
+            let cfg = TestableTVConfig::default();
+            let mut regs: [u8; cmn::TIA_MAX_ADDRESS + 1] = [0x00; cmn::TIA_MAX_ADDRESS + 1];
+            regs[cmn::regs::CTRLPF] = ctrl_pf;
+            regs[cmn::regs::COLUPF] = cols.0;
+            regs[cmn::regs::COLUP0] = cols.1;
+            regs[cmn::regs::COLUP1] = cols.2;
+            regs[cmn::regs::PF0] = pf.0;
+            regs[cmn::regs::PF1] = pf.1;
+            regs[cmn::regs::PF2] = pf.2;
+
+            let left: Vec<_> = (1..21usize).map(|x| get_color(x, &regs, &cfg)).collect();
+            let right: Vec<_> = (21..41usize).map(|x| get_color(x, &regs, &cfg)).collect();
+            let display_right = if ctrl_pf == bits::BIT_D1 {
+                display
+                    .clone()
+                    .iter()
+                    .map(|col| col.map(|_| cols.2))
+                    .collect::<Vec<_>>()
+            } else {
+                display.clone()
+            };
+
+            assert_eq!(left, display);
+            assert_eq!(right, display_right);
+        }
     }
 }

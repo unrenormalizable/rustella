@@ -19,6 +19,13 @@ const roms = [
     url: '/3/collect.bin',
     start_addr: 0xf800,
   },
+  {
+    name: '8blit-s01e04-Playfield-01',
+    url: '/3/8blit-s01e04-Playfield-01.bin',
+    start_addr: 0xf000,
+    info_url:
+      'https://github.com/kreiach/8Blit/tree/main/s01e04%20-%20Playfield%20Registers',
+  },
 ]
 
 const TV_WIDTH = 228
