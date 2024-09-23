@@ -2,41 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import useSWR from 'swr'
 import init, { ntscColorMap, Atari } from 'rustella-wasm'
 import { fetcher } from '../utils'
-
-const roms = [
-  {
-    name: 'Step 1 - Generate a Stable Display',
-    url: '/1/collect.bin',
-    start_addr: 0xf800,
-  },
-  {
-    name: 'Step 2 - Timers',
-    url: '/2/collect.bin',
-    start_addr: 0xf800,
-  },
-  {
-    name: 'Step 3 - Score & Timer display',
-    url: '/3/collect.bin',
-    start_addr: 0xf800,
-  },
-  {
-    name: '8blit-s01e04-Playfield-01',
-    url: '/3/8blit-s01e04-Playfield-01.bin',
-    start_addr: 0xf000,
-    info_url:
-      'https://github.com/kreiach/8Blit/tree/main/s01e04%20-%20Playfield%20Registers',
-  },
-]
+import ROMS from '../roms'
 
 const TV_WIDTH = 228
 const TV_HEIGHT = 262
 
-const drawLine = (ctx, x1, y1, x2, y2, color) => {
-  ctx.beginPath()
-  ctx.moveTo(x1, y1)
-  ctx.lineTo(x2, y2)
-  ctx.strokeStyle = color
-  ctx.stroke()
+const fillRect = (ctx, x, y, w, h, color) => {
+  ctx.fillStyle = color
+  ctx.fillRect(x, y, w, h)
 }
 
 const renderFrame = (setTotalFrames, colorMap, context) => (pixels) => {
@@ -46,10 +19,10 @@ const renderFrame = (setTotalFrames, colorMap, context) => (pixels) => {
     buffer[i] = colorMap.map[pixels[i] / 2]
   }
   context.putImageData(data, 0, 0)
-  drawLine(context, 67, 0, 67, TV_HEIGHT, 'red')
-  drawLine(context, 0, 3, TV_WIDTH, 3, 'red')
-  drawLine(context, 0, 39, TV_WIDTH, 40, 'red')
-  drawLine(context, 0, 233, TV_WIDTH, 232, 'red')
+  fillRect(context, 68, 0, 160, 3, 'rgba(255, 0, 0, 0.3)')
+  fillRect(context, 68, 3, 160, 37, 'rgba(0, 255, 0, 0.3)')
+  fillRect(context, 68, 232, 160, 30, 'rgba(0, 0, 255, 0.3)')
+  fillRect(context, 0, 0, 68, 262, 'rgba(255, 255, 255, 0.3)')
   setTotalFrames((x) => x + 1)
 }
 
@@ -60,7 +33,7 @@ const TV = () => {
   const [totalTime, setTotalTime] = useState(0)
   const [totalFrames, setTotalFrames] = useState(0)
   const canvasRef = useRef(null)
-  const { data: romData } = useSWR(roms[selectedROM].url, fetcher, {
+  const { data: romData } = useSWR(ROMS[selectedROM].url, fetcher, {
     suspense: true,
   })
 
@@ -81,7 +54,7 @@ const TV = () => {
     const canvas = canvasRef.current
     const context = canvas.getContext('2d', { willReadFrequently: true })
     const atari = new Atari(renderFrame(setTotalFrames, colorMap, context))
-    atari.loadROM(roms[selectedROM].start_addr, new Uint8Array(romData))
+    atari.loadROM(ROMS[selectedROM].start_addr, new Uint8Array(romData))
 
     const interval = setInterval(() => {
       const start = Date.now()
@@ -94,21 +67,29 @@ const TV = () => {
     }
   }, [initialized, colorMap, selectedROM, romData])
 
-  const dropDownItems = roms.map((r, i) => (
-    <option key={r.name} value={i}>
-      {r.name}
-    </option>
-  ))
+  const dropDownItems = (type, startValue) =>
+    ROMS.filter((x) => x.type === type).map((r, i) => {
+      const suffix = r.size ? ` (${r.size}K)` : ''
+      return (
+        <option key={r.name} value={i + startValue}>
+          {`${r.name}${suffix}`}
+        </option>
+      )
+    })
 
   return (
     <div className="flex flex-col items-center">
-      <select
-        className="mb-1"
-        value={selectedROM}
-        onChange={(e) => setSelectedROM(e.target.value)}
-      >
-        {dropDownItems}
-      </select>{' '}
+      <div className="flex flex-row">
+        <select
+          className="mb-1"
+          value={selectedROM}
+          onChange={(e) => setSelectedROM(e.target.value)}
+        >
+          {dropDownItems('test', 0)}
+          <option disabled>──────────</option>
+          {dropDownItems('game', ROMS.filter((x) => x.type === 'test').length)}
+        </select>{' '}
+      </div>
       <canvas
         className="bg-black"
         style={{ transform: 'scale(2.0, 1.0)' }}
@@ -116,7 +97,7 @@ const TV = () => {
         height={TV_HEIGHT}
         ref={canvasRef}
       />
-      <figcaption className="mb-2 text-xs">{roms[selectedROM].name}</figcaption>
+      <figcaption className="mb-2 text-xs">{ROMS[selectedROM].name}</figcaption>
       <div>{`${String(Math.trunc((totalFrames * 1000) / totalTime)).padStart(3, '0')} fps`}</div>
     </div>
   )

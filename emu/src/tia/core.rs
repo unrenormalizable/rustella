@@ -63,6 +63,13 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
 
     #[cfg(debug_assertions)]
     #[inline]
+    fn check_read_unsupported_register_flags(&self, addr: usize) {
+        let (_, _, name, _) = cmn::regs::IMPLEMENTED_REGISTERS[addr];
+        todo!("Read for {name} ({addr:02X}) is not implemented yet.")
+    }
+
+    #[cfg(debug_assertions)]
+    #[inline]
     fn check_write_unsupported_register_flags(&self, addr: usize, val: u8) {
         let (w, _, name, supported_write_mask) = cmn::regs::IMPLEMENTED_REGISTERS[addr];
 
@@ -94,9 +101,11 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> TIA
 impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> MemorySegment
     for InMemoryTIA<SCANLINES, PIXELS_PER_SCANLINE>
 {
-    fn read(&self, addr: usize) -> u8 {
-        let (_, _, name, _) = cmn::regs::IMPLEMENTED_REGISTERS[addr];
-        todo!("Read for {name} ({addr:02X}) is not implemented yet.")
+    fn read(&self, _addr: usize) -> u8 {
+        #[cfg(debug_assertions)]
+        self.check_read_unsupported_register_flags(_addr);
+
+        0
     }
 
     fn write(&mut self, addr: usize, val: u8) {
