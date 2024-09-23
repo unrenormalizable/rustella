@@ -1,3 +1,4 @@
+/* eslint-disable no-bitwise */
 import { useEffect, useRef, useState } from 'react'
 import useSWR from 'swr'
 import init, { ntscColorMap, Atari } from 'rustella-wasm'
@@ -13,12 +14,20 @@ const fillRect = (ctx, x, y, w, h, color) => {
 }
 
 const renderFrame = (setTotalFrames, colorMap, context) => (pixels) => {
-  const data = context.createImageData(TV_WIDTH, TV_HEIGHT)
-  const buffer = new Uint32Array(data.data.buffer)
-  for (let i = 0; i < pixels.length; i += 1) {
-    buffer[i] = colorMap.map[pixels[i] / 2]
+  const imgData = context.createImageData(TV_WIDTH, TV_HEIGHT)
+
+  for (let x = 0; x < TV_WIDTH; x += 1) {
+    for (let y = 0; y < TV_HEIGHT; y += 1) {
+      const i = x * TV_WIDTH + y
+      const color = colorMap.map[pixels[i] / 2]
+      imgData.data[4 * i + 0] = (color >> 24) & 0xff
+      imgData.data[4 * i + 1] = (color >> 16) & 0xff
+      imgData.data[4 * i + 2] = (color >> 8) & 0xff
+      imgData.data[4 * i + 3] = 255
+    }
   }
-  context.putImageData(data, 0, 0)
+
+  context.putImageData(imgData, 0, 0)
   fillRect(context, 68, 0, 160, 3, 'rgba(255, 0, 0, 0.3)')
   fillRect(context, 68, 3, 160, 37, 'rgba(0, 255, 0, 0.3)')
   fillRect(context, 68, 232, 160, 30, 'rgba(0, 0, 255, 0.3)')
@@ -52,7 +61,7 @@ const TV = () => {
     }
 
     const canvas = canvasRef.current
-    const context = canvas.getContext('2d', { willReadFrequently: true })
+    const context = canvas.getContext('2d')
     const atari = new Atari(renderFrame(setTotalFrames, colorMap, context))
     atari.loadROM(ROMS[selectedROM].start_addr, new Uint8Array(romData))
 
