@@ -19,7 +19,7 @@ const renderFrame = (setTotalFrames, colorMap, context) => (pixels) => {
   for (let x = 0; x < TV_WIDTH; x += 1) {
     for (let y = 0; y < TV_HEIGHT; y += 1) {
       const i = x * TV_WIDTH + y
-      const color = colorMap.map[pixels[i] / 2]
+      const color = colorMap[pixels[i] / 2]
       imgData.data[4 * i + 0] = (color >> 24) & 0xff
       imgData.data[4 * i + 1] = (color >> 16) & 0xff
       imgData.data[4 * i + 2] = (color >> 8) & 0xff
@@ -38,7 +38,7 @@ const renderFrame = (setTotalFrames, colorMap, context) => (pixels) => {
 const TV = () => {
   const [selectedROM, setSelectedROM] = useState(0)
   const [initialized, setInitialized] = useState(false)
-  const [colorMap, setColorMap] = useState({})
+  const [colorMap, setColorMap] = useState([])
   const [totalTime, setTotalTime] = useState(0)
   const [totalFrames, setTotalFrames] = useState(0)
   const canvasRef = useRef(null)
@@ -51,7 +51,7 @@ const TV = () => {
       await init()
       setInitialized(true)
       setTotalTime(0)
-      setColorMap({ map: ntscColorMap() })
+      setColorMap(ntscColorMap())
     })()
   }, [])
 
@@ -63,7 +63,11 @@ const TV = () => {
     const canvas = canvasRef.current
     const context = canvas.getContext('2d')
     const atari = new Atari(renderFrame(setTotalFrames, colorMap, context))
-    atari.loadROM(ROMS[selectedROM].start_addr, new Uint8Array(romData))
+    atari.loadROM(
+      ROMS[selectedROM].name,
+      ROMS[selectedROM].start_addr,
+      new Uint8Array(romData)
+    )
 
     const interval = setInterval(() => {
       const start = Date.now()

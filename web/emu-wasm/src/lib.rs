@@ -42,13 +42,15 @@ impl Atari {
         let atari = NtscAtari::new(Rc::new(RefCell::new(tv)));
 
         ATARI.set(atari);
+        console_log!("Created new atari...");
 
         Self {}
     }
 
     #[wasm_bindgen(js_name = "loadROM")]
-    pub fn load_rom(&self, addr: u16, data: &[u8]) {
-        ATARI.with_borrow_mut(|a| a.load_rom(addr, data))
+    pub fn load_rom(&self, name: &str, addr: u16, data: &[u8]) {
+        ATARI.with_borrow_mut(|a| a.load_rom(addr, data));
+        console_log!("Loaded ROM {name} @{addr:04X}");
     }
 
     pub fn tick(&self, loops: usize) {

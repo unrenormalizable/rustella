@@ -5,3 +5,6 @@ members = [
     "hw_dbg",
     "web/emu-wasm",
 ]
+
+[profile.release]
+debug = true

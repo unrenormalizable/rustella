@@ -1,3 +1,6 @@
+mod common;
+
+use insta::*;
 use rustella::{cmn, tia, tia::TV, NtscAtari};
 use std::{cell::RefCell, fs, path::PathBuf, rc::Rc};
 
@@ -24,39 +27,8 @@ fn spiceware_collect_1_stable_display() {
 
     atari.tick(1000000);
 
-    let buffer = tv.borrow().buffer();
-    // TODO: This is a bug. It should be all zeros from 0..40
-    for sl in buffer.iter().take(42usize) {
-        assert_eq!(
-            sl,
-            &[0x00; tia::NTSC_PIXELS_PER_SCANLINE],
-            "vsync & vblank areas should have all values colubk = 0",
-        );
-    }
-    let mut colubk = 192;
-    // TODO: This is a bug. It should be all rainbows from from 40..232
-    for sl in buffer.iter().take(234usize).skip(42) {
-        assert_eq!(
-            &sl[0..67],
-            &[0x00; 67],
-            "scanline hblank area should have all values colubk = 0."
-        );
-        assert_eq!(
-            &sl[68..],
-            &[colubk & !0x1; 160],
-            "scanline draw area should have all values colubk = {colubk}.",
-        );
-        colubk -= 1;
-    }
-    for sl in buffer.iter().skip(234) {
-        assert_eq!(
-            sl,
-            &[0x00; tia::NTSC_PIXELS_PER_SCANLINE],
-            "overscan area should have all values colubk = 0.",
-        );
-    }
-
+    assert_debug_snapshot!(common::serialize_tv_buffer(&tv.borrow().buffer()));
     assert_eq!(tv.borrow().frame_counter(), 55);
-
+    assert_eq!(atari.cpu_state().cycles(), 151997);
     assert_eq!(atari.cpu_state().pc(), cmn::LoHi(0x4D, 0xF8));
 }

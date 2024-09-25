@@ -1,4 +1,6 @@
-use insta::assert_debug_snapshot;
+mod common;
+
+use insta::*;
 use rustella::{cmn, tia, tia::TV, NtscAtari};
 use std::{cell::RefCell, fs, path::PathBuf, rc::Rc};
 
@@ -25,8 +27,8 @@ fn spiceware_collect_3_score_timer_display() {
 
     atari.tick(1000000);
 
-    let buffer = tv.borrow().buffer();
-    assert_debug_snapshot!(buffer);
+    assert_debug_snapshot!(common::serialize_tv_buffer(&tv.borrow().buffer()));
     assert_eq!(tv.borrow().frame_counter(), 57);
+    assert_eq!(atari.cpu_state().cycles(), 205431);
     assert_eq!(atari.cpu_state().pc(), cmn::LoHi(0x9D, 0xF8));
 }
