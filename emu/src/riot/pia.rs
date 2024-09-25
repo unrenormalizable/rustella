@@ -38,20 +38,19 @@ impl MemorySegment for InMemory6532 {
     }
 
     fn write(&mut self, addr: usize, val: u8) {
-        let (_, _, name, supported_write_mask) =
-            regs::IMPLEMENTED_REGISTERS[addr - IOT_MIN_ADDRESS];
-
         #[cfg(debug_assertions)]
         self.check_write_unsupported_register_flags(addr, val);
 
-        (self.timer_count, self.timer_factor) = match addr {
-            regs::TIM1T => (val, 1),
-            regs::TIM8T => (val, 8),
-            regs::TIM64T => (val, 64),
-            regs::T1024T => (val, 1024),
-            _ => panic!("Should have failed in check_write_unsupported_register_flags. Reg {name}, supported bits: {supported_write_mask:08b}, val: {val:08b}."),
-        };
-        self.timer_clk = self.timer_count as usize * self.timer_factor as usize;
+        if (regs::TIM1T..=regs::T1024T).contains(&addr) {
+            (self.timer_count, self.timer_factor) = match addr {
+                regs::TIM1T => (val, 1),
+                regs::TIM8T => (val, 8),
+                regs::TIM64T => (val, 64),
+                regs::T1024T => (val, 1024),
+                _ => panic!("Invalid case. Should not happen."),
+            };
+            self.timer_clk = self.timer_count as usize * self.timer_factor as usize;
+        }
     }
 }
 

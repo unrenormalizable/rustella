@@ -20,8 +20,6 @@ pub trait TIA: MemorySegment {
 pub struct InMemoryTIA<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> {
     /// 0..PIXELS_PER_SCANLINE
     clk: usize,
-    /// 0..(PIXELS_PER_SCANLINE / 4)
-    hcount: usize,
     registers: [u8; cmn::TIA_MAX_ADDRESS + 1],
     tv: Rc<RefCell<dyn TV<SCANLINES, PIXELS_PER_SCANLINE>>>,
     tv_cfg: TVConfig<SCANLINES, PIXELS_PER_SCANLINE>,
@@ -36,7 +34,6 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
         let tv_cfg = *tv.borrow().config();
         Self {
             clk: 0,
-            hcount: 0,
             registers: [0x00; cmn::TIA_MAX_ADDRESS + 1],
             tv,
             tv_cfg,
@@ -93,7 +90,6 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> TIA
             self.tick_core();
 
             self.clk = (self.clk + 1) % self.tv.borrow().config().pixels_per_scanline();
-            self.hcount = self.clk / 4;
         }
     }
 }

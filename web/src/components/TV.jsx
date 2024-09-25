@@ -1,9 +1,11 @@
 /* eslint-disable no-bitwise */
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import useSWR from 'swr'
 import init, { ntscColorMap, Atari } from 'rustella-wasm'
-import { fetcher } from '../utils'
+import { fetcher, getStartAddress } from '../utils'
 import ROMS from '../roms'
+import RomUploader from './RomUploader'
 
 const TV_WIDTH = 228
 const TV_HEIGHT = 262
@@ -35,39 +37,62 @@ const renderFrame = (setTotalFrames, colorMap, context) => (pixels) => {
   setTotalFrames((x) => x + 1)
 }
 
+const defaultUploadedRomInfo = { name: '', data: new Uint8Array() }
+
 const TV = () => {
-  const [selectedROM, setSelectedROM] = useState(0)
-  const [initialized, setInitialized] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const canvasRef = useRef(null)
+  const [wasmInitialized, setWasmInitialized] = useState(false)
   const [colorMap, setColorMap] = useState([])
   const [totalTime, setTotalTime] = useState(0)
   const [totalFrames, setTotalFrames] = useState(0)
-  const canvasRef = useRef(null)
-  const { data: romData } = useSWR(ROMS[selectedROM].url, fetcher, {
+  const [selectedStockRomId, setSelectedStockRomId] = useState(0)
+  const [uploadedRomInfo, setUploadedRomInfo] = useState(defaultUploadedRomInfo)
+  const [romName, setRomName] = useState('')
+  const { data: stockRomData } = useSWR(ROMS[selectedStockRomId].url, fetcher, {
     suspense: true,
   })
 
   useEffect(() => {
     ;(async () => {
       await init()
-      setInitialized(true)
-      setTotalTime(0)
+      setWasmInitialized(true)
       setColorMap(ntscColorMap())
     })()
   }, [])
 
   useEffect(() => {
-    if (!initialized) {
+    if (!wasmInitialized) {
+      return
+    }
+
+    const id = parseInt(searchParams.get('id'), 10)
+    setSelectedStockRomId(Number.isNaN(id) ? 0 : id)
+  }, [wasmInitialized, searchParams])
+
+  useEffect(() => {
+    if (!wasmInitialized) {
       return () => {}
     }
 
+    const romData = uploadedRomInfo.data.length
+      ? uploadedRomInfo.data
+      : stockRomData
+    setRomName(
+      uploadedRomInfo.data.length
+        ? `${uploadedRomInfo.name} (uploaded)`
+        : ROMS[selectedStockRomId].name
+    )
+    const startAddr = uploadedRomInfo.data.length
+      ? getStartAddress(uploadedRomInfo.data.length)
+      : ROMS[selectedStockRomId].start_addr
+
+    setTotalTime(0)
+    setTotalFrames(0)
     const canvas = canvasRef.current
     const context = canvas.getContext('2d')
     const atari = new Atari(renderFrame(setTotalFrames, colorMap, context))
-    atari.loadROM(
-      ROMS[selectedROM].name,
-      ROMS[selectedROM].start_addr,
-      new Uint8Array(romData)
-    )
+    atari.loadROM(romName, startAddr, new Uint8Array(romData))
 
     const interval = setInterval(() => {
       const start = Date.now()
@@ -78,9 +103,16 @@ const TV = () => {
     return () => {
       clearInterval(interval)
     }
-  }, [initialized, colorMap, selectedROM, romData])
+  }, [
+    wasmInitialized,
+    colorMap,
+    romName,
+    selectedStockRomId,
+    stockRomData,
+    uploadedRomInfo,
+  ])
 
-  const dropDownItems = (type, startValue) =>
+  const stockRomDropDownItems = (type, startValue) =>
     ROMS.filter((x) => x.type === type).map((r, i) => {
       const suffix = r.size ? ` (${r.size}K)` : ''
       return (
@@ -92,16 +124,30 @@ const TV = () => {
 
   return (
     <div className="flex flex-col items-center">
-      <div className="flex flex-row">
+      <div className="mb-1 flex flex-row">
         <select
-          className="mb-1"
-          value={selectedROM}
-          onChange={(e) => setSelectedROM(e.target.value)}
+          value={selectedStockRomId}
+          onChange={(e) => {
+            const id = e.target.value
+            setSearchParams({ id })
+            setSelectedStockRomId(id)
+            setUploadedRomInfo(defaultUploadedRomInfo)
+          }}
         >
-          {dropDownItems('test', 0)}
+          {stockRomDropDownItems('test', 0)}
           <option disabled>──────────</option>
-          {dropDownItems('game', ROMS.filter((x) => x.type === 'test').length)}
-        </select>{' '}
+          {stockRomDropDownItems(
+            'game',
+            ROMS.filter((x) => x.type === 'test').length
+          )}
+        </select>
+        <div className="mx-4">OR</div>
+        <RomUploader
+          setRomInfo={(x) => {
+            // setSearchParams({})
+            setUploadedRomInfo(x)
+          }}
+        />
       </div>
       <canvas
         className="bg-black"
@@ -110,7 +156,7 @@ const TV = () => {
         height={TV_HEIGHT}
         ref={canvasRef}
       />
-      <figcaption className="mb-2 text-xs">{ROMS[selectedROM].name}</figcaption>
+      <figcaption className="mb-2 text-xs">{romName}</figcaption>
       <div>{`${String(Math.trunc((totalFrames * 1000) / totalTime)).padStart(3, '0')} fps`}</div>
     </div>
   )

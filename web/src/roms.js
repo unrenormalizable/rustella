@@ -1,3 +1,5 @@
+import { getStartAddress } from './utils'
+
 const TEST_ROMS = [
   {
     name: 'Step 1 - Generate a Stable Display',
@@ -469,7 +471,7 @@ const GAMES = [
     ...x,
     type: 'game',
     url: `https://ksapplications.blob.core.windows.net/atari-roms/${x.name}.bin`,
-    start_addr: x.size === 2 ? 0xf800 : 0xf000,
+    start_addr: getStartAddress(x.size * 1024),
   }))
 
 TEST_ROMS.push(...GAMES)

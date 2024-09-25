@@ -22,3 +22,5 @@ export const fetcher = async (url) => {
   const bin = await res.arrayBuffer()
   return bin
 }
+
+export const getStartAddress = (romSize) => (romSize > 2048 ? 0xf000 : 0xf800)
