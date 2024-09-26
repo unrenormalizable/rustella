@@ -1,7 +1,7 @@
 use crate::{bits, timer};
 use crate::{
     cmn::*,
-    cpu::{cmn, opc_impl, opc_info},
+    cpu::{cmn, opc_impl::*, opc_info},
     riot::Memory,
 };
 use bitflags::bitflags;
@@ -55,6 +55,8 @@ pub struct MOS6502 {
     P: PSR,
     // Other pins.
     rdy: Line,
+    // Clock cycle bookkeeping
+    execution_state: ExecutionState,
     // Profiling stuff, maybe move them elsewhere?
     instructions: u64,
     cycles: usize,
@@ -72,12 +74,18 @@ impl core::fmt::Debug for MOS6502 {
 /// References (use multiple to cross check implementation):
 /// - https://www.masswerk.at/6502/6502_instruction_set.html
 /// - https://www.pagetable.com/c64ref/6502/
-pub type OpCode = dyn Fn(&mut MOS6502, &mut Memory, u8, LoHi) -> Option<LoHi>;
+pub type OpCodeFn = dyn Fn(&mut MOS6502, &mut Memory) -> Option<LoHi>;
+
+pub type OpCodeStepFn = dyn Fn(&mut MOS6502, &mut Memory) -> bool;
 
 impl MOS6502 {
     pub fn new(rdy: Line, mem: &Memory) -> Self {
         let mut cpu = Self {
             rdy,
+            execution_state: ExecutionState {
+                done: true,
+                ..Default::default()
+            },
             ..Default::default()
         };
         cpu.reset_pc(mem);
@@ -92,6 +100,7 @@ impl MOS6502 {
         self.PC = LoHi(pc_lo, pc_hi);
     }
 
+    /// Refer: https://www.nesdev.org/6502_cpu.txt
     #[inline]
     pub fn tick(&mut self, mem: &mut Memory) -> usize {
         if let LineState::Low = self.rdy.get() {
@@ -99,20 +108,45 @@ impl MOS6502 {
         }
 
         let start_time = timer::get_nanoseconds();
-        let opc = mem.get(self.PC, 0);
-        let res = opc_impl::ALL_OPCODE_ROUTINES[opc as usize](self, mem, opc, self.PC);
-        if let Some(lohi) = res {
-            self.PC = lohi;
-        } else {
-            self.pc_incr(opc_info::ALL[opc as usize].bytes);
+        let opc = mem.get(self.PC, 0) as usize;
+        // Clock cycle inaccurate code path.
+        if self.execution_state.done && !NEW_CODE_PATH[opc] {
+            let res = ALL_OPCODE_ROUTINES[opc](self, mem);
+            if let Some(lohi) = res {
+                self.PC = lohi;
+            } else {
+                self.pc_incr(opc_info::ALL[opc].bytes);
+            }
+
+            let cycles = opc_info::ALL[opc].cycles;
+            self.instructions += 1;
+            self.cycles += cycles;
+            self.duration += timer::measure_elapsed(start_time);
+
+            return cycles;
         }
 
-        let cycles = opc_info::ALL[opc as usize].cycles;
-        self.instructions += 1;
-        self.cycles += cycles;
-        self.duration += timer::measure_elapsed(start_time);
+        // Clock cycle accurate code path.
+        self.execution_state.done = if self.execution_state.done {
+            // This is the same Step 0 for all opcodes.
+            let opc = mem.get(self.PC, 0) as usize;
+            self.pc_incr(1);
 
-        cycles
+            self.execution_state.opc = opc;
+            self.execution_state.step = 0;
+
+            false
+        } else {
+            ALL_OPCODE_STEPS[self.execution_state.opc][self.execution_state.step](self, mem)
+        };
+
+        self.execution_state.step += 1;
+        if self.execution_state.done {
+            self.instructions += 1;
+        }
+        self.cycles += 1;
+        self.duration += timer::measure_elapsed(start_time);
+        1
     }
 
     #[inline]
@@ -190,22 +224,61 @@ impl MOS6502 {
         self.PC = val;
     }
 
+    #[inline]
+    pub fn execution_state(&mut self) -> &mut ExecutionState {
+        &mut self.execution_state
+    }
+
+    #[inline]
     pub fn instructions(&self) -> u64 {
         self.instructions
     }
 
+    #[inline]
     pub fn cycles(&self) -> usize {
         self.cycles
     }
 
+    #[inline]
     pub fn duration(&self) -> u64 {
         let overhead = timer::measure_overhead();
         self.duration.saturating_sub(self.instructions * overhead)
     }
 
     #[inline]
-    fn pc_incr(&mut self, index: u8) {
+    pub fn pc_incr(&mut self, index: u8) {
         self.PC += index;
+    }
+}
+
+#[derive(Default, Clone)]
+pub struct ExecutionState {
+    opc: usize,
+    done: bool,
+    step: usize,
+    throw_away: u8,
+    regs: [u8; 2],
+}
+
+impl ExecutionState {
+    #[inline]
+    pub fn opc(&self) -> usize {
+        self.opc
+    }
+
+    #[inline]
+    pub fn step(&self) -> usize {
+        self.step
+    }
+
+    #[inline]
+    pub fn regs(&mut self) -> &mut [u8; 2] {
+        &mut self.regs
+    }
+
+    #[inline]
+    pub fn set_throw_away(&mut self, val: u8) {
+        self.throw_away = val
     }
 }
 

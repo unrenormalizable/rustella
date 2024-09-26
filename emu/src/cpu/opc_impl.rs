@@ -2,17 +2,22 @@
 
 use crate::bits;
 use crate::cmn::LoHi;
-use crate::cpu::{am, cmn::IRQ_VECTOR, core::*};
+use crate::cpu::{am, cmn::IRQ_VECTOR, core::*, opc_info};
 use crate::riot::Memory;
 
-fn illegal(cpu: &mut MOS6502, _: &mut Memory, opc: u8, _: LoHi) -> Option<LoHi> {
-    unimplemented!("Illegal opcode {opc:02X}. CPU state: {cpu:?}")
+fn illegal(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let opc = mem.get(cpu.pc(), 0);
+    let opc_info = &opc_info::ALL[opc as usize];
+    unimplemented!(
+        "Illegal opcode {opc:02X} ({}). CPU state: {cpu:?}",
+        opc_info.assembler
+    )
 }
 
 /// The break instruction (BRK) behaves like a NMI, but will push the value of PC+2 onto the stack to be used as the return address.
 /// It will also set the I flag. See http://6502.org/tutorials/interrupts.html#2.2.
 /// 0x00 | impl | BRK
-fn BRK_impl(cpu: &mut MOS6502, mem: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn BRK_impl(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
     stack::push_interrupt_call_stack(cpu, mem, cpu.pc() + 2);
     cpu.set_psr_bit(PSR::I);
 
@@ -23,7 +28,8 @@ fn BRK_impl(cpu: &mut MOS6502, mem: &mut Memory, _: u8, _: LoHi) -> Option<LoHi>
 }
 
 /// 0x01 | (ind,X) | ORA (oper,X)
-fn ORA_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ORA_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::pre_indexed_indirect::load(mem, pc, cpu.x());
 
@@ -37,7 +43,8 @@ fn ORA_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option
 }
 
 /// 0x05 | zpg | ORA oper
-fn ORA_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ORA_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::zero_page::load(mem, pc);
 
@@ -51,7 +58,8 @@ fn ORA_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0x06 | zpg | ASL oper
-fn ASL_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ASL_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let old_v = am::zero_page::load(mem, pc);
     let new_v = old_v << 1;
     am::zero_page::store(mem, pc, new_v);
@@ -64,14 +72,15 @@ fn ASL_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0x08 | impl | PHP
-fn PHP_impl(cpu: &mut MOS6502, mem: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn PHP_impl(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
     stack::push_psr(cpu, mem);
 
     None
 }
 
 /// 0x09 | # | ORA #oper
-fn ORA_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ORA_imme(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::immediate::load(mem, pc);
 
@@ -85,7 +94,7 @@ fn ORA_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi
 }
 
 /// 0x0A | A | ASL A
-fn ASL_A(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn ASL_A(cpu: &mut MOS6502, _: &mut Memory) -> Option<LoHi> {
     let old_v = cpu.a();
     let new_v = old_v << 1;
     cpu.set_a(new_v);
@@ -98,7 +107,8 @@ fn ASL_A(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
 }
 
 /// 0x0D | abs | ORA oper
-fn ORA_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ORA_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::absolute::load(mem, pc);
 
@@ -112,7 +122,8 @@ fn ORA_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0x0E | abs | ASL oper
-fn ASL_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ASL_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let old_v = am::absolute::load(mem, pc);
     let new_v = old_v << 1;
     am::absolute::store(mem, pc, new_v);
@@ -124,17 +135,9 @@ fn ASL_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
     None
 }
 
-/// 0x10 | rel | BPL oper
-fn BPL_rel(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
-    if !cpu.tst_psr_bit(PSR::N) {
-        return Some(am::relative::load(mem, pc));
-    }
-
-    None
-}
-
 /// 0x11 | (ind),Y | ORA (oper),Y
-fn ORA_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ORA_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::post_indexed_indirect::load(mem, pc, cpu.y());
 
@@ -148,7 +151,8 @@ fn ORA_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option
 }
 
 /// 0x15 | zpg,X | ORA oper,X
-fn ORA_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ORA_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::indexed_zero_page::load(mem, pc, cpu.x());
 
@@ -162,7 +166,8 @@ fn ORA_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0x16 | zpg,X | ASL oper,X
-fn ASL_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ASL_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let old_v = am::indexed_zero_page::load(mem, pc, cpu.x());
     let new_v = old_v << 1;
     am::indexed_zero_page::store(mem, pc, cpu.x(), new_v);
@@ -175,14 +180,15 @@ fn ASL_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0x18 | impl | CLC
-fn CLC_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn CLC_impl(cpu: &mut MOS6502, _: &mut Memory) -> Option<LoHi> {
     cpu.clr_psr_bit(PSR::C);
 
     None
 }
 
 /// 0x19 | abs,Y | ORA oper,Y
-fn ORA_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ORA_abs_Y(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::indexed_absolute::load(mem, pc, cpu.y());
 
@@ -196,7 +202,8 @@ fn ORA_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0x1D | abs,X | ORA oper,X
-fn ORA_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ORA_abs_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::indexed_absolute::load(mem, pc, cpu.x());
 
@@ -210,7 +217,8 @@ fn ORA_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0x1E | abs,X | ASL oper,X
-fn ASL_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ASL_abs_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let old_v = am::indexed_absolute::load(mem, pc, cpu.x());
     let new_v = old_v << 1;
     am::indexed_absolute::store(mem, pc, cpu.x(), new_v);
@@ -223,7 +231,8 @@ fn ASL_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0x20 | abs | JSR oper
-fn JSR_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn JSR_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let ret_addr = pc + 2;
     stack::push(cpu, mem, ret_addr.1);
     stack::push(cpu, mem, ret_addr.0);
@@ -232,7 +241,8 @@ fn JSR_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0x21 | (ind,X) | AND (oper,X)
-fn AND_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn AND_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::pre_indexed_indirect::load(mem, pc, cpu.x());
 
@@ -246,7 +256,8 @@ fn AND_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option
 }
 
 /// 0x24 | zpg | BIT oper
-fn BIT_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn BIT_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v2 = am::zero_page::load(mem, pc);
 
     adder::bit_core(cpu, v2);
@@ -255,7 +266,8 @@ fn BIT_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0x25 | zpg | AND oper
-fn AND_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn AND_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::zero_page::load(mem, pc);
 
@@ -269,7 +281,8 @@ fn AND_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0x26 | zpg | ROL oper
-fn ROL_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ROL_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let old_v = am::zero_page::load(mem, pc);
     let new_v = adder::rol_core(cpu, old_v);
     am::zero_page::store(mem, pc, new_v);
@@ -282,14 +295,15 @@ fn ROL_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0x28 | impl | PLP
-fn PLP_impl(cpu: &mut MOS6502, mem: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn PLP_impl(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
     stack::pop_psr(cpu, mem);
 
     None
 }
 
 /// 0x29 | # | AND #oper
-fn AND_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn AND_imme(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::immediate::load(mem, pc);
 
@@ -303,7 +317,7 @@ fn AND_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi
 }
 
 /// 0x2A | A | ROL A
-fn ROL_A(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn ROL_A(cpu: &mut MOS6502, _: &mut Memory) -> Option<LoHi> {
     let old_v = cpu.a();
     let new_v = adder::rol_core(cpu, old_v);
     cpu.set_a(new_v);
@@ -316,7 +330,8 @@ fn ROL_A(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
 }
 
 /// 0x2C | abs | BIT oper
-fn BIT_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn BIT_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v2 = am::absolute::load(mem, pc);
 
     adder::bit_core(cpu, v2);
@@ -325,7 +340,8 @@ fn BIT_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0x2D | abs | AND oper
-fn AND_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn AND_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::absolute::load(mem, pc);
 
@@ -339,7 +355,8 @@ fn AND_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0x2E | abs | ROL oper
-fn ROL_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ROL_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let old_v = am::absolute::load(mem, pc);
     let new_v = adder::rol_core(cpu, old_v);
     am::absolute::store(mem, pc, new_v);
@@ -351,17 +368,9 @@ fn ROL_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
     None
 }
 
-/// 0x30 | rel | BMI oper
-fn BMI_rel(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
-    if cpu.tst_psr_bit(PSR::N) {
-        return Some(am::relative::load(mem, pc));
-    }
-
-    None
-}
-
 /// 0x31 | (ind),Y | AND (oper),Y
-fn AND_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn AND_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::post_indexed_indirect::load(mem, pc, cpu.y());
 
@@ -375,7 +384,8 @@ fn AND_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option
 }
 
 /// 0x35 | zpg,X | AND oper,X
-fn AND_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn AND_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::indexed_zero_page::load(mem, pc, cpu.x());
 
@@ -389,7 +399,8 @@ fn AND_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0x36 | zpg,X | ROL oper,X
-fn ROL_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ROL_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let old_v = am::indexed_zero_page::load(mem, pc, cpu.x());
     let new_v = adder::rol_core(cpu, old_v);
     am::indexed_zero_page::store(mem, pc, cpu.x(), new_v);
@@ -402,14 +413,15 @@ fn ROL_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0x38 | impl | SEC
-fn SEC_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn SEC_impl(cpu: &mut MOS6502, _: &mut Memory) -> Option<LoHi> {
     cpu.set_psr_bit(PSR::C);
 
     None
 }
 
 /// 0x39 | abs,Y | AND oper,Y
-fn AND_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn AND_abs_Y(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::indexed_absolute::load(mem, pc, cpu.y());
 
@@ -423,7 +435,8 @@ fn AND_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0x3D | abs,X | AND oper,X
-fn AND_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn AND_abs_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::indexed_absolute::load(mem, pc, cpu.x());
 
@@ -437,7 +450,8 @@ fn AND_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0x3E | abs,X | ROL oper,X
-fn ROL_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ROL_abs_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let old_v = am::indexed_absolute::load(mem, pc, cpu.x());
     let new_v = adder::rol_core(cpu, old_v);
     am::indexed_absolute::store(mem, pc, cpu.x(), new_v);
@@ -450,14 +464,15 @@ fn ROL_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0x40 | impl | RTI
-fn RTI_impl(cpu: &mut MOS6502, mem: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn RTI_impl(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
     let ret_addr = stack::pop_interrupt_call_stack(cpu, mem);
 
     Some(ret_addr)
 }
 
 /// 0x41 | (ind,X) | EOR (oper,X)
-fn EOR_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn EOR_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::pre_indexed_indirect::load(mem, pc, cpu.x());
 
@@ -471,7 +486,8 @@ fn EOR_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option
 }
 
 /// 0x45 | zpg | EOR oper
-fn EOR_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn EOR_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::zero_page::load(mem, pc);
 
@@ -485,7 +501,8 @@ fn EOR_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0x46 | zpg | LSR oper
-fn LSR_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn LSR_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let old_v = am::zero_page::load(mem, pc);
     let new_v = old_v >> 1;
     am::zero_page::store(mem, pc, new_v);
@@ -498,7 +515,7 @@ fn LSR_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0x48 | impl | PHA
-fn PHA_impl(cpu: &mut MOS6502, mem: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn PHA_impl(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
     let a = cpu.a();
     stack::push(cpu, mem, a);
 
@@ -506,7 +523,8 @@ fn PHA_impl(cpu: &mut MOS6502, mem: &mut Memory, _: u8, _: LoHi) -> Option<LoHi>
 }
 
 /// 0x49 | # | EOR #oper
-fn EOR_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn EOR_imme(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::immediate::load(mem, pc);
 
@@ -520,7 +538,7 @@ fn EOR_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi
 }
 
 /// 0x4A | A | LSR A
-fn LSR_A(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn LSR_A(cpu: &mut MOS6502, _: &mut Memory) -> Option<LoHi> {
     let old_v = cpu.a();
     let new_v = old_v >> 1;
     cpu.set_a(new_v);
@@ -533,14 +551,16 @@ fn LSR_A(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
 }
 
 /// 0x4C | abs | JMP oper
-fn JMP_abs(_: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn JMP_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let pc = am::absolute::load_lohi(mem, pc);
 
     Some(pc)
 }
 
 /// 0x4D | abs | EOR oper
-fn EOR_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn EOR_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::absolute::load(mem, pc);
 
@@ -554,7 +574,8 @@ fn EOR_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0x4E | abs | LSR oper
-fn LSR_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn LSR_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let old_v = am::absolute::load(mem, pc);
     let new_v = old_v >> 1;
     am::absolute::store(mem, pc, new_v);
@@ -566,17 +587,9 @@ fn LSR_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
     None
 }
 
-/// 0x50 | rel | BVC oper
-fn BVC_rel(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
-    if !cpu.tst_psr_bit(PSR::V) {
-        return Some(am::relative::load(mem, pc));
-    }
-
-    None
-}
-
 /// 0x51 | (ind),Y | EOR (oper),Y
-fn EOR_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn EOR_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::post_indexed_indirect::load(mem, pc, cpu.y());
 
@@ -590,7 +603,8 @@ fn EOR_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option
 }
 
 /// 0x55 | zpg,X | EOR oper,X
-fn EOR_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn EOR_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::indexed_zero_page::load(mem, pc, cpu.x());
 
@@ -604,7 +618,8 @@ fn EOR_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0x56 | zpg,X | LSR oper,X
-fn LSR_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn LSR_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let old_v = am::indexed_zero_page::load(mem, pc, cpu.x());
     let new_v = old_v >> 1;
     am::indexed_zero_page::store(mem, pc, cpu.x(), new_v);
@@ -617,14 +632,15 @@ fn LSR_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0x58 | impl | CLI
-fn CLI_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn CLI_impl(cpu: &mut MOS6502, _: &mut Memory) -> Option<LoHi> {
     cpu.clr_psr_bit(PSR::I);
 
     None
 }
 
 /// 0x59 | abs,Y | EOR oper,Y
-fn EOR_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn EOR_abs_Y(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::indexed_absolute::load(mem, pc, cpu.y());
 
@@ -638,7 +654,8 @@ fn EOR_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0x5D | abs,X | EOR oper,X
-fn EOR_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn EOR_abs_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let v1 = cpu.a();
     let v2 = am::indexed_absolute::load(mem, pc, cpu.x());
 
@@ -652,7 +669,8 @@ fn EOR_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0x5E | abs,X | LSR oper,X
-fn LSR_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn LSR_abs_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let old_v = am::indexed_absolute::load(mem, pc, cpu.x());
     let new_v = old_v >> 1;
     am::indexed_absolute::store(mem, pc, cpu.x(), new_v);
@@ -665,7 +683,7 @@ fn LSR_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0x60 | impl | RTS
-fn RTS_impl(cpu: &mut MOS6502, mem: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn RTS_impl(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc_lo = stack::pop(cpu, mem);
     let pc_hi = stack::pop(cpu, mem);
 
@@ -675,7 +693,8 @@ fn RTS_impl(cpu: &mut MOS6502, mem: &mut Memory, _: u8, _: LoHi) -> Option<LoHi>
 }
 
 /// 0x61 | (ind,X) | ADC (oper,X)
-fn ADC_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ADC_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n2 = am::pre_indexed_indirect::load(mem, pc, cpu.x());
 
     adder::adc_core(cpu, n2);
@@ -684,7 +703,8 @@ fn ADC_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option
 }
 
 /// 0x65 | zpg | ADC oper
-fn ADC_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ADC_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n2 = am::zero_page::load(mem, pc);
 
     adder::adc_core(cpu, n2);
@@ -693,7 +713,8 @@ fn ADC_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0x66 | zpg | ROR oper
-fn ROR_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ROR_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let old_v = am::zero_page::load(mem, pc);
     let new_v = adder::ror_core(cpu, old_v);
     am::zero_page::store(mem, pc, new_v);
@@ -706,7 +727,7 @@ fn ROR_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0x68 | impl | PLA
-fn PLA_impl(cpu: &mut MOS6502, mem: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn PLA_impl(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
     let val = stack::pop(cpu, mem);
     cpu.set_a(val);
 
@@ -717,7 +738,8 @@ fn PLA_impl(cpu: &mut MOS6502, mem: &mut Memory, _: u8, _: LoHi) -> Option<LoHi>
 }
 
 /// 0x69 | # | ADC #oper
-fn ADC_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ADC_imme(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n2 = am::immediate::load(mem, pc);
 
     adder::adc_core(cpu, n2);
@@ -726,7 +748,7 @@ fn ADC_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi
 }
 
 /// 0x6A | A | ROR A
-fn ROR_A(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn ROR_A(cpu: &mut MOS6502, _: &mut Memory) -> Option<LoHi> {
     let old_v = cpu.a();
     let new_v = adder::ror_core(cpu, old_v);
     cpu.set_a(new_v);
@@ -739,14 +761,16 @@ fn ROR_A(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
 }
 
 /// 0x6C | ind | JMP (oper)
-fn JMP_ind(_: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn JMP_ind(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let addr = am::indirect::load(mem, pc);
 
     Some(addr)
 }
 
 /// 0x6D | abs | ADC oper
-fn ADC_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ADC_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n2 = am::absolute::load(mem, pc);
 
     adder::adc_core(cpu, n2);
@@ -755,7 +779,8 @@ fn ADC_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0x6E | abs | ROR oper
-fn ROR_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ROR_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let old_v = am::absolute::load(mem, pc);
     let new_v = adder::ror_core(cpu, old_v);
     am::absolute::store(mem, pc, new_v);
@@ -767,17 +792,9 @@ fn ROR_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
     None
 }
 
-/// 0x70 | rel | BVS oper
-fn BVS_rel(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
-    if cpu.tst_psr_bit(PSR::V) {
-        return Some(am::relative::load(mem, pc));
-    }
-
-    None
-}
-
 /// 0x71 | (ind),Y | ADC (oper),Y
-fn ADC_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ADC_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n2 = am::post_indexed_indirect::load(mem, pc, cpu.y());
 
     adder::adc_core(cpu, n2);
@@ -786,7 +803,8 @@ fn ADC_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option
 }
 
 /// 0x75 | zpg,X | ADC oper,X
-fn ADC_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ADC_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n2 = am::indexed_zero_page::load(mem, pc, cpu.x());
 
     adder::adc_core(cpu, n2);
@@ -795,7 +813,8 @@ fn ADC_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0x76 | zpg,X | ROR oper,X
-fn ROR_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ROR_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let old_v = am::indexed_zero_page::load(mem, pc, cpu.x());
     let new_v = adder::ror_core(cpu, old_v);
     am::indexed_zero_page::store(mem, pc, cpu.x(), new_v);
@@ -808,14 +827,15 @@ fn ROR_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0x78 | impl | SEI
-fn SEI_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn SEI_impl(cpu: &mut MOS6502, _: &mut Memory) -> Option<LoHi> {
     cpu.set_psr_bit(PSR::I);
 
     None
 }
 
 /// 0x79 | abs,Y | ADC oper,Y
-fn ADC_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ADC_abs_Y(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n2 = am::indexed_absolute::load(mem, pc, cpu.y());
 
     adder::adc_core(cpu, n2);
@@ -824,7 +844,8 @@ fn ADC_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0x7D | abs,X | ADC oper,X
-fn ADC_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ADC_abs_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n2 = am::indexed_absolute::load(mem, pc, cpu.x());
 
     adder::adc_core(cpu, n2);
@@ -833,7 +854,8 @@ fn ADC_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0x7E | abs,X | ROR oper,X
-fn ROR_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn ROR_abs_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let old_v = am::indexed_absolute::load(mem, pc, cpu.x());
     let new_v = adder::ror_core(cpu, old_v);
     am::indexed_absolute::store(mem, pc, cpu.x(), new_v);
@@ -846,35 +868,39 @@ fn ROR_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0x81 | (ind,X) | STA (oper,X)
-fn STA_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn STA_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     am::pre_indexed_indirect::store(mem, pc, cpu.x(), cpu.a());
 
     None
 }
 
 /// 0x84 | zpg | STY oper
-fn STY_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn STY_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     am::zero_page::store(mem, pc, cpu.y());
 
     None
 }
 
 /// 0x85 | zpg | STA oper
-fn STA_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn STA_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     am::zero_page::store(mem, pc, cpu.a());
 
     None
 }
 
 /// 0x86 | zpg | STX oper
-fn STX_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn STX_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     am::zero_page::store(mem, pc, cpu.x());
 
     None
 }
 
 /// 0x88 | impl | DEY
-fn DEY_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn DEY_impl(cpu: &mut MOS6502, _: &mut Memory) -> Option<LoHi> {
     let val = cpu.y().wrapping_sub(1);
     cpu.set_y(val);
 
@@ -885,7 +911,7 @@ fn DEY_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
 }
 
 /// 0x8A | impl | TXA
-fn TXA_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn TXA_impl(cpu: &mut MOS6502, _: &mut Memory) -> Option<LoHi> {
     let x = cpu.x();
     cpu.set_a(x);
 
@@ -896,65 +922,63 @@ fn TXA_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
 }
 
 /// 0x8C | abs | STY oper
-fn STY_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn STY_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     am::absolute::store(mem, pc, cpu.y());
 
     None
 }
 
 /// 0x8D | abs | STA oper
-fn STA_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn STA_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     am::absolute::store(mem, pc, cpu.a());
 
     None
 }
 
 /// 0x8E | abs | STX oper
-fn STX_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn STX_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     am::absolute::store(mem, pc, cpu.x());
 
     None
 }
 
-/// 0x90 | rel | BCC oper
-fn BCC_rel(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
-    if !cpu.tst_psr_bit(PSR::C) {
-        return Some(am::relative::load(mem, pc));
-    }
-
-    None
-}
-
 /// 0x91 | (ind),Y | STA (oper),Y
-fn STA_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn STA_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     am::post_indexed_indirect::store(mem, pc, cpu.y(), cpu.a());
 
     None
 }
 
 /// 0x94 | zpg,X | STY oper,X
-fn STY_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn STY_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     am::indexed_zero_page::store(mem, pc, cpu.x(), cpu.y());
 
     None
 }
 
 /// 0x95 | zpg,X | STA oper,X
-fn STA_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn STA_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     am::indexed_zero_page::store(mem, pc, cpu.x(), cpu.a());
 
     None
 }
 
 /// 0x96 | zpg,Y | STX oper,Y
-fn STX_zpg_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn STX_zpg_Y(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     am::indexed_zero_page::store(mem, pc, cpu.y(), cpu.x());
 
     None
 }
 
 /// 0x98 | impl | TYA
-fn TYA_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn TYA_impl(cpu: &mut MOS6502, _: &mut Memory) -> Option<LoHi> {
     let y = cpu.y();
     cpu.set_a(y);
 
@@ -965,14 +989,15 @@ fn TYA_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
 }
 
 /// 0x99 | abs,Y | STA oper,Y
-fn STA_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn STA_abs_Y(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     am::indexed_absolute::store(mem, pc, cpu.y(), cpu.a());
 
     None
 }
 
 /// 0x9A | impl | TXS
-fn TXS_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn TXS_impl(cpu: &mut MOS6502, _: &mut Memory) -> Option<LoHi> {
     let x = cpu.x();
     cpu.set_s(x);
 
@@ -980,14 +1005,16 @@ fn TXS_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
 }
 
 /// 0x9D | abs,X | STA oper,X
-fn STA_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn STA_abs_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     am::indexed_absolute::store(mem, pc, cpu.x(), cpu.a());
 
     None
 }
 
 /// 0xA0 | # | LDY #oper
-fn LDY_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn LDY_imme(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::immediate::load(mem, pc);
     cpu.set_y(val);
 
@@ -998,7 +1025,8 @@ fn LDY_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi
 }
 
 /// 0xA1 | (ind,X) | LDA (oper,X)
-fn LDA_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn LDA_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::pre_indexed_indirect::load(mem, pc, cpu.x());
     cpu.set_a(val);
 
@@ -1009,7 +1037,8 @@ fn LDA_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option
 }
 
 /// 0xA2 | # | LDX #oper
-fn LDX_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn LDX_imme(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::immediate::load(mem, pc);
     cpu.set_x(val);
 
@@ -1020,7 +1049,8 @@ fn LDX_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi
 }
 
 /// 0xA4 | zpg | LDY oper
-fn LDY_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn LDY_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::zero_page::load(mem, pc);
     cpu.set_y(val);
 
@@ -1031,7 +1061,8 @@ fn LDY_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0xA5 | zpg | LDA oper
-fn LDA_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn LDA_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::zero_page::load(mem, pc);
     cpu.set_a(val);
 
@@ -1042,7 +1073,8 @@ fn LDA_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0xA6 | zpg | LDX oper
-fn LDX_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn LDX_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::zero_page::load(mem, pc);
     cpu.set_x(val);
 
@@ -1053,7 +1085,7 @@ fn LDX_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0xA8 | impl | TAY
-fn TAY_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn TAY_impl(cpu: &mut MOS6502, _: &mut Memory) -> Option<LoHi> {
     let a = cpu.a();
     cpu.set_y(a);
 
@@ -1064,7 +1096,8 @@ fn TAY_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
 }
 
 /// 0xA9 | # | LDA #oper
-fn LDA_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn LDA_imme(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::immediate::load(mem, pc);
     cpu.set_a(val);
 
@@ -1075,7 +1108,7 @@ fn LDA_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi
 }
 
 /// 0xAA | impl | TAX
-fn TAX_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn TAX_impl(cpu: &mut MOS6502, _: &mut Memory) -> Option<LoHi> {
     let a = cpu.a();
     cpu.set_x(a);
 
@@ -1086,7 +1119,8 @@ fn TAX_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
 }
 
 /// 0xAC | abs | LDY oper
-fn LDY_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn LDY_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::absolute::load(mem, pc);
 
     cpu.set_y(val);
@@ -1098,7 +1132,8 @@ fn LDY_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0xAD | abs | LDA oper
-fn LDA_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn LDA_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::absolute::load(mem, pc);
 
     cpu.set_a(val);
@@ -1110,7 +1145,8 @@ fn LDA_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0xAE | abs | LDX oper
-fn LDX_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn LDX_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::absolute::load(mem, pc);
 
     cpu.set_x(val);
@@ -1121,17 +1157,9 @@ fn LDX_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
     None
 }
 
-/// 0xB0 | rel | BCS oper
-fn BCS_rel(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
-    if cpu.tst_psr_bit(PSR::C) {
-        return Some(am::relative::load(mem, pc));
-    }
-
-    None
-}
-
 /// 0xB1 | (ind),Y | LDA (oper),Y
-fn LDA_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn LDA_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::post_indexed_indirect::load(mem, pc, cpu.y());
     cpu.set_a(val);
 
@@ -1142,7 +1170,8 @@ fn LDA_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option
 }
 
 /// 0xB4 | zpg,X | LDY oper,X
-fn LDY_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn LDY_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::indexed_zero_page::load(mem, pc, cpu.x());
     cpu.set_y(val);
 
@@ -1153,7 +1182,8 @@ fn LDY_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0xB5 | zpg,X | LDA oper,X
-fn LDA_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn LDA_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::indexed_zero_page::load(mem, pc, cpu.x());
     cpu.set_a(val);
 
@@ -1164,7 +1194,8 @@ fn LDA_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0xB6 | zpg,Y | LDX oper,Y
-fn LDX_zpg_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn LDX_zpg_Y(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::indexed_zero_page::load(mem, pc, cpu.y());
     cpu.set_x(val);
 
@@ -1175,14 +1206,15 @@ fn LDX_zpg_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0xB8 | impl | CLV
-fn CLV_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn CLV_impl(cpu: &mut MOS6502, _: &mut Memory) -> Option<LoHi> {
     cpu.clr_psr_bit(PSR::V);
 
     None
 }
 
 /// 0xB9 | abs,Y | LDA oper,Y
-fn LDA_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn LDA_abs_Y(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::indexed_absolute::load(mem, pc, cpu.y());
 
     cpu.set_a(val);
@@ -1194,7 +1226,7 @@ fn LDA_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0xBA | impl | TSX
-fn TSX_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn TSX_impl(cpu: &mut MOS6502, _: &mut Memory) -> Option<LoHi> {
     let s = cpu.s();
     cpu.set_x(s);
 
@@ -1205,7 +1237,8 @@ fn TSX_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
 }
 
 /// 0xBC | abs,X | LDY oper,X
-fn LDY_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn LDY_abs_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::indexed_absolute::load(mem, pc, cpu.x());
 
     cpu.set_y(val);
@@ -1217,7 +1250,8 @@ fn LDY_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0xBD | abs,X | LDA oper,X
-fn LDA_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn LDA_abs_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::indexed_absolute::load(mem, pc, cpu.x());
 
     cpu.set_a(val);
@@ -1229,7 +1263,8 @@ fn LDA_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0xBE | abs,Y | LDX oper,Y
-fn LDX_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn LDX_abs_Y(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::indexed_absolute::load(mem, pc, cpu.y());
 
     cpu.set_x(val);
@@ -1241,7 +1276,8 @@ fn LDX_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0xC0 | # | CPY #oper
-fn CPY_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn CPY_imme(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n1 = cpu.y();
     let n2 = am::immediate::load(mem, pc);
 
@@ -1251,7 +1287,8 @@ fn CPY_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi
 }
 
 /// 0xC1 | (ind,X) | CMP (oper,X)
-fn CMP_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn CMP_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n1 = cpu.a();
     let n2 = am::pre_indexed_indirect::load(mem, pc, cpu.x());
 
@@ -1261,7 +1298,8 @@ fn CMP_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option
 }
 
 /// 0xC4 | zpg | CPY oper
-fn CPY_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn CPY_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n1 = cpu.y();
     let n2 = am::zero_page::load(mem, pc);
 
@@ -1271,7 +1309,8 @@ fn CPY_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0xC5 | zpg | CMP oper
-fn CMP_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn CMP_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n1 = cpu.a();
     let n2 = am::zero_page::load(mem, pc);
 
@@ -1281,7 +1320,8 @@ fn CMP_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0xC6 | zpg | DEC oper
-fn DEC_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn DEC_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::zero_page::load(mem, pc);
     let val = val.wrapping_sub(1);
     am::zero_page::store(mem, pc, val);
@@ -1293,7 +1333,7 @@ fn DEC_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0xC8 | impl | INY
-fn INY_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn INY_impl(cpu: &mut MOS6502, _: &mut Memory) -> Option<LoHi> {
     let val = cpu.y().wrapping_add(1);
     cpu.set_y(val);
 
@@ -1304,7 +1344,8 @@ fn INY_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
 }
 
 /// 0xC9 | # | CMP #oper
-fn CMP_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn CMP_imme(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n1 = cpu.a();
     let n2 = am::immediate::load(mem, pc);
 
@@ -1314,7 +1355,7 @@ fn CMP_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi
 }
 
 /// 0xCA | impl | DEX
-fn DEX_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn DEX_impl(cpu: &mut MOS6502, _: &mut Memory) -> Option<LoHi> {
     let val = cpu.x().wrapping_sub(1);
     cpu.set_x(val);
 
@@ -1325,7 +1366,8 @@ fn DEX_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
 }
 
 /// 0xCC | abs | CPY oper
-fn CPY_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn CPY_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n1 = cpu.y();
     let n2 = am::absolute::load(mem, pc);
 
@@ -1335,7 +1377,8 @@ fn CPY_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0xCD | abs | CMP oper
-fn CMP_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn CMP_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n1 = cpu.a();
     let n2 = am::absolute::load(mem, pc);
 
@@ -1345,7 +1388,8 @@ fn CMP_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0xCE | abs | DEC oper
-fn DEC_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn DEC_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::absolute::load(mem, pc);
     let val = val.wrapping_sub(1);
     am::absolute::store(mem, pc, val);
@@ -1356,17 +1400,9 @@ fn DEC_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
     None
 }
 
-/// 0xD0 | rel | BNE oper
-fn BNE_rel(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
-    if !cpu.tst_psr_bit(PSR::Z) {
-        return Some(am::relative::load(mem, pc));
-    }
-
-    None
-}
-
 /// 0xD1 | (ind),Y | CMP (oper),Y
-fn CMP_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn CMP_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n1 = cpu.a();
     let n2 = am::post_indexed_indirect::load(mem, pc, cpu.y());
 
@@ -1376,7 +1412,8 @@ fn CMP_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option
 }
 
 /// 0xD5 | zpg,X | CMP oper,X
-fn CMP_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn CMP_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n1 = cpu.a();
     let n2 = am::indexed_zero_page::load(mem, pc, cpu.x());
 
@@ -1386,7 +1423,8 @@ fn CMP_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0xD6 | zpg,X | DEC oper,X
-fn DEC_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn DEC_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::indexed_zero_page::load(mem, pc, cpu.x());
     let val = val.wrapping_sub(1);
     am::indexed_zero_page::store(mem, pc, cpu.x(), val);
@@ -1398,14 +1436,15 @@ fn DEC_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0xD8 | impl | CLD
-fn CLD_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn CLD_impl(cpu: &mut MOS6502, _: &mut Memory) -> Option<LoHi> {
     cpu.clr_psr_bit(PSR::D);
 
     None
 }
 
 /// 0xD9 | abs,Y | CMP oper,Y
-fn CMP_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn CMP_abs_Y(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n1 = cpu.a();
     let n2 = am::indexed_absolute::load(mem, pc, cpu.y());
 
@@ -1415,7 +1454,8 @@ fn CMP_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0xDD | abs,X | CMP oper,X
-fn CMP_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn CMP_abs_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n1 = cpu.a();
     let n2 = am::indexed_absolute::load(mem, pc, cpu.x());
 
@@ -1425,7 +1465,8 @@ fn CMP_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0xDE | abs,X | DEC oper,X
-fn DEC_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn DEC_abs_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::indexed_absolute::load(mem, pc, cpu.x());
     let val = val.wrapping_sub(1);
     am::indexed_absolute::store(mem, pc, cpu.x(), val);
@@ -1437,7 +1478,8 @@ fn DEC_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0xE0 | # | CPX #oper
-fn CPX_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn CPX_imme(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n1 = cpu.x();
     let n2 = am::immediate::load(mem, pc);
 
@@ -1447,7 +1489,8 @@ fn CPX_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi
 }
 
 /// 0xE1 | (ind,X) | SBC (oper,X)
-fn SBC_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn SBC_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n2 = am::pre_indexed_indirect::load(mem, pc, cpu.x());
 
     adder::sbc_core(cpu, n2);
@@ -1456,7 +1499,8 @@ fn SBC_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option
 }
 
 /// 0xE4 | zpg | CPX oper
-fn CPX_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn CPX_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n1 = cpu.x();
     let n2 = am::zero_page::load(mem, pc);
 
@@ -1466,7 +1510,8 @@ fn CPX_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0xE5 | zpg | SBC oper
-fn SBC_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn SBC_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n2 = am::zero_page::load(mem, pc);
 
     adder::sbc_core(cpu, n2);
@@ -1475,7 +1520,8 @@ fn SBC_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0xE6 | zpg | INC oper
-fn INC_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn INC_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::zero_page::load(mem, pc);
     let val = val.wrapping_add(1);
     am::zero_page::store(mem, pc, val);
@@ -1487,7 +1533,7 @@ fn INC_zpg(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0xE8 | impl | INX
-fn INX_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn INX_impl(cpu: &mut MOS6502, _: &mut Memory) -> Option<LoHi> {
     let val = cpu.x().wrapping_add(1);
     cpu.set_x(val);
 
@@ -1498,7 +1544,8 @@ fn INX_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
 }
 
 /// 0xE9 | # | SBC #oper
-fn SBC_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn SBC_imme(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n2 = am::immediate::load(mem, pc);
 
     adder::sbc_core(cpu, n2);
@@ -1507,12 +1554,13 @@ fn SBC_imme(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi
 }
 
 /// 0xEA | impl | NOP
-fn NOP_impl(_: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn NOP_impl(_: &mut MOS6502, _: &mut Memory) -> Option<LoHi> {
     None
 }
 
 /// 0xEC | abs | CPX oper
-fn CPX_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn CPX_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n1 = cpu.x();
     let n2 = am::absolute::load(mem, pc);
 
@@ -1522,7 +1570,8 @@ fn CPX_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0xED | abs | SBC oper
-fn SBC_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn SBC_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n2 = am::absolute::load(mem, pc);
 
     adder::sbc_core(cpu, n2);
@@ -1531,7 +1580,8 @@ fn SBC_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
 }
 
 /// 0xEE | abs | INC oper
-fn INC_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn INC_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::absolute::load(mem, pc);
     let val = val.wrapping_add(1);
     am::absolute::store(mem, pc, val);
@@ -1542,17 +1592,9 @@ fn INC_abs(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi>
     None
 }
 
-/// 0xF0 | rel | BEQ oper
-fn BEQ_rel(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
-    if cpu.tst_psr_bit(PSR::Z) {
-        return Some(am::relative::load(mem, pc));
-    }
-
-    None
-}
-
 /// 0xF1 | (ind),Y | SBC (oper),Y
-fn SBC_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn SBC_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n2 = am::post_indexed_indirect::load(mem, pc, cpu.y());
 
     adder::sbc_core(cpu, n2);
@@ -1561,7 +1603,8 @@ fn SBC_ind_Y_idx(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option
 }
 
 /// 0xF5 | zpg,X | SBC oper,X
-fn SBC_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn SBC_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n2 = am::indexed_zero_page::load(mem, pc, cpu.x());
 
     adder::sbc_core(cpu, n2);
@@ -1570,7 +1613,8 @@ fn SBC_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0xF6 | zpg,X | INC oper,X
-fn INC_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn INC_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::indexed_zero_page::load(mem, pc, cpu.x());
     let val = val.wrapping_add(1);
     am::indexed_zero_page::store(mem, pc, cpu.x(), val);
@@ -1582,14 +1626,15 @@ fn INC_zpg_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0xF8 | impl | SED
-fn SED_impl(cpu: &mut MOS6502, _: &mut Memory, _: u8, _: LoHi) -> Option<LoHi> {
+fn SED_impl(cpu: &mut MOS6502, _: &mut Memory) -> Option<LoHi> {
     cpu.set_psr_bit(PSR::D);
 
     None
 }
 
 /// 0xF9 | abs,Y | SBC oper,Y
-fn SBC_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn SBC_abs_Y(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n2 = am::indexed_absolute::load(mem, pc, cpu.y());
 
     adder::sbc_core(cpu, n2);
@@ -1598,7 +1643,8 @@ fn SBC_abs_Y(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0xFD | abs,X | SBC oper,X
-fn SBC_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn SBC_abs_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let n2 = am::indexed_absolute::load(mem, pc, cpu.x());
 
     adder::sbc_core(cpu, n2);
@@ -1607,7 +1653,8 @@ fn SBC_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoH
 }
 
 /// 0xFE | abs,X | INC oper,X
-fn INC_abs_X(cpu: &mut MOS6502, mem: &mut Memory, _: u8, pc: LoHi) -> Option<LoHi> {
+fn INC_abs_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+    let pc = cpu.pc();
     let val = am::indexed_absolute::load(mem, pc, cpu.x());
     let val = val.wrapping_add(1);
     am::indexed_absolute::store(mem, pc, cpu.x(), val);
@@ -1632,7 +1679,7 @@ $opc_fns2 | % { "/* /// {0} | {1} */
 */
 /// NOTE: See opcodes.json
 #[rustfmt::skip]
-pub const ALL_OPCODE_ROUTINES: &[&OpCode; 0x1_00] = &[
+pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0x00 */ &BRK_impl,       // impl | BRK
     /* 0x01 */ &ORA_idx_ind_X,  // (ind,X) | ORA (oper,X)
     /* 0x02 */ &illegal,        //
@@ -1649,7 +1696,7 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCode; 0x1_00] = &[
     /* 0x0D */ &ORA_abs,        // abs | ORA oper
     /* 0x0E */ &ASL_abs,        // abs | ASL oper
     /* 0x0F */ &illegal,        //
-    /* 0x10 */ &BPL_rel,        // rel | BPL oper
+    /* 0x10 */ &illegal,        // rel | BPL oper
     /* 0x11 */ &ORA_ind_Y_idx,  // (ind),Y | ORA (oper),Y
     /* 0x12 */ &illegal,        //
     /* 0x13 */ &illegal,        //
@@ -1681,7 +1728,7 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCode; 0x1_00] = &[
     /* 0x2D */ &AND_abs,        // abs | AND oper
     /* 0x2E */ &ROL_abs,        // abs | ROL oper
     /* 0x2F */ &illegal,        //
-    /* 0x30 */ &BMI_rel,        // rel | BMI oper
+    /* 0x30 */ &illegal,        // rel | BMI oper
     /* 0x31 */ &AND_ind_Y_idx,  // (ind),Y | AND (oper),Y
     /* 0x32 */ &illegal,        //
     /* 0x33 */ &illegal,        //
@@ -1713,7 +1760,7 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCode; 0x1_00] = &[
     /* 0x4D */ &EOR_abs,        // abs | EOR oper
     /* 0x4E */ &LSR_abs,        // abs | LSR oper
     /* 0x4F */ &illegal,        //
-    /* 0x50 */ &BVC_rel,        // rel | BVC oper
+    /* 0x50 */ &illegal,        // rel | BVC oper
     /* 0x51 */ &EOR_ind_Y_idx,  // (ind),Y | EOR (oper),Y
     /* 0x52 */ &illegal,        //
     /* 0x53 */ &illegal,        //
@@ -1745,7 +1792,7 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCode; 0x1_00] = &[
     /* 0x6D */ &ADC_abs,        // abs | ADC oper
     /* 0x6E */ &ROR_abs,        // abs | ROR oper
     /* 0x6F */ &illegal,        //
-    /* 0x70 */ &BVS_rel,        // rel | BVS oper
+    /* 0x70 */ &illegal,        // rel | BVS oper
     /* 0x71 */ &ADC_ind_Y_idx,  // (ind),Y | ADC (oper),Y
     /* 0x72 */ &illegal,        //
     /* 0x73 */ &illegal,        //
@@ -1777,7 +1824,7 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCode; 0x1_00] = &[
     /* 0x8D */ &STA_abs,        // abs | STA oper
     /* 0x8E */ &STX_abs,        // abs | STX oper
     /* 0x8F */ &illegal,        //
-    /* 0x90 */ &BCC_rel,        // rel | BCC oper
+    /* 0x90 */ &illegal,        // rel | BCC oper
     /* 0x91 */ &STA_ind_Y_idx,  // (ind),Y | STA (oper),Y
     /* 0x92 */ &illegal,        //
     /* 0x93 */ &illegal,        //
@@ -1809,7 +1856,7 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCode; 0x1_00] = &[
     /* 0xAD */ &LDA_abs,        // abs | LDA oper
     /* 0xAE */ &LDX_abs,        // abs | LDX oper
     /* 0xAF */ &illegal,        //
-    /* 0xB0 */ &BCS_rel,        // rel | BCS oper
+    /* 0xB0 */ &illegal,        // rel | BCS oper
     /* 0xB1 */ &LDA_ind_Y_idx,  // (ind),Y | LDA (oper),Y
     /* 0xB2 */ &illegal,        //
     /* 0xB3 */ &illegal,        //
@@ -1841,7 +1888,7 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCode; 0x1_00] = &[
     /* 0xCD */ &CMP_abs,        // abs | CMP oper
     /* 0xCE */ &DEC_abs,        // abs | DEC oper
     /* 0xCF */ &illegal,        //
-    /* 0xD0 */ &BNE_rel,        // rel | BNE oper
+    /* 0xD0 */ &illegal,        // rel | BNE oper
     /* 0xD1 */ &CMP_ind_Y_idx,  // (ind),Y | CMP (oper),Y
     /* 0xD2 */ &illegal,        //
     /* 0xD3 */ &illegal,        //
@@ -1873,7 +1920,7 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCode; 0x1_00] = &[
     /* 0xED */ &SBC_abs,        // abs | SBC oper
     /* 0xEE */ &INC_abs,        // abs | INC oper
     /* 0xEF */ &illegal,        //
-    /* 0xF0 */ &BEQ_rel,        // rel | BEQ oper
+    /* 0xF0 */ &illegal,        // rel | BEQ oper
     /* 0xF1 */ &SBC_ind_Y_idx,  // (ind),Y | SBC (oper),Y
     /* 0xF2 */ &illegal,        //
     /* 0xF3 */ &illegal,        //
@@ -2273,3 +2320,641 @@ pub mod adder {
         }
     }
 }
+
+#[rustfmt::skip]
+pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
+    /* 0x00 */ false,   // impl | BRK
+    /* 0x01 */ false,   // (ind,X) | ORA (oper,X)
+    /* 0x02 */ false,   //
+    /* 0x03 */ false,   //
+    /* 0x04 */ false,   //
+    /* 0x05 */ false,   // zpg | ORA oper
+    /* 0x06 */ false,   // zpg | ASL oper
+    /* 0x07 */ false,   //
+    /* 0x08 */ false,   // impl | PHP
+    /* 0x09 */ false,   // # | ORA #oper
+    /* 0x0A */ false,   // A | ASL A
+    /* 0x0B */ false,   //
+    /* 0x0C */ false,   //
+    /* 0x0D */ false,   // abs | ORA oper
+    /* 0x0E */ false,   // abs | ASL oper
+    /* 0x0F */ false,   //
+    /* 0x10 */ true,    // rel | BPL oper
+    /* 0x11 */ false,   // (ind),Y | ORA (oper),Y
+    /* 0x12 */ false,   //
+    /* 0x13 */ false,   //
+    /* 0x14 */ false,   //
+    /* 0x15 */ false,   // zpg,X | ORA oper,X
+    /* 0x16 */ false,   // zpg,X | ASL oper,X
+    /* 0x17 */ false,   //
+    /* 0x18 */ false,   // impl | CLC
+    /* 0x19 */ false,   // abs,Y | ORA oper,Y
+    /* 0x1A */ false,   //
+    /* 0x1B */ false,   //
+    /* 0x1C */ false,   //
+    /* 0x1D */ false,   // abs,X | ORA oper,X
+    /* 0x1E */ false,   // abs,X | ASL oper,X
+    /* 0x1F */ false,   //
+    /* 0x20 */ false,   // abs | JSR oper
+    /* 0x21 */ false,   // (ind,X) | AND (oper,X)
+    /* 0x22 */ false,   //
+    /* 0x23 */ false,   //
+    /* 0x24 */ false,   // zpg | BIT oper
+    /* 0x25 */ false,   // zpg | AND oper
+    /* 0x26 */ false,   // zpg | ROL oper
+    /* 0x27 */ false,   //
+    /* 0x28 */ false,   // impl | PLP
+    /* 0x29 */ false,   // # | AND #oper
+    /* 0x2A */ false,   // A | ROL A
+    /* 0x2B */ false,   //
+    /* 0x2C */ false,   // abs | BIT oper
+    /* 0x2D */ false,   // abs | AND oper
+    /* 0x2E */ false,   // abs | ROL oper
+    /* 0x2F */ false,   //
+    /* 0x30 */ true,    // rel | BMI oper
+    /* 0x31 */ false,   // (ind),Y | AND (oper),Y
+    /* 0x32 */ false,   //
+    /* 0x33 */ false,   //
+    /* 0x34 */ false,   //
+    /* 0x35 */ false,   // zpg,X | AND oper,X
+    /* 0x36 */ false,   // zpg,X | ROL oper,X
+    /* 0x37 */ false,   //
+    /* 0x38 */ false,   // impl | SEC
+    /* 0x39 */ false,   // abs,Y | AND oper,Y
+    /* 0x3A */ false,   //
+    /* 0x3B */ false,   //
+    /* 0x3C */ false,   //
+    /* 0x3D */ false,   // abs,X | AND oper,X
+    /* 0x3E */ false,   // abs,X | ROL oper,X
+    /* 0x3F */ false,   //
+    /* 0x40 */ false,   // impl | RTI
+    /* 0x41 */ false,   // (ind,X) | EOR (oper,X)
+    /* 0x42 */ false,   //
+    /* 0x43 */ false,   //
+    /* 0x44 */ false,   //
+    /* 0x45 */ false,   // zpg | EOR oper
+    /* 0x46 */ false,   // zpg | LSR oper
+    /* 0x47 */ false,   //
+    /* 0x48 */ false,   // impl | PHA
+    /* 0x49 */ false,   // # | EOR #oper
+    /* 0x4A */ false,   // A | LSR A
+    /* 0x4B */ false,   //
+    /* 0x4C */ false,   // abs | JMP oper
+    /* 0x4D */ false,   // abs | EOR oper
+    /* 0x4E */ false,   // abs | LSR oper
+    /* 0x4F */ false,   //
+    /* 0x50 */ true,    // rel | BVC oper
+    /* 0x51 */ false,   // (ind),Y | EOR (oper),Y
+    /* 0x52 */ false,   //
+    /* 0x53 */ false,   //
+    /* 0x54 */ false,   //
+    /* 0x55 */ false,   // zpg,X | EOR oper,X
+    /* 0x56 */ false,   // zpg,X | LSR oper,X
+    /* 0x57 */ false,   //
+    /* 0x58 */ false,   // impl | CLI
+    /* 0x59 */ false,   // abs,Y | EOR oper,Y
+    /* 0x5A */ false,   //
+    /* 0x5B */ false,   //
+    /* 0x5C */ false,   //
+    /* 0x5D */ false,   // abs,X | EOR oper,X
+    /* 0x5E */ false,   // abs,X | LSR oper,X
+    /* 0x5F */ false,   //
+    /* 0x60 */ false,   // impl | RTS
+    /* 0x61 */ false,   // (ind,X) | ADC (oper,X)
+    /* 0x62 */ false,   //
+    /* 0x63 */ false,   //
+    /* 0x64 */ false,   //
+    /* 0x65 */ false,   // zpg | ADC oper
+    /* 0x66 */ false,   // zpg | ROR oper
+    /* 0x67 */ false,   //
+    /* 0x68 */ false,   // impl | PLA
+    /* 0x69 */ false,   // # | ADC #oper
+    /* 0x6A */ false,   // A | ROR A
+    /* 0x6B */ false,   //
+    /* 0x6C */ false,   // ind | JMP (oper)
+    /* 0x6D */ false,   // abs | ADC oper
+    /* 0x6E */ false,   // abs | ROR oper
+    /* 0x6F */ false,   //
+    /* 0x70 */ true,    // rel | BVS oper
+    /* 0x71 */ false,   // (ind),Y | ADC (oper),Y
+    /* 0x72 */ false,   //
+    /* 0x73 */ false,   //
+    /* 0x74 */ false,   //
+    /* 0x75 */ false,   // zpg,X | ADC oper,X
+    /* 0x76 */ false,   // zpg,X | ROR oper,X
+    /* 0x77 */ false,   //
+    /* 0x78 */ false,   // impl | SEI
+    /* 0x79 */ false,   // abs,Y | ADC oper,Y
+    /* 0x7A */ false,   //
+    /* 0x7B */ false,   //
+    /* 0x7C */ false,   //
+    /* 0x7D */ false,   // abs,X | ADC oper,X
+    /* 0x7E */ false,   // abs,X | ROR oper,X
+    /* 0x7F */ false,   //
+    /* 0x80 */ false,   //
+    /* 0x81 */ false,   // (ind,X) | STA (oper,X)
+    /* 0x82 */ false,   //
+    /* 0x83 */ false,   //
+    /* 0x84 */ false,   // zpg | STY oper
+    /* 0x85 */ false,   // zpg | STA oper
+    /* 0x86 */ false,   // zpg | STX oper
+    /* 0x87 */ false,   //
+    /* 0x88 */ false,   // impl | DEY
+    /* 0x89 */ false,   //
+    /* 0x8A */ false,   // impl | TXA
+    /* 0x8B */ false,   //
+    /* 0x8C */ false,   // abs | STY oper
+    /* 0x8D */ false,   // abs | STA oper
+    /* 0x8E */ false,   // abs | STX oper
+    /* 0x8F */ false,   //
+    /* 0x90 */ true,    // rel | BCC oper
+    /* 0x91 */ false,   // (ind),Y | STA (oper),Y
+    /* 0x92 */ false,   //
+    /* 0x93 */ false,   //
+    /* 0x94 */ false,   // zpg,X | STY oper,X
+    /* 0x95 */ false,   // zpg,X | STA oper,X
+    /* 0x96 */ false,   // zpg,Y | STX oper,Y
+    /* 0x97 */ false,   //
+    /* 0x98 */ false,   // impl | TYA
+    /* 0x99 */ false,   // abs,Y | STA oper,Y
+    /* 0x9A */ false,   // impl | TXS
+    /* 0x9B */ false,   //
+    /* 0x9C */ false,   //
+    /* 0x9D */ false,   // abs,X | STA oper,X
+    /* 0x9E */ false,   //
+    /* 0x9F */ false,   //
+    /* 0xA0 */ false,   // # | LDY #oper
+    /* 0xA1 */ false,   // (ind,X) | LDA (oper,X)
+    /* 0xA2 */ false,   // # | LDX #oper
+    /* 0xA3 */ false,   //
+    /* 0xA4 */ false,   // zpg | LDY oper
+    /* 0xA5 */ false,   // zpg | LDA oper
+    /* 0xA6 */ false,   // zpg | LDX oper
+    /* 0xA7 */ false,   //
+    /* 0xA8 */ false,   // impl | TAY
+    /* 0xA9 */ false,   // # | LDA #oper
+    /* 0xAA */ false,   // impl | TAX
+    /* 0xAB */ false,   //
+    /* 0xAC */ false,   // abs | LDY oper
+    /* 0xAD */ false,   // abs | LDA oper
+    /* 0xAE */ false,   // abs | LDX oper
+    /* 0xAF */ false,   //
+    /* 0xB0 */ true,    // rel | BCS oper
+    /* 0xB1 */ false,   // (ind),Y | LDA (oper),Y
+    /* 0xB2 */ false,   //
+    /* 0xB3 */ false,   //
+    /* 0xB4 */ false,   // zpg,X | LDY oper,X
+    /* 0xB5 */ false,   // zpg,X | LDA oper,X
+    /* 0xB6 */ false,   // zpg,Y | LDX oper,Y
+    /* 0xB7 */ false,   //
+    /* 0xB8 */ false,   // impl | CLV
+    /* 0xB9 */ false,   // abs,Y | LDA oper,Y
+    /* 0xBA */ false,   // impl | TSX
+    /* 0xBB */ false,   //
+    /* 0xBC */ false,   // abs,X | LDY oper,X
+    /* 0xBD */ false,   // abs,X | LDA oper,X
+    /* 0xBE */ false,   // abs,Y | LDX oper,Y
+    /* 0xBF */ false,   //
+    /* 0xC0 */ false,   // # | CPY #oper
+    /* 0xC1 */ false,   // (ind,X) | CMP (oper,X)
+    /* 0xC2 */ false,   //
+    /* 0xC3 */ false,   //
+    /* 0xC4 */ false,   // zpg | CPY oper
+    /* 0xC5 */ false,   // zpg | CMP oper
+    /* 0xC6 */ false,   // zpg | DEC oper
+    /* 0xC7 */ false,   //
+    /* 0xC8 */ false,   // impl | INY
+    /* 0xC9 */ false,   // # | CMP #oper
+    /* 0xCA */ false,   // impl | DEX
+    /* 0xCB */ false,   //
+    /* 0xCC */ false,   // abs | CPY oper
+    /* 0xCD */ false,   // abs | CMP oper
+    /* 0xCE */ false,   // abs | DEC oper
+    /* 0xCF */ false,   //
+    /* 0xD0 */ true,    // rel | BNE oper
+    /* 0xD1 */ false,   // (ind),Y | CMP (oper),Y
+    /* 0xD2 */ false,   //
+    /* 0xD3 */ false,   //
+    /* 0xD4 */ false,   //
+    /* 0xD5 */ false,   // zpg,X | CMP oper,X
+    /* 0xD6 */ false,   // zpg,X | DEC oper,X
+    /* 0xD7 */ false,   //
+    /* 0xD8 */ false,   // impl | CLD
+    /* 0xD9 */ false,   // abs,Y | CMP oper,Y
+    /* 0xDA */ false,   //
+    /* 0xDB */ false,   //
+    /* 0xDC */ false,   //
+    /* 0xDD */ false,   // abs,X | CMP oper,X
+    /* 0xDE */ false,   // abs,X | DEC oper,X
+    /* 0xDF */ false,   //
+    /* 0xE0 */ false,   // # | CPX #oper
+    /* 0xE1 */ false,   // (ind,X) | SBC (oper,X)
+    /* 0xE2 */ false,   //
+    /* 0xE3 */ false,   //
+    /* 0xE4 */ false,   // zpg | CPX oper
+    /* 0xE5 */ false,   // zpg | SBC oper
+    /* 0xE6 */ false,   // zpg | INC oper
+    /* 0xE7 */ false,   //
+    /* 0xE8 */ false,   // impl | INX
+    /* 0xE9 */ false,   // # | SBC #oper
+    /* 0xEA */ false,   // impl | NOP
+    /* 0xEB */ false,   //
+    /* 0xEC */ false,   // abs | CPX oper
+    /* 0xED */ false,   // abs | SBC oper
+    /* 0xEE */ false,   // abs | INC oper
+    /* 0xEF */ false,   //
+    /* 0xF0 */ true ,   // rel | BEQ oper
+    /* 0xF1 */ false,   // (ind),Y | SBC (oper),Y
+    /* 0xF2 */ false,   //
+    /* 0xF3 */ false,   //
+    /* 0xF4 */ false,   //
+    /* 0xF5 */ false,   // zpg,X | SBC oper,X
+    /* 0xF6 */ false,   // zpg,X | INC oper,X
+    /* 0xF7 */ false,   //
+    /* 0xF8 */ false,   // impl | SED
+    /* 0xF9 */ false,   // abs,Y | SBC oper,Y
+    /* 0xFA */ false,   //
+    /* 0xFB */ false,   //
+    /* 0xFC */ false,   //
+    /* 0xFD */ false,   // abs,X | SBC oper,X
+    /* 0xFE */ false,   // abs,X | INC oper,X
+    /* 0xFF */ false,   //
+];
+
+/// Relative addressing (BCC, BCS, BNE, BEQ, BPL, BMI, BVC, BVS)
+fn relative_BPL_core(cpu: &MOS6502) -> bool {
+    !cpu.tst_psr_bit(PSR::N)
+}
+
+fn relative_BMI_core(cpu: &MOS6502) -> bool {
+    cpu.tst_psr_bit(PSR::N)
+}
+
+fn relative_BVC_core(cpu: &MOS6502) -> bool {
+    !cpu.tst_psr_bit(PSR::V)
+}
+
+fn relative_BVS_core(cpu: &MOS6502) -> bool {
+    cpu.tst_psr_bit(PSR::V)
+}
+
+fn relative_BCC_core(cpu: &MOS6502) -> bool {
+    !cpu.tst_psr_bit(PSR::C)
+}
+
+fn relative_BCS_core(cpu: &MOS6502) -> bool {
+    cpu.tst_psr_bit(PSR::C)
+}
+
+fn relative_BNE_core(cpu: &MOS6502) -> bool {
+    !cpu.tst_psr_bit(PSR::Z)
+}
+
+fn relative_BEQ_core(cpu: &MOS6502) -> bool {
+    cpu.tst_psr_bit(PSR::Z)
+}
+
+fn not_implemented(cpu: &mut MOS6502, _: &mut Memory) -> bool {
+    let exec_state = cpu.execution_state();
+    let opc_info = &opc_info::ALL[exec_state.opc()];
+    unimplemented!(
+        "Step #{} for Opcode {:02X} ({}) not implemented. CPU state: {cpu:?}",
+        exec_state.step(),
+        exec_state.opc(),
+        opc_info.assembler
+    )
+}
+
+type OpCodeSteps<'a> = &'a [&'a OpCodeStepFn; 0x06];
+
+macro_rules! am_stubs {
+    () => {
+        &[
+            &not_implemented,
+            &not_implemented,
+            &not_implemented,
+            &not_implemented,
+            &not_implemented,
+            &not_implemented,
+        ]
+    };
+}
+
+macro_rules! am_relative {
+    ($main:expr) => {
+        &[
+            //  Relative addressing (BCC, BCS, BNE, BEQ, BPL, BMI, BVC, BVS)
+            //
+            //        #   address  R/W description
+            //       --- --------- --- ---------------------------------------------
+            //        1     PC      R  fetch opcode, increment PC
+            &not_implemented,
+            //        2     PC      R  fetch operand, increment PC
+            &|cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                cpu.execution_state().regs()[0] = mem.get(cpu.pc(), 0);
+                cpu.pc_incr(1);
+                !$main(cpu)
+            },
+            //        3     PC      R  Fetch opcode of next instruction,
+            //                         If branch is taken, add operand to PCL.
+            //                         Otherwise increment PC.
+            &|cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                let pc = cpu.pc();
+                cpu.execution_state().set_throw_away(mem.get(pc, 0));
+
+                let new_pc =
+                    u16::from(pc).wrapping_add_signed(cpu.execution_state().regs()[0] as i8 as i16);
+                cpu.set_pc(LoHi(new_pc as u8, pc.1));
+                cpu.execution_state().regs()[1] = (new_pc >> 8) as u8;
+                pc.1 == cpu.execution_state().regs()[1]
+            },
+            //        4+    PC*     R  Fetch opcode of next instruction.
+            //                         Fix PCH. If it did not change, increment PC.
+            &|cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                let pc = cpu.pc();
+                cpu.execution_state().set_throw_away(mem.get(pc, 0));
+                let new_pc = LoHi(pc.0, cpu.execution_state().regs()[1]);
+                cpu.set_pc(new_pc);
+                true
+            },
+            &not_implemented,
+            &not_implemented,
+            //        5!    PC      R  Fetch opcode of next instruction,
+            //                         increment PC.
+            //
+            //       Notes: The opcode fetch of the next instruction is included to
+            //              this diagram for illustration purposes. When determining
+            //              real execution times, remember to subtract the last
+            //              cycle.
+            //
+            //              * The high byte of Program Counter (PCH) may be invalid
+            //                at this time, i.e. it may be smaller or bigger by $100.
+            //
+            //              + If branch is taken, this cycle will be executed.
+            //
+            //              ! If branch occurs to different page, this cycle will be
+            //                executed.
+        ]
+    };
+}
+
+/// Refer: https://www.nesdev.org/6502_cpu.txt
+#[rustfmt::skip]
+pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
+    /* 0x00 */ am_stubs!(),   // impl | BRK
+    /* 0x01 */ am_stubs!(),   // (ind,X) | ORA (oper,X)
+    /* 0x02 */ am_stubs!(),   //
+    /* 0x03 */ am_stubs!(),   //
+    /* 0x04 */ am_stubs!(),   //
+    /* 0x05 */ am_stubs!(),   // zpg | ORA oper
+    /* 0x06 */ am_stubs!(),   // zpg | ASL oper
+    /* 0x07 */ am_stubs!(),   //
+    /* 0x08 */ am_stubs!(),   // impl | PHP
+    /* 0x09 */ am_stubs!(),   // # | ORA #oper
+    /* 0x0A */ am_stubs!(),   // A | ASL A
+    /* 0x0B */ am_stubs!(),   //
+    /* 0x0C */ am_stubs!(),   //
+    /* 0x0D */ am_stubs!(),   // abs | ORA oper
+    /* 0x0E */ am_stubs!(),   // abs | ASL oper
+    /* 0x0F */ am_stubs!(),   //
+    /* 0x10 */ am_relative!(&relative_BPL_core),   // rel | BPL oper
+    /* 0x11 */ am_stubs!(),   // (ind),Y | ORA (oper),Y
+    /* 0x12 */ am_stubs!(),   //
+    /* 0x13 */ am_stubs!(),   //
+    /* 0x14 */ am_stubs!(),   //
+    /* 0x15 */ am_stubs!(),   // zpg,X | ORA oper,X
+    /* 0x16 */ am_stubs!(),   // zpg,X | ASL oper,X
+    /* 0x17 */ am_stubs!(),   //
+    /* 0x18 */ am_stubs!(),   // impl | CLC
+    /* 0x19 */ am_stubs!(),   // abs,Y | ORA oper,Y
+    /* 0x1A */ am_stubs!(),   //
+    /* 0x1B */ am_stubs!(),   //
+    /* 0x1C */ am_stubs!(),   //
+    /* 0x1D */ am_stubs!(),   // abs,X | ORA oper,X
+    /* 0x1E */ am_stubs!(),   // abs,X | ASL oper,X
+    /* 0x1F */ am_stubs!(),   //
+    /* 0x20 */ am_stubs!(),   // abs | JSR oper
+    /* 0x21 */ am_stubs!(),   // (ind,X) | AND (oper,X)
+    /* 0x22 */ am_stubs!(),   //
+    /* 0x23 */ am_stubs!(),   //
+    /* 0x24 */ am_stubs!(),   // zpg | BIT oper
+    /* 0x25 */ am_stubs!(),   // zpg | AND oper
+    /* 0x26 */ am_stubs!(),   // zpg | ROL oper
+    /* 0x27 */ am_stubs!(),   //
+    /* 0x28 */ am_stubs!(),   // impl | PLP
+    /* 0x29 */ am_stubs!(),   // # | AND #oper
+    /* 0x2A */ am_stubs!(),   // A | ROL A
+    /* 0x2B */ am_stubs!(),   //
+    /* 0x2C */ am_stubs!(),   // abs | BIT oper
+    /* 0x2D */ am_stubs!(),   // abs | AND oper
+    /* 0x2E */ am_stubs!(),   // abs | ROL oper
+    /* 0x2F */ am_stubs!(),   //
+    /* 0x30 */ am_relative!(&relative_BMI_core),   // rel | BMI oper
+    /* 0x31 */ am_stubs!(),   // (ind),Y | AND (oper),Y
+    /* 0x32 */ am_stubs!(),   //
+    /* 0x33 */ am_stubs!(),   //
+    /* 0x34 */ am_stubs!(),   //
+    /* 0x35 */ am_stubs!(),   // zpg,X | AND oper,X
+    /* 0x36 */ am_stubs!(),   // zpg,X | ROL oper,X
+    /* 0x37 */ am_stubs!(),   //
+    /* 0x38 */ am_stubs!(),   // impl | SEC
+    /* 0x39 */ am_stubs!(),   // abs,Y | AND oper,Y
+    /* 0x3A */ am_stubs!(),   //
+    /* 0x3B */ am_stubs!(),   //
+    /* 0x3C */ am_stubs!(),   //
+    /* 0x3D */ am_stubs!(),   // abs,X | AND oper,X
+    /* 0x3E */ am_stubs!(),   // abs,X | ROL oper,X
+    /* 0x3F */ am_stubs!(),   //
+    /* 0x40 */ am_stubs!(),   // impl | RTI
+    /* 0x41 */ am_stubs!(),   // (ind,X) | EOR (oper,X)
+    /* 0x42 */ am_stubs!(),   //
+    /* 0x43 */ am_stubs!(),   //
+    /* 0x44 */ am_stubs!(),   //
+    /* 0x45 */ am_stubs!(),   // zpg | EOR oper
+    /* 0x46 */ am_stubs!(),   // zpg | LSR oper
+    /* 0x47 */ am_stubs!(),   //
+    /* 0x48 */ am_stubs!(),   // impl | PHA
+    /* 0x49 */ am_stubs!(),   // # | EOR #oper
+    /* 0x4A */ am_stubs!(),   // A | LSR A
+    /* 0x4B */ am_stubs!(),   //
+    /* 0x4C */ am_stubs!(),   // abs | JMP oper
+    /* 0x4D */ am_stubs!(),   // abs | EOR oper
+    /* 0x4E */ am_stubs!(),   // abs | LSR oper
+    /* 0x4F */ am_stubs!(),   //
+    /* 0x50 */ am_relative!(&relative_BVC_core),   // rel | BVC oper
+    /* 0x51 */ am_stubs!(),   // (ind),Y | EOR (oper),Y
+    /* 0x52 */ am_stubs!(),   //
+    /* 0x53 */ am_stubs!(),   //
+    /* 0x54 */ am_stubs!(),   //
+    /* 0x55 */ am_stubs!(),   // zpg,X | EOR oper,X
+    /* 0x56 */ am_stubs!(),   // zpg,X | LSR oper,X
+    /* 0x57 */ am_stubs!(),   //
+    /* 0x58 */ am_stubs!(),   // impl | CLI
+    /* 0x59 */ am_stubs!(),   // abs,Y | EOR oper,Y
+    /* 0x5A */ am_stubs!(),   //
+    /* 0x5B */ am_stubs!(),   //
+    /* 0x5C */ am_stubs!(),   //
+    /* 0x5D */ am_stubs!(),   // abs,X | EOR oper,X
+    /* 0x5E */ am_stubs!(),   // abs,X | LSR oper,X
+    /* 0x5F */ am_stubs!(),   //
+    /* 0x60 */ am_stubs!(),   // impl | RTS
+    /* 0x61 */ am_stubs!(),   // (ind,X) | ADC (oper,X)
+    /* 0x62 */ am_stubs!(),   //
+    /* 0x63 */ am_stubs!(),   //
+    /* 0x64 */ am_stubs!(),   //
+    /* 0x65 */ am_stubs!(),   // zpg | ADC oper
+    /* 0x66 */ am_stubs!(),   // zpg | ROR oper
+    /* 0x67 */ am_stubs!(),   //
+    /* 0x68 */ am_stubs!(),   // impl | PLA
+    /* 0x69 */ am_stubs!(),   // # | ADC #oper
+    /* 0x6A */ am_stubs!(),   // A | ROR A
+    /* 0x6B */ am_stubs!(),   //
+    /* 0x6C */ am_stubs!(),   // ind | JMP (oper)
+    /* 0x6D */ am_stubs!(),   // abs | ADC oper
+    /* 0x6E */ am_stubs!(),   // abs | ROR oper
+    /* 0x6F */ am_stubs!(),   //
+    /* 0x70 */ am_relative!(&relative_BVS_core),   // rel | BVS oper
+    /* 0x71 */ am_stubs!(),   // (ind),Y | ADC (oper),Y
+    /* 0x72 */ am_stubs!(),   //
+    /* 0x73 */ am_stubs!(),   //
+    /* 0x74 */ am_stubs!(),   //
+    /* 0x75 */ am_stubs!(),   // zpg,X | ADC oper,X
+    /* 0x76 */ am_stubs!(),   // zpg,X | ROR oper,X
+    /* 0x77 */ am_stubs!(),   //
+    /* 0x78 */ am_stubs!(),   // impl | SEI
+    /* 0x79 */ am_stubs!(),   // abs,Y | ADC oper,Y
+    /* 0x7A */ am_stubs!(),   //
+    /* 0x7B */ am_stubs!(),   //
+    /* 0x7C */ am_stubs!(),   //
+    /* 0x7D */ am_stubs!(),   // abs,X | ADC oper,X
+    /* 0x7E */ am_stubs!(),   // abs,X | ROR oper,X
+    /* 0x7F */ am_stubs!(),   //
+    /* 0x80 */ am_stubs!(),   //
+    /* 0x81 */ am_stubs!(),   // (ind,X) | STA (oper,X)
+    /* 0x82 */ am_stubs!(),   //
+    /* 0x83 */ am_stubs!(),   //
+    /* 0x84 */ am_stubs!(),   // zpg | STY oper
+    /* 0x85 */ am_stubs!(),   // zpg | STA oper
+    /* 0x86 */ am_stubs!(),   // zpg | STX oper
+    /* 0x87 */ am_stubs!(),   //
+    /* 0x88 */ am_stubs!(),   // impl | DEY
+    /* 0x89 */ am_stubs!(),   //
+    /* 0x8A */ am_stubs!(),   // impl | TXA
+    /* 0x8B */ am_stubs!(),   //
+    /* 0x8C */ am_stubs!(),   // abs | STY oper
+    /* 0x8D */ am_stubs!(),   // abs | STA oper
+    /* 0x8E */ am_stubs!(),   // abs | STX oper
+    /* 0x8F */ am_stubs!(),   //
+    /* 0x90 */ am_relative!(&relative_BCC_core),   // rel | BCC oper
+    /* 0x91 */ am_stubs!(),   // (ind),Y | STA (oper),Y
+    /* 0x92 */ am_stubs!(),   //
+    /* 0x93 */ am_stubs!(),   //
+    /* 0x94 */ am_stubs!(),   // zpg,X | STY oper,X
+    /* 0x95 */ am_stubs!(),   // zpg,X | STA oper,X
+    /* 0x96 */ am_stubs!(),   // zpg,Y | STX oper,Y
+    /* 0x97 */ am_stubs!(),   //
+    /* 0x98 */ am_stubs!(),   // impl | TYA
+    /* 0x99 */ am_stubs!(),   // abs,Y | STA oper,Y
+    /* 0x9A */ am_stubs!(),   // impl | TXS
+    /* 0x9B */ am_stubs!(),   //
+    /* 0x9C */ am_stubs!(),   //
+    /* 0x9D */ am_stubs!(),   // abs,X | STA oper,X
+    /* 0x9E */ am_stubs!(),   //
+    /* 0x9F */ am_stubs!(),   //
+    /* 0xA0 */ am_stubs!(),   // # | LDY #oper
+    /* 0xA1 */ am_stubs!(),   // (ind,X) | LDA (oper,X)
+    /* 0xA2 */ am_stubs!(),   // # | LDX #oper
+    /* 0xA3 */ am_stubs!(),   //
+    /* 0xA4 */ am_stubs!(),   // zpg | LDY oper
+    /* 0xA5 */ am_stubs!(),   // zpg | LDA oper
+    /* 0xA6 */ am_stubs!(),   // zpg | LDX oper
+    /* 0xA7 */ am_stubs!(),   //
+    /* 0xA8 */ am_stubs!(),   // impl | TAY
+    /* 0xA9 */ am_stubs!(),   // # | LDA #oper
+    /* 0xAA */ am_stubs!(),   // impl | TAX
+    /* 0xAB */ am_stubs!(),   //
+    /* 0xAC */ am_stubs!(),   // abs | LDY oper
+    /* 0xAD */ am_stubs!(),   // abs | LDA oper
+    /* 0xAE */ am_stubs!(),   // abs | LDX oper
+    /* 0xAF */ am_stubs!(),   //
+    /* 0xB0 */ am_relative!(&relative_BCS_core),   // rel | BCS oper
+    /* 0xB1 */ am_stubs!(),   // (ind),Y | LDA (oper),Y
+    /* 0xB2 */ am_stubs!(),   //
+    /* 0xB3 */ am_stubs!(),   //
+    /* 0xB4 */ am_stubs!(),   // zpg,X | LDY oper,X
+    /* 0xB5 */ am_stubs!(),   // zpg,X | LDA oper,X
+    /* 0xB6 */ am_stubs!(),   // zpg,Y | LDX oper,Y
+    /* 0xB7 */ am_stubs!(),   //
+    /* 0xB8 */ am_stubs!(),   // impl | CLV
+    /* 0xB9 */ am_stubs!(),   // abs,Y | LDA oper,Y
+    /* 0xBA */ am_stubs!(),   // impl | TSX
+    /* 0xBB */ am_stubs!(),   //
+    /* 0xBC */ am_stubs!(),   // abs,X | LDY oper,X
+    /* 0xBD */ am_stubs!(),   // abs,X | LDA oper,X
+    /* 0xBE */ am_stubs!(),   // abs,Y | LDX oper,Y
+    /* 0xBF */ am_stubs!(),   //
+    /* 0xC0 */ am_stubs!(),   // # | CPY #oper
+    /* 0xC1 */ am_stubs!(),   // (ind,X) | CMP (oper,X)
+    /* 0xC2 */ am_stubs!(),   //
+    /* 0xC3 */ am_stubs!(),   //
+    /* 0xC4 */ am_stubs!(),   // zpg | CPY oper
+    /* 0xC5 */ am_stubs!(),   // zpg | CMP oper
+    /* 0xC6 */ am_stubs!(),   // zpg | DEC oper
+    /* 0xC7 */ am_stubs!(),   //
+    /* 0xC8 */ am_stubs!(),   // impl | INY
+    /* 0xC9 */ am_stubs!(),   // # | CMP #oper
+    /* 0xCA */ am_stubs!(),   // impl | DEX
+    /* 0xCB */ am_stubs!(),   //
+    /* 0xCC */ am_stubs!(),   // abs | CPY oper
+    /* 0xCD */ am_stubs!(),   // abs | CMP oper
+    /* 0xCE */ am_stubs!(),   // abs | DEC oper
+    /* 0xCF */ am_stubs!(),   //
+    /* 0xD0 */ am_relative!(&relative_BNE_core),   // rel | BNE oper
+    /* 0xD1 */ am_stubs!(),   // (ind),Y | CMP (oper),Y
+    /* 0xD2 */ am_stubs!(),   //
+    /* 0xD3 */ am_stubs!(),   //
+    /* 0xD4 */ am_stubs!(),   //
+    /* 0xD5 */ am_stubs!(),   // zpg,X | CMP oper,X
+    /* 0xD6 */ am_stubs!(),   // zpg,X | DEC oper,X
+    /* 0xD7 */ am_stubs!(),   //
+    /* 0xD8 */ am_stubs!(),   // impl | CLD
+    /* 0xD9 */ am_stubs!(),   // abs,Y | CMP oper,Y
+    /* 0xDA */ am_stubs!(),   //
+    /* 0xDB */ am_stubs!(),   //
+    /* 0xDC */ am_stubs!(),   //
+    /* 0xDD */ am_stubs!(),   // abs,X | CMP oper,X
+    /* 0xDE */ am_stubs!(),   // abs,X | DEC oper,X
+    /* 0xDF */ am_stubs!(),   //
+    /* 0xE0 */ am_stubs!(),   // # | CPX #oper
+    /* 0xE1 */ am_stubs!(),   // (ind,X) | SBC (oper,X)
+    /* 0xE2 */ am_stubs!(),   //
+    /* 0xE3 */ am_stubs!(),   //
+    /* 0xE4 */ am_stubs!(),   // zpg | CPX oper
+    /* 0xE5 */ am_stubs!(),   // zpg | SBC oper
+    /* 0xE6 */ am_stubs!(),   // zpg | INC oper
+    /* 0xE7 */ am_stubs!(),   //
+    /* 0xE8 */ am_stubs!(),   // impl | INX
+    /* 0xE9 */ am_stubs!(),   // # | SBC #oper
+    /* 0xEA */ am_stubs!(),   // impl | NOP
+    /* 0xEB */ am_stubs!(),   //
+    /* 0xEC */ am_stubs!(),   // abs | CPX oper
+    /* 0xED */ am_stubs!(),   // abs | SBC oper
+    /* 0xEE */ am_stubs!(),   // abs | INC oper
+    /* 0xEF */ am_stubs!(),   //
+    /* 0xF0 */ am_relative!(&relative_BEQ_core),   // rel | BEQ oper
+    /* 0xF1 */ am_stubs!(),   // (ind),Y | SBC (oper),Y
+    /* 0xF2 */ am_stubs!(),   //
+    /* 0xF3 */ am_stubs!(),   //
+    /* 0xF4 */ am_stubs!(),   //
+    /* 0xF5 */ am_stubs!(),   // zpg,X | SBC oper,X
+    /* 0xF6 */ am_stubs!(),   // zpg,X | INC oper,X
+    /* 0xF7 */ am_stubs!(),   //
+    /* 0xF8 */ am_stubs!(),   // impl | SED
+    /* 0xF9 */ am_stubs!(),   // abs,Y | SBC oper,Y
+    /* 0xFA */ am_stubs!(),   //
+    /* 0xFB */ am_stubs!(),   //
+    /* 0xFC */ am_stubs!(),   //
+    /* 0xFD */ am_stubs!(),   // abs,X | SBC oper,X
+    /* 0xFE */ am_stubs!(),   // abs,X | INC oper,X
+    /* 0xFF */ am_stubs!(),   //
+];

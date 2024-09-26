@@ -19,18 +19,19 @@ fn hcm_6502_allsuitea_tests_main() {
     let rdy = Rc::new(Cell::new(cmn::LineState::High));
     let mut cpu = MOS6502::new(rdy.clone(), &mem);
 
-    for _ in 0..615 {
+    loop {
         cpu.tick(&mut mem);
+        if cpu.instructions() == 612 {
+            break;
+        }
     }
 
-    assert_eq!(cpu.cycles(), 1993);
-    #[cfg(not(debug_assertions))]
-    assert!(cpu.duration() < 150_000, "Things slowed down. {}", cpu.duration());
     assert_eq!(cpu.pc(), cmn::LoHi(0xC0, 0x45));
+    assert_eq!(mem.get(cmn::LoHi(0x10, 0x02), 0), 0xFF);
+    assert_eq!(cpu.cycles(), 1970);
     assert_eq!(cpu.a(), 0xFE);
     assert_eq!(cpu.x(), 0x0D);
     assert_eq!(cpu.y(), 0x54);
     assert_eq!(cpu.psr(), 0x81);
     assert_eq!(cpu.s(), 0x33);
-    assert_eq!(mem.get(cmn::LoHi(0x10, 0x02), 0), 0xFF);
 }

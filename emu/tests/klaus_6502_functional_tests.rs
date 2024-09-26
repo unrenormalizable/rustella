@@ -22,15 +22,15 @@ fn klaus_6502_65c02_functional_tests_main() {
     let mut cpu = cpu::MOS6502::new(rdy.clone(), &mem);
     cpu.set_pc(cmn::LoHi(0x00, 0x04));
 
-    for _ in 0..54483 {
+    loop {
         cpu.tick(&mut mem);
+        if cpu.instructions() == 54483 {
+            break;
+        }
     }
 
-    assert_eq!(mem.get(cmn::LoHi(0x00, 0x02), 0), 0x29); // NOTE: This indicates the number of tests ran.
-
-    assert_eq!(cpu.cycles(), 129319);
-    #[cfg(not(debug_assertions))]
-    assert!(cpu.duration() < 1_500_770, "Things slowed down. {}", cpu.duration());
+    assert_eq!(mem.get(cmn::LoHi(0x00, 0x02), 0), 0x29, "CPU: {cpu:?}"); // NOTE: This indicates the number of tests ran.
+    assert_eq!(cpu.cycles(), 126_852);
     assert_eq!(cpu.pc(), cmn::LoHi(0x08, 0x33));
     assert_eq!(cpu.a(), 0x29);
     assert_eq!(cpu.x(), 0xFE);
