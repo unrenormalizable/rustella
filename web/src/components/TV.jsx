@@ -78,22 +78,21 @@ const TV = () => {
     const romData = uploadedRomInfo.data.length
       ? uploadedRomInfo.data
       : stockRomData
-    setRomName(
-      uploadedRomInfo.data.length
-        ? `${uploadedRomInfo.name} (uploaded)`
-        : ROMS[selectedStockRomId].name
-    )
+    const name = uploadedRomInfo.data.length
+      ? `${uploadedRomInfo.name} (uploaded)`
+      : ROMS[selectedStockRomId].name
+    setRomName(name)
     const startAddr = uploadedRomInfo.data.length
       ? getStartAddress(uploadedRomInfo.data.length)
       : ROMS[selectedStockRomId].start_addr
 
+    const atari = new Atari(
+      renderFrame(setTotalFrames, colorMap, canvasRef.current.getContext('2d'))
+    )
+    atari.loadROM(name, startAddr, new Uint8Array(romData))
+
     setTotalTime(0)
     setTotalFrames(0)
-    const canvas = canvasRef.current
-    const context = canvas.getContext('2d')
-    const atari = new Atari(renderFrame(setTotalFrames, colorMap, context))
-    atari.loadROM(romName, startAddr, new Uint8Array(romData))
-
     const interval = setInterval(() => {
       const start = Date.now()
       atari.tick(20000)
@@ -106,7 +105,6 @@ const TV = () => {
   }, [
     wasmInitialized,
     colorMap,
-    romName,
     selectedStockRomId,
     stockRomData,
     uploadedRomInfo,

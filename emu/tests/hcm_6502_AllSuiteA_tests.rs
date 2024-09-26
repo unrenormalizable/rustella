@@ -7,6 +7,7 @@ fn hcm_6502_allsuitea_tests_main() {
     let bin_path: PathBuf = [
         env!("CARGO_MANIFEST_DIR"),
         "tests",
+        "bins",
         "hcm_6502_AllSuiteA.bin",
     ]
     .iter()
@@ -22,6 +23,9 @@ fn hcm_6502_allsuitea_tests_main() {
         cpu.tick(&mut mem);
     }
 
+    assert_eq!(cpu.cycles(), 1993);
+    #[cfg(not(debug_assertions))]
+    assert!(cpu.duration() < 150_000, "Things slowed down. {}", cpu.duration());
     assert_eq!(cpu.pc(), cmn::LoHi(0xC0, 0x45));
     assert_eq!(cpu.a(), 0xFE);
     assert_eq!(cpu.x(), 0x0D);

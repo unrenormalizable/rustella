@@ -10,9 +10,9 @@ fn spiceware_collect_1_stable_display() {
     let bin_path: PathBuf = [
         env!("CARGO_MANIFEST_DIR"),
         "tests",
-        "spiceware_collect",
-        "1",
-        "collect.bin",
+        "bins",
+        "collect",
+        "collect_1.bin",
     ]
     .iter()
     .collect();
@@ -30,5 +30,7 @@ fn spiceware_collect_1_stable_display() {
     assert_debug_snapshot!(common::serialize_tv_buffer(&tv.borrow().buffer()));
     assert_eq!(tv.borrow().frame_counter(), 55);
     assert_eq!(atari.cpu_state().cycles(), 151997);
+    #[cfg(not(debug_assertions))]
+    assert!(atari.cpu_state().duration() < 3_500_000, "Things slowed down. {}", atari.cpu_state().duration());
     assert_eq!(atari.cpu_state().pc(), cmn::LoHi(0x4D, 0xF8));
 }

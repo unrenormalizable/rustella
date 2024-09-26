@@ -10,9 +10,9 @@ fn spiceware_collect_3_score_timer_display() {
     let bin_path: PathBuf = [
         env!("CARGO_MANIFEST_DIR"),
         "tests",
-        "spiceware_collect",
-        "3",
-        "collect.bin",
+        "bins",
+        "collect",
+        "collect_3.bin",
     ]
     .iter()
     .collect();
@@ -30,5 +30,7 @@ fn spiceware_collect_3_score_timer_display() {
     assert_debug_snapshot!(common::serialize_tv_buffer(&tv.borrow().buffer()));
     assert_eq!(tv.borrow().frame_counter(), 57);
     assert_eq!(atari.cpu_state().cycles(), 205431);
+    #[cfg(not(debug_assertions))]
+    assert!(atari.cpu_state().duration() < 4_000_000, "Things slowed down. {}", atari.cpu_state().duration());
     assert_eq!(atari.cpu_state().pc(), cmn::LoHi(0x9D, 0xF8));
 }

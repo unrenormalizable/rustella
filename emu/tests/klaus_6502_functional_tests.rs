@@ -9,6 +9,7 @@ fn klaus_6502_65c02_functional_tests_main() {
     let bin_path: PathBuf = [
         env!("CARGO_MANIFEST_DIR"),
         "tests",
+        "bins",
         "klaus_6502_functional_test.bin",
     ]
     .iter()
@@ -27,6 +28,9 @@ fn klaus_6502_65c02_functional_tests_main() {
 
     assert_eq!(mem.get(cmn::LoHi(0x00, 0x02), 0), 0x29); // NOTE: This indicates the number of tests ran.
 
+    assert_eq!(cpu.cycles(), 129319);
+    #[cfg(not(debug_assertions))]
+    assert!(cpu.duration() < 1_500_770, "Things slowed down. {}", cpu.duration());
     assert_eq!(cpu.pc(), cmn::LoHi(0x08, 0x33));
     assert_eq!(cpu.a(), 0x29);
     assert_eq!(cpu.x(), 0xFE);

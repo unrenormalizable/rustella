@@ -3,29 +3,29 @@ import { getStartAddress } from './utils'
 const TEST_ROMS = [
   {
     name: 'Step 1 - Generate a Stable Display',
-    url: '/1/collect.bin',
+    url: '/roms/collect_1.bin',
     start_addr: 0xf800,
   },
   {
     name: 'Step 2 - Timers',
-    url: '/2/collect.bin',
+    url: '/roms/collect_2.bin',
     start_addr: 0xf800,
   },
   {
     name: 'Step 3 - Score & Timer display',
-    url: '/3/collect.bin',
+    url: '/roms/collect_3.bin',
     start_addr: 0xf800,
   },
   {
     name: '8blit-s01e04-Playfield-01',
-    url: '/3/8blit-s01e04-Playfield-01.bin',
+    url: '/roms/8blit-s01e04-Playfield-01.bin',
     start_addr: 0xf000,
     info_url:
       'https://github.com/kreiach/8Blit/tree/main/s01e04%20-%20Playfield%20Registers',
   },
   {
     name: 'asymmetric',
-    url: '/3/asymmetric.bin',
+    url: '/asymmetric.bin',
     start_addr: 0xf000,
     info_url:
       'https://www.vbforums.com/showthread.php?834149-Atari-2600-Programming-Tutorial-4-Asymmetric-Graphics!-(Demo-Included)',
