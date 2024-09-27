@@ -11,7 +11,13 @@ pub fn go(
 ) {
     let mut count = count;
     loop {
-        cpu.tick(mem);
+        let instrs = cpu.instructions();
+        loop {
+            cpu.tick(mem);
+            if cpu.instructions() == instrs + 1 {
+                break;
+            }
+        }
         count -= 1;
 
         if count == 0 {

@@ -1,9 +1,14 @@
-use crate::cmn::LoHi;
-use crate::riot::Memory;
+use crate::{
+    cmn::*,
+    cpu::core::{OpcExecutionState, MOS6502},
+    cpu::opc_info,
+    riot::Memory,
+};
 
 /*
-    Details: "6502 Address Modes in Detail" in https://www.masswerk.at/6502/6502_instruction_set.html#modes
-    - Naming conventions from that document
+    Details:
+    - "6502 Address Modes in Detail" in https://www.masswerk.at/6502/6502_instruction_set.html#modes
+    - OpCode steps: https://www.nesdev.org/6502_cpu.txt
     - Also refer https://www.pagetable.com/c64ref/6502/?tab=3
 
     - TODO: Combine load store tests.
@@ -534,22 +539,73 @@ pub mod post_indexed_indirect {
 /// BEQ $1005 - branch to location "$1005", if the zero flag is set. if the current address is $1000, this will give an offset of $03.
 /// BCS $08C4 - branch to location "$08C4", if the carry flag is set. if the current address is $08D4, this will give an offset of $EE (−$12).
 /// BCC $084A - branch to location "$084A", if the carry flag is clear.
+///
 pub mod relative {
-    use super::*;
-
     /// Refer: https://www.pagetable.com/c64ref/6502/?tab=3#r8
-    pub fn load(mem: &Memory, pc: LoHi) -> LoHi {
-        let off = mem.get(pc, 1);
+    macro_rules! opcode_steps {
+        ($main:expr, $illegal:expr) => {
+            &[
+                //  Relative addressing (BCC, BCS, BNE, BEQ, BPL, BMI, BVC, BVS)
+                //
+                //        #   address  R/W description
+                //       --- --------- --- ---------------------------------------------
+                //        1     PC      R  fetch opcode, increment PC
+                $illegal,
+                //        2     PC      R  fetch operand, increment PC
+                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                    s.regs()[0] = mem.get(cpu.pc(), 0);
+                    cpu.pc_incr(1);
+                    !$main(cpu)
+                },
+                //        3     PC      R  Fetch opcode of next instruction,
+                //                         If branch is taken, add operand to PCL.
+                //                         Otherwise increment PC.
+                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                    s.set_throw_away(mem.get(cpu.pc(), 0));
 
-        u16::from(pc + 0x02u8) // NOTE: relative is only used in branch opcs, all have length 2
-            .wrapping_add_signed(off as i8 as i16)
-            .into()
+                    let new_pc = u16::from(cpu.pc()).wrapping_add_signed(s.regs()[0] as i8 as i16);
+                    cpu.set_pc(LoHi(new_pc as u8, cpu.pc().1));
+                    s.regs()[1] = (new_pc >> 8) as u8;
+                    cpu.pc().1 == s.regs()[1]
+                },
+                //        4+    PC*     R  Fetch opcode of next instruction.
+                //                         Fix PCH. If it did not change, increment PC.
+                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                    s.set_throw_away(mem.get(cpu.pc(), 0));
+                    let new_pc = LoHi(cpu.pc().0, s.regs()[1]);
+                    cpu.set_pc(new_pc);
+                    true
+                },
+                $illegal,
+                $illegal,
+                //        5!    PC      R  Fetch opcode of next instruction,
+                //                         increment PC.
+                //
+                //       Notes: The opcode fetch of the next instruction is included to
+                //              this diagram for illustration purposes. When determining
+                //              real execution times, remember to subtract the last
+                //              cycle.
+                //
+                //              * The high byte of Program Counter (PCH) may be invalid
+                //                at this time, i.e. it may be smaller or bigger by $100.
+                //
+                //              + If branch is taken, this cycle will be executed.
+                //
+                //              ! If branch occurs to different page, this cycle will be
+                //                executed.
+            ]
+        };
     }
+
+    pub(crate) use opcode_steps;
 
     #[cfg(test)]
     mod tests {
-        use super::*;
-        use crate::riot;
+        use crate::{
+            cmn::*,
+            cpu::core::{execute_opc_step, OpcExecutionState, MAX_OPCODE_STEPS, MOS6502},
+            riot::Memory,
+        };
         use test_case::test_case;
 
         #[test_case(LoHi(0x0A, 0xF0), 0xFB, LoHi(0x07, 0xF0); "Jump by -3 bytes")]
@@ -564,12 +620,39 @@ pub mod relative {
         #[test_case(LoHi(0xE8, 0xF2), 0x80, LoHi(0x6A, 0xF2); "max back - page wrap")]
         #[test_case(LoHi(0x46, 0xF0), 0x80, LoHi(0xC8, 0xEF); "min")]
         fn test_load(pc: LoHi, op_arg: u8, exp: LoHi) {
-            let mut mem = riot::Memory::new(true);
+            let mut mem = Memory::new(true);
+            let mut cpu = MOS6502::new(LineState::High.rc_cell(), &mem);
+            cpu.set_pc(pc);
             mem.set(pc, 1, op_arg);
+            cpu.pc_incr(1);
 
-            let obt = super::load(&mem, pc);
+            let steps = opcode_steps!(|_| true, super::super::opc_step_illegal);
 
-            assert_eq!(exp, obt);
+            for &step in steps.iter().take(MAX_OPCODE_STEPS).skip(1) {
+                if execute_opc_step(step, &mut cpu, &mut mem) {
+                    break;
+                }
+            }
+
+            assert_eq!(cpu.pc(), exp);
         }
     }
 }
+
+pub fn opc_step_illegal(s: &mut OpcExecutionState, cpu: &mut MOS6502, _: &mut Memory) -> bool {
+    let opc_info = &opc_info::ALL[s.opc()];
+    unimplemented!(
+        "Step #{} for Opcode {:02X} ({}) not implemented. CPU state: {cpu:?}",
+        s.step(),
+        s.opc(),
+        opc_info.assembler
+    )
+}
+
+macro_rules! stub_opcode_steps {
+    ($illegal:expr) => {
+        &[$illegal, $illegal, $illegal, $illegal, $illegal, $illegal]
+    };
+}
+
+pub(crate) use stub_opcode_steps;

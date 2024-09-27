@@ -1,5 +1,8 @@
 use alloc::rc::Rc;
-use core::{cell::Cell, fmt::Debug};
+use core::{
+    cell::{Cell, RefCell},
+    fmt::Debug,
+};
 
 #[derive(Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LoHi(pub u8, pub u8);
@@ -56,6 +59,24 @@ pub enum LineState {
 }
 
 pub type Line = Rc<Cell<LineState>>;
+
+pub trait RefExtensions {
+    fn rc_cell(self) -> Rc<Cell<Self>>
+    where
+        Self: Sized,
+    {
+        Rc::new(Cell::new(self))
+    }
+
+    fn rc_refcell(self) -> Rc<RefCell<Self>>
+    where
+        Self: Sized,
+    {
+        Rc::new(RefCell::new(self))
+    }
+}
+
+impl<T> RefExtensions for T {}
 
 #[cfg(test)]
 mod tests {

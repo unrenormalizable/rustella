@@ -2,12 +2,22 @@ mod cmds;
 mod color_term;
 mod repl;
 
-use rustella::{cmn, cpu, riot};
-use std::{cell::Cell, collections::HashSet, fs, rc::Rc};
+use rustella::{cmn, cmn::RefExtensions, cpu, riot};
+use std::{collections::HashSet, fs, path::PathBuf};
 
 fn main() {
-    let rdy = Rc::new(Cell::new(cmn::LineState::Low));
-    let buffer = fs::read("d:/src/u/s/lib/tests/klaus_6502_functional_test.bin").unwrap();
+    let rdy = cmn::LineState::High.rc_cell();
+    let bin_path: PathBuf = [
+        env!("CARGO_MANIFEST_DIR"),
+        "../emu/",
+        "tests",
+        "bins",
+        "klaus_6502_functional_test.bin",
+    ]
+    .iter()
+    .collect();
+
+    let buffer = fs::read(bin_path).unwrap();
     let mut mem = riot::Memory::new_with_rom(
         &buffer,
         cmn::LoHi::default(),

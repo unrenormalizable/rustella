@@ -2614,347 +2614,263 @@ fn relative_BEQ_core(cpu: &MOS6502) -> bool {
     cpu.tst_psr_bit(PSR::Z)
 }
 
-fn not_implemented(cpu: &mut MOS6502, _: &mut Memory) -> bool {
-    let exec_state = cpu.execution_state();
-    let opc_info = &opc_info::ALL[exec_state.opc()];
-    unimplemented!(
-        "Step #{} for Opcode {:02X} ({}) not implemented. CPU state: {cpu:?}",
-        exec_state.step(),
-        exec_state.opc(),
-        opc_info.assembler
-    )
-}
-
-type OpCodeSteps<'a> = &'a [&'a OpCodeStepFn; 0x06];
-
-macro_rules! am_stubs {
-    () => {
-        &[
-            &not_implemented,
-            &not_implemented,
-            &not_implemented,
-            &not_implemented,
-            &not_implemented,
-            &not_implemented,
-        ]
-    };
-}
-
-macro_rules! am_relative {
-    ($main:expr) => {
-        &[
-            //  Relative addressing (BCC, BCS, BNE, BEQ, BPL, BMI, BVC, BVS)
-            //
-            //        #   address  R/W description
-            //       --- --------- --- ---------------------------------------------
-            //        1     PC      R  fetch opcode, increment PC
-            &not_implemented,
-            //        2     PC      R  fetch operand, increment PC
-            &|cpu: &mut MOS6502, mem: &mut Memory| -> bool {
-                cpu.execution_state().regs()[0] = mem.get(cpu.pc(), 0);
-                cpu.pc_incr(1);
-                !$main(cpu)
-            },
-            //        3     PC      R  Fetch opcode of next instruction,
-            //                         If branch is taken, add operand to PCL.
-            //                         Otherwise increment PC.
-            &|cpu: &mut MOS6502, mem: &mut Memory| -> bool {
-                let pc = cpu.pc();
-                cpu.execution_state().set_throw_away(mem.get(pc, 0));
-
-                let new_pc =
-                    u16::from(pc).wrapping_add_signed(cpu.execution_state().regs()[0] as i8 as i16);
-                cpu.set_pc(LoHi(new_pc as u8, pc.1));
-                cpu.execution_state().regs()[1] = (new_pc >> 8) as u8;
-                pc.1 == cpu.execution_state().regs()[1]
-            },
-            //        4+    PC*     R  Fetch opcode of next instruction.
-            //                         Fix PCH. If it did not change, increment PC.
-            &|cpu: &mut MOS6502, mem: &mut Memory| -> bool {
-                let pc = cpu.pc();
-                cpu.execution_state().set_throw_away(mem.get(pc, 0));
-                let new_pc = LoHi(pc.0, cpu.execution_state().regs()[1]);
-                cpu.set_pc(new_pc);
-                true
-            },
-            &not_implemented,
-            &not_implemented,
-            //        5!    PC      R  Fetch opcode of next instruction,
-            //                         increment PC.
-            //
-            //       Notes: The opcode fetch of the next instruction is included to
-            //              this diagram for illustration purposes. When determining
-            //              real execution times, remember to subtract the last
-            //              cycle.
-            //
-            //              * The high byte of Program Counter (PCH) may be invalid
-            //                at this time, i.e. it may be smaller or bigger by $100.
-            //
-            //              + If branch is taken, this cycle will be executed.
-            //
-            //              ! If branch occurs to different page, this cycle will be
-            //                executed.
-        ]
-    };
-}
-
 /// Refer: https://www.nesdev.org/6502_cpu.txt
 #[rustfmt::skip]
 pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
-    /* 0x00 */ am_stubs!(),   // impl | BRK
-    /* 0x01 */ am_stubs!(),   // (ind,X) | ORA (oper,X)
-    /* 0x02 */ am_stubs!(),   //
-    /* 0x03 */ am_stubs!(),   //
-    /* 0x04 */ am_stubs!(),   //
-    /* 0x05 */ am_stubs!(),   // zpg | ORA oper
-    /* 0x06 */ am_stubs!(),   // zpg | ASL oper
-    /* 0x07 */ am_stubs!(),   //
-    /* 0x08 */ am_stubs!(),   // impl | PHP
-    /* 0x09 */ am_stubs!(),   // # | ORA #oper
-    /* 0x0A */ am_stubs!(),   // A | ASL A
-    /* 0x0B */ am_stubs!(),   //
-    /* 0x0C */ am_stubs!(),   //
-    /* 0x0D */ am_stubs!(),   // abs | ORA oper
-    /* 0x0E */ am_stubs!(),   // abs | ASL oper
-    /* 0x0F */ am_stubs!(),   //
-    /* 0x10 */ am_relative!(&relative_BPL_core),   // rel | BPL oper
-    /* 0x11 */ am_stubs!(),   // (ind),Y | ORA (oper),Y
-    /* 0x12 */ am_stubs!(),   //
-    /* 0x13 */ am_stubs!(),   //
-    /* 0x14 */ am_stubs!(),   //
-    /* 0x15 */ am_stubs!(),   // zpg,X | ORA oper,X
-    /* 0x16 */ am_stubs!(),   // zpg,X | ASL oper,X
-    /* 0x17 */ am_stubs!(),   //
-    /* 0x18 */ am_stubs!(),   // impl | CLC
-    /* 0x19 */ am_stubs!(),   // abs,Y | ORA oper,Y
-    /* 0x1A */ am_stubs!(),   //
-    /* 0x1B */ am_stubs!(),   //
-    /* 0x1C */ am_stubs!(),   //
-    /* 0x1D */ am_stubs!(),   // abs,X | ORA oper,X
-    /* 0x1E */ am_stubs!(),   // abs,X | ASL oper,X
-    /* 0x1F */ am_stubs!(),   //
-    /* 0x20 */ am_stubs!(),   // abs | JSR oper
-    /* 0x21 */ am_stubs!(),   // (ind,X) | AND (oper,X)
-    /* 0x22 */ am_stubs!(),   //
-    /* 0x23 */ am_stubs!(),   //
-    /* 0x24 */ am_stubs!(),   // zpg | BIT oper
-    /* 0x25 */ am_stubs!(),   // zpg | AND oper
-    /* 0x26 */ am_stubs!(),   // zpg | ROL oper
-    /* 0x27 */ am_stubs!(),   //
-    /* 0x28 */ am_stubs!(),   // impl | PLP
-    /* 0x29 */ am_stubs!(),   // # | AND #oper
-    /* 0x2A */ am_stubs!(),   // A | ROL A
-    /* 0x2B */ am_stubs!(),   //
-    /* 0x2C */ am_stubs!(),   // abs | BIT oper
-    /* 0x2D */ am_stubs!(),   // abs | AND oper
-    /* 0x2E */ am_stubs!(),   // abs | ROL oper
-    /* 0x2F */ am_stubs!(),   //
-    /* 0x30 */ am_relative!(&relative_BMI_core),   // rel | BMI oper
-    /* 0x31 */ am_stubs!(),   // (ind),Y | AND (oper),Y
-    /* 0x32 */ am_stubs!(),   //
-    /* 0x33 */ am_stubs!(),   //
-    /* 0x34 */ am_stubs!(),   //
-    /* 0x35 */ am_stubs!(),   // zpg,X | AND oper,X
-    /* 0x36 */ am_stubs!(),   // zpg,X | ROL oper,X
-    /* 0x37 */ am_stubs!(),   //
-    /* 0x38 */ am_stubs!(),   // impl | SEC
-    /* 0x39 */ am_stubs!(),   // abs,Y | AND oper,Y
-    /* 0x3A */ am_stubs!(),   //
-    /* 0x3B */ am_stubs!(),   //
-    /* 0x3C */ am_stubs!(),   //
-    /* 0x3D */ am_stubs!(),   // abs,X | AND oper,X
-    /* 0x3E */ am_stubs!(),   // abs,X | ROL oper,X
-    /* 0x3F */ am_stubs!(),   //
-    /* 0x40 */ am_stubs!(),   // impl | RTI
-    /* 0x41 */ am_stubs!(),   // (ind,X) | EOR (oper,X)
-    /* 0x42 */ am_stubs!(),   //
-    /* 0x43 */ am_stubs!(),   //
-    /* 0x44 */ am_stubs!(),   //
-    /* 0x45 */ am_stubs!(),   // zpg | EOR oper
-    /* 0x46 */ am_stubs!(),   // zpg | LSR oper
-    /* 0x47 */ am_stubs!(),   //
-    /* 0x48 */ am_stubs!(),   // impl | PHA
-    /* 0x49 */ am_stubs!(),   // # | EOR #oper
-    /* 0x4A */ am_stubs!(),   // A | LSR A
-    /* 0x4B */ am_stubs!(),   //
-    /* 0x4C */ am_stubs!(),   // abs | JMP oper
-    /* 0x4D */ am_stubs!(),   // abs | EOR oper
-    /* 0x4E */ am_stubs!(),   // abs | LSR oper
-    /* 0x4F */ am_stubs!(),   //
-    /* 0x50 */ am_relative!(&relative_BVC_core),   // rel | BVC oper
-    /* 0x51 */ am_stubs!(),   // (ind),Y | EOR (oper),Y
-    /* 0x52 */ am_stubs!(),   //
-    /* 0x53 */ am_stubs!(),   //
-    /* 0x54 */ am_stubs!(),   //
-    /* 0x55 */ am_stubs!(),   // zpg,X | EOR oper,X
-    /* 0x56 */ am_stubs!(),   // zpg,X | LSR oper,X
-    /* 0x57 */ am_stubs!(),   //
-    /* 0x58 */ am_stubs!(),   // impl | CLI
-    /* 0x59 */ am_stubs!(),   // abs,Y | EOR oper,Y
-    /* 0x5A */ am_stubs!(),   //
-    /* 0x5B */ am_stubs!(),   //
-    /* 0x5C */ am_stubs!(),   //
-    /* 0x5D */ am_stubs!(),   // abs,X | EOR oper,X
-    /* 0x5E */ am_stubs!(),   // abs,X | LSR oper,X
-    /* 0x5F */ am_stubs!(),   //
-    /* 0x60 */ am_stubs!(),   // impl | RTS
-    /* 0x61 */ am_stubs!(),   // (ind,X) | ADC (oper,X)
-    /* 0x62 */ am_stubs!(),   //
-    /* 0x63 */ am_stubs!(),   //
-    /* 0x64 */ am_stubs!(),   //
-    /* 0x65 */ am_stubs!(),   // zpg | ADC oper
-    /* 0x66 */ am_stubs!(),   // zpg | ROR oper
-    /* 0x67 */ am_stubs!(),   //
-    /* 0x68 */ am_stubs!(),   // impl | PLA
-    /* 0x69 */ am_stubs!(),   // # | ADC #oper
-    /* 0x6A */ am_stubs!(),   // A | ROR A
-    /* 0x6B */ am_stubs!(),   //
-    /* 0x6C */ am_stubs!(),   // ind | JMP (oper)
-    /* 0x6D */ am_stubs!(),   // abs | ADC oper
-    /* 0x6E */ am_stubs!(),   // abs | ROR oper
-    /* 0x6F */ am_stubs!(),   //
-    /* 0x70 */ am_relative!(&relative_BVS_core),   // rel | BVS oper
-    /* 0x71 */ am_stubs!(),   // (ind),Y | ADC (oper),Y
-    /* 0x72 */ am_stubs!(),   //
-    /* 0x73 */ am_stubs!(),   //
-    /* 0x74 */ am_stubs!(),   //
-    /* 0x75 */ am_stubs!(),   // zpg,X | ADC oper,X
-    /* 0x76 */ am_stubs!(),   // zpg,X | ROR oper,X
-    /* 0x77 */ am_stubs!(),   //
-    /* 0x78 */ am_stubs!(),   // impl | SEI
-    /* 0x79 */ am_stubs!(),   // abs,Y | ADC oper,Y
-    /* 0x7A */ am_stubs!(),   //
-    /* 0x7B */ am_stubs!(),   //
-    /* 0x7C */ am_stubs!(),   //
-    /* 0x7D */ am_stubs!(),   // abs,X | ADC oper,X
-    /* 0x7E */ am_stubs!(),   // abs,X | ROR oper,X
-    /* 0x7F */ am_stubs!(),   //
-    /* 0x80 */ am_stubs!(),   //
-    /* 0x81 */ am_stubs!(),   // (ind,X) | STA (oper,X)
-    /* 0x82 */ am_stubs!(),   //
-    /* 0x83 */ am_stubs!(),   //
-    /* 0x84 */ am_stubs!(),   // zpg | STY oper
-    /* 0x85 */ am_stubs!(),   // zpg | STA oper
-    /* 0x86 */ am_stubs!(),   // zpg | STX oper
-    /* 0x87 */ am_stubs!(),   //
-    /* 0x88 */ am_stubs!(),   // impl | DEY
-    /* 0x89 */ am_stubs!(),   //
-    /* 0x8A */ am_stubs!(),   // impl | TXA
-    /* 0x8B */ am_stubs!(),   //
-    /* 0x8C */ am_stubs!(),   // abs | STY oper
-    /* 0x8D */ am_stubs!(),   // abs | STA oper
-    /* 0x8E */ am_stubs!(),   // abs | STX oper
-    /* 0x8F */ am_stubs!(),   //
-    /* 0x90 */ am_relative!(&relative_BCC_core),   // rel | BCC oper
-    /* 0x91 */ am_stubs!(),   // (ind),Y | STA (oper),Y
-    /* 0x92 */ am_stubs!(),   //
-    /* 0x93 */ am_stubs!(),   //
-    /* 0x94 */ am_stubs!(),   // zpg,X | STY oper,X
-    /* 0x95 */ am_stubs!(),   // zpg,X | STA oper,X
-    /* 0x96 */ am_stubs!(),   // zpg,Y | STX oper,Y
-    /* 0x97 */ am_stubs!(),   //
-    /* 0x98 */ am_stubs!(),   // impl | TYA
-    /* 0x99 */ am_stubs!(),   // abs,Y | STA oper,Y
-    /* 0x9A */ am_stubs!(),   // impl | TXS
-    /* 0x9B */ am_stubs!(),   //
-    /* 0x9C */ am_stubs!(),   //
-    /* 0x9D */ am_stubs!(),   // abs,X | STA oper,X
-    /* 0x9E */ am_stubs!(),   //
-    /* 0x9F */ am_stubs!(),   //
-    /* 0xA0 */ am_stubs!(),   // # | LDY #oper
-    /* 0xA1 */ am_stubs!(),   // (ind,X) | LDA (oper,X)
-    /* 0xA2 */ am_stubs!(),   // # | LDX #oper
-    /* 0xA3 */ am_stubs!(),   //
-    /* 0xA4 */ am_stubs!(),   // zpg | LDY oper
-    /* 0xA5 */ am_stubs!(),   // zpg | LDA oper
-    /* 0xA6 */ am_stubs!(),   // zpg | LDX oper
-    /* 0xA7 */ am_stubs!(),   //
-    /* 0xA8 */ am_stubs!(),   // impl | TAY
-    /* 0xA9 */ am_stubs!(),   // # | LDA #oper
-    /* 0xAA */ am_stubs!(),   // impl | TAX
-    /* 0xAB */ am_stubs!(),   //
-    /* 0xAC */ am_stubs!(),   // abs | LDY oper
-    /* 0xAD */ am_stubs!(),   // abs | LDA oper
-    /* 0xAE */ am_stubs!(),   // abs | LDX oper
-    /* 0xAF */ am_stubs!(),   //
-    /* 0xB0 */ am_relative!(&relative_BCS_core),   // rel | BCS oper
-    /* 0xB1 */ am_stubs!(),   // (ind),Y | LDA (oper),Y
-    /* 0xB2 */ am_stubs!(),   //
-    /* 0xB3 */ am_stubs!(),   //
-    /* 0xB4 */ am_stubs!(),   // zpg,X | LDY oper,X
-    /* 0xB5 */ am_stubs!(),   // zpg,X | LDA oper,X
-    /* 0xB6 */ am_stubs!(),   // zpg,Y | LDX oper,Y
-    /* 0xB7 */ am_stubs!(),   //
-    /* 0xB8 */ am_stubs!(),   // impl | CLV
-    /* 0xB9 */ am_stubs!(),   // abs,Y | LDA oper,Y
-    /* 0xBA */ am_stubs!(),   // impl | TSX
-    /* 0xBB */ am_stubs!(),   //
-    /* 0xBC */ am_stubs!(),   // abs,X | LDY oper,X
-    /* 0xBD */ am_stubs!(),   // abs,X | LDA oper,X
-    /* 0xBE */ am_stubs!(),   // abs,Y | LDX oper,Y
-    /* 0xBF */ am_stubs!(),   //
-    /* 0xC0 */ am_stubs!(),   // # | CPY #oper
-    /* 0xC1 */ am_stubs!(),   // (ind,X) | CMP (oper,X)
-    /* 0xC2 */ am_stubs!(),   //
-    /* 0xC3 */ am_stubs!(),   //
-    /* 0xC4 */ am_stubs!(),   // zpg | CPY oper
-    /* 0xC5 */ am_stubs!(),   // zpg | CMP oper
-    /* 0xC6 */ am_stubs!(),   // zpg | DEC oper
-    /* 0xC7 */ am_stubs!(),   //
-    /* 0xC8 */ am_stubs!(),   // impl | INY
-    /* 0xC9 */ am_stubs!(),   // # | CMP #oper
-    /* 0xCA */ am_stubs!(),   // impl | DEX
-    /* 0xCB */ am_stubs!(),   //
-    /* 0xCC */ am_stubs!(),   // abs | CPY oper
-    /* 0xCD */ am_stubs!(),   // abs | CMP oper
-    /* 0xCE */ am_stubs!(),   // abs | DEC oper
-    /* 0xCF */ am_stubs!(),   //
-    /* 0xD0 */ am_relative!(&relative_BNE_core),   // rel | BNE oper
-    /* 0xD1 */ am_stubs!(),   // (ind),Y | CMP (oper),Y
-    /* 0xD2 */ am_stubs!(),   //
-    /* 0xD3 */ am_stubs!(),   //
-    /* 0xD4 */ am_stubs!(),   //
-    /* 0xD5 */ am_stubs!(),   // zpg,X | CMP oper,X
-    /* 0xD6 */ am_stubs!(),   // zpg,X | DEC oper,X
-    /* 0xD7 */ am_stubs!(),   //
-    /* 0xD8 */ am_stubs!(),   // impl | CLD
-    /* 0xD9 */ am_stubs!(),   // abs,Y | CMP oper,Y
-    /* 0xDA */ am_stubs!(),   //
-    /* 0xDB */ am_stubs!(),   //
-    /* 0xDC */ am_stubs!(),   //
-    /* 0xDD */ am_stubs!(),   // abs,X | CMP oper,X
-    /* 0xDE */ am_stubs!(),   // abs,X | DEC oper,X
-    /* 0xDF */ am_stubs!(),   //
-    /* 0xE0 */ am_stubs!(),   // # | CPX #oper
-    /* 0xE1 */ am_stubs!(),   // (ind,X) | SBC (oper,X)
-    /* 0xE2 */ am_stubs!(),   //
-    /* 0xE3 */ am_stubs!(),   //
-    /* 0xE4 */ am_stubs!(),   // zpg | CPX oper
-    /* 0xE5 */ am_stubs!(),   // zpg | SBC oper
-    /* 0xE6 */ am_stubs!(),   // zpg | INC oper
-    /* 0xE7 */ am_stubs!(),   //
-    /* 0xE8 */ am_stubs!(),   // impl | INX
-    /* 0xE9 */ am_stubs!(),   // # | SBC #oper
-    /* 0xEA */ am_stubs!(),   // impl | NOP
-    /* 0xEB */ am_stubs!(),   //
-    /* 0xEC */ am_stubs!(),   // abs | CPX oper
-    /* 0xED */ am_stubs!(),   // abs | SBC oper
-    /* 0xEE */ am_stubs!(),   // abs | INC oper
-    /* 0xEF */ am_stubs!(),   //
-    /* 0xF0 */ am_relative!(&relative_BEQ_core),   // rel | BEQ oper
-    /* 0xF1 */ am_stubs!(),   // (ind),Y | SBC (oper),Y
-    /* 0xF2 */ am_stubs!(),   //
-    /* 0xF3 */ am_stubs!(),   //
-    /* 0xF4 */ am_stubs!(),   //
-    /* 0xF5 */ am_stubs!(),   // zpg,X | SBC oper,X
-    /* 0xF6 */ am_stubs!(),   // zpg,X | INC oper,X
-    /* 0xF7 */ am_stubs!(),   //
-    /* 0xF8 */ am_stubs!(),   // impl | SED
-    /* 0xF9 */ am_stubs!(),   // abs,Y | SBC oper,Y
-    /* 0xFA */ am_stubs!(),   //
-    /* 0xFB */ am_stubs!(),   //
-    /* 0xFC */ am_stubs!(),   //
-    /* 0xFD */ am_stubs!(),   // abs,X | SBC oper,X
-    /* 0xFE */ am_stubs!(),   // abs,X | INC oper,X
-    /* 0xFF */ am_stubs!(),   //
+    /* 0x00 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | BRK
+    /* 0x01 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind,X) | ORA (oper,X)
+    /* 0x02 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x03 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x04 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x05 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | ORA oper
+    /* 0x06 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | ASL oper
+    /* 0x07 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x08 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | PHP
+    /* 0x09 */ am::stub_opcode_steps!(am::opc_step_illegal),   // # | ORA #oper
+    /* 0x0A */ am::stub_opcode_steps!(am::opc_step_illegal),   // A | ASL A
+    /* 0x0B */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x0C */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x0D */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | ORA oper
+    /* 0x0E */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | ASL oper
+    /* 0x0F */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x10 */ am::relative::opcode_steps!(relative_BPL_core, am::opc_step_illegal),   // rel | BPL oper
+    /* 0x11 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind),Y | ORA (oper),Y
+    /* 0x12 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x13 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x14 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x15 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | ORA oper,X
+    /* 0x16 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | ASL oper,X
+    /* 0x17 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x18 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | CLC
+    /* 0x19 */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,Y | ORA oper,Y
+    /* 0x1A */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x1B */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x1C */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x1D */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,X | ORA oper,X
+    /* 0x1E */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,X | ASL oper,X
+    /* 0x1F */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x20 */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | JSR oper
+    /* 0x21 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind,X) | AND (oper,X)
+    /* 0x22 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x23 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x24 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | BIT oper
+    /* 0x25 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | AND oper
+    /* 0x26 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | ROL oper
+    /* 0x27 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x28 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | PLP
+    /* 0x29 */ am::stub_opcode_steps!(am::opc_step_illegal),   // # | AND #oper
+    /* 0x2A */ am::stub_opcode_steps!(am::opc_step_illegal),   // A | ROL A
+    /* 0x2B */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x2C */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | BIT oper
+    /* 0x2D */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | AND oper
+    /* 0x2E */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | ROL oper
+    /* 0x2F */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x30 */ am::relative::opcode_steps!(relative_BMI_core, am::opc_step_illegal),   // rel | BMI oper
+    /* 0x31 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind),Y | AND (oper),Y
+    /* 0x32 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x33 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x34 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x35 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | AND oper,X
+    /* 0x36 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | ROL oper,X
+    /* 0x37 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x38 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | SEC
+    /* 0x39 */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,Y | AND oper,Y
+    /* 0x3A */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x3B */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x3C */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x3D */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,X | AND oper,X
+    /* 0x3E */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,X | ROL oper,X
+    /* 0x3F */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x40 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | RTI
+    /* 0x41 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind,X) | EOR (oper,X)
+    /* 0x42 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x43 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x44 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x45 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | EOR oper
+    /* 0x46 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | LSR oper
+    /* 0x47 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x48 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | PHA
+    /* 0x49 */ am::stub_opcode_steps!(am::opc_step_illegal),   // # | EOR #oper
+    /* 0x4A */ am::stub_opcode_steps!(am::opc_step_illegal),   // A | LSR A
+    /* 0x4B */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x4C */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | JMP oper
+    /* 0x4D */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | EOR oper
+    /* 0x4E */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | LSR oper
+    /* 0x4F */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x50 */ am::relative::opcode_steps!(relative_BVC_core, am::opc_step_illegal),   // rel | BVC oper
+    /* 0x51 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind),Y | EOR (oper),Y
+    /* 0x52 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x53 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x54 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x55 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | EOR oper,X
+    /* 0x56 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | LSR oper,X
+    /* 0x57 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x58 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | CLI
+    /* 0x59 */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,Y | EOR oper,Y
+    /* 0x5A */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x5B */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x5C */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x5D */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,X | EOR oper,X
+    /* 0x5E */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,X | LSR oper,X
+    /* 0x5F */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x60 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | RTS
+    /* 0x61 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind,X) | ADC (oper,X)
+    /* 0x62 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x63 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x64 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x65 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | ADC oper
+    /* 0x66 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | ROR oper
+    /* 0x67 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x68 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | PLA
+    /* 0x69 */ am::stub_opcode_steps!(am::opc_step_illegal),   // # | ADC #oper
+    /* 0x6A */ am::stub_opcode_steps!(am::opc_step_illegal),   // A | ROR A
+    /* 0x6B */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x6C */ am::stub_opcode_steps!(am::opc_step_illegal),   // ind | JMP (oper)
+    /* 0x6D */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | ADC oper
+    /* 0x6E */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | ROR oper
+    /* 0x6F */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x70 */ am::relative::opcode_steps!(relative_BVS_core, am::opc_step_illegal),   // rel | BVS oper
+    /* 0x71 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind),Y | ADC (oper),Y
+    /* 0x72 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x73 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x74 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x75 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | ADC oper,X
+    /* 0x76 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | ROR oper,X
+    /* 0x77 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x78 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | SEI
+    /* 0x79 */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,Y | ADC oper,Y
+    /* 0x7A */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x7B */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x7C */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x7D */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,X | ADC oper,X
+    /* 0x7E */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,X | ROR oper,X
+    /* 0x7F */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x80 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x81 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind,X) | STA (oper,X)
+    /* 0x82 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x83 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x84 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | STY oper
+    /* 0x85 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | STA oper
+    /* 0x86 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | STX oper
+    /* 0x87 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x88 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | DEY
+    /* 0x89 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x8A */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | TXA
+    /* 0x8B */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x8C */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | STY oper
+    /* 0x8D */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | STA oper
+    /* 0x8E */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | STX oper
+    /* 0x8F */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x90 */ am::relative::opcode_steps!(relative_BCC_core, am::opc_step_illegal),   // rel | BCC oper
+    /* 0x91 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind),Y | STA (oper),Y
+    /* 0x92 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x93 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x94 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | STY oper,X
+    /* 0x95 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | STA oper,X
+    /* 0x96 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,Y | STX oper,Y
+    /* 0x97 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x98 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | TYA
+    /* 0x99 */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,Y | STA oper,Y
+    /* 0x9A */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | TXS
+    /* 0x9B */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x9C */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x9D */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,X | STA oper,X
+    /* 0x9E */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0x9F */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xA0 */ am::stub_opcode_steps!(am::opc_step_illegal),   // # | LDY #oper
+    /* 0xA1 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind,X) | LDA (oper,X)
+    /* 0xA2 */ am::stub_opcode_steps!(am::opc_step_illegal),   // # | LDX #oper
+    /* 0xA3 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xA4 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | LDY oper
+    /* 0xA5 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | LDA oper
+    /* 0xA6 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | LDX oper
+    /* 0xA7 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xA8 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | TAY
+    /* 0xA9 */ am::stub_opcode_steps!(am::opc_step_illegal),   // # | LDA #oper
+    /* 0xAA */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | TAX
+    /* 0xAB */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xAC */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | LDY oper
+    /* 0xAD */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | LDA oper
+    /* 0xAE */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | LDX oper
+    /* 0xAF */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xB0 */ am::relative::opcode_steps!(relative_BCS_core, am::opc_step_illegal),   // rel | BCS oper
+    /* 0xB1 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind),Y | LDA (oper),Y
+    /* 0xB2 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xB3 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xB4 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | LDY oper,X
+    /* 0xB5 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | LDA oper,X
+    /* 0xB6 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,Y | LDX oper,Y
+    /* 0xB7 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xB8 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | CLV
+    /* 0xB9 */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,Y | LDA oper,Y
+    /* 0xBA */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | TSX
+    /* 0xBB */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xBC */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,X | LDY oper,X
+    /* 0xBD */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,X | LDA oper,X
+    /* 0xBE */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,Y | LDX oper,Y
+    /* 0xBF */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xC0 */ am::stub_opcode_steps!(am::opc_step_illegal),   // # | CPY #oper
+    /* 0xC1 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind,X) | CMP (oper,X)
+    /* 0xC2 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xC3 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xC4 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | CPY oper
+    /* 0xC5 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | CMP oper
+    /* 0xC6 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | DEC oper
+    /* 0xC7 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xC8 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | INY
+    /* 0xC9 */ am::stub_opcode_steps!(am::opc_step_illegal),   // # | CMP #oper
+    /* 0xCA */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | DEX
+    /* 0xCB */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xCC */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | CPY oper
+    /* 0xCD */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | CMP oper
+    /* 0xCE */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | DEC oper
+    /* 0xCF */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xD0 */ am::relative::opcode_steps!(relative_BNE_core, am::opc_step_illegal),   // rel | BNE oper
+    /* 0xD1 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind),Y | CMP (oper),Y
+    /* 0xD2 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xD3 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xD4 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xD5 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | CMP oper,X
+    /* 0xD6 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | DEC oper,X
+    /* 0xD7 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xD8 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | CLD
+    /* 0xD9 */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,Y | CMP oper,Y
+    /* 0xDA */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xDB */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xDC */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xDD */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,X | CMP oper,X
+    /* 0xDE */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,X | DEC oper,X
+    /* 0xDF */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xE0 */ am::stub_opcode_steps!(am::opc_step_illegal),   // # | CPX #oper
+    /* 0xE1 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind,X) | SBC (oper,X)
+    /* 0xE2 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xE3 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xE4 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | CPX oper
+    /* 0xE5 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | SBC oper
+    /* 0xE6 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | INC oper
+    /* 0xE7 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xE8 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | INX
+    /* 0xE9 */ am::stub_opcode_steps!(am::opc_step_illegal),   // # | SBC #oper
+    /* 0xEA */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | NOP
+    /* 0xEB */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xEC */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | CPX oper
+    /* 0xED */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | SBC oper
+    /* 0xEE */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | INC oper
+    /* 0xEF */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xF0 */ am::relative::opcode_steps!(relative_BEQ_core, am::opc_step_illegal),   // rel | BEQ oper
+    /* 0xF1 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind),Y | SBC (oper),Y
+    /* 0xF2 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xF3 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xF4 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xF5 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | SBC oper,X
+    /* 0xF6 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | INC oper,X
+    /* 0xF7 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xF8 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | SED
+    /* 0xF9 */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,Y | SBC oper,Y
+    /* 0xFA */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xFB */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xFC */ am::stub_opcode_steps!(am::opc_step_illegal),   //
+    /* 0xFD */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,X | SBC oper,X
+    /* 0xFE */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs,X | INC oper,X
+    /* 0xFF */ am::stub_opcode_steps!(am::opc_step_illegal),   //
 ];

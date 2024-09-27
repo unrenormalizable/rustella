@@ -56,7 +56,7 @@ pub struct MOS6502 {
     // Other pins.
     rdy: Line,
     // Clock cycle bookkeeping
-    execution_state: ExecutionState,
+    execution_state: OpcExecutionState,
     // Profiling stuff, maybe move them elsewhere?
     instructions: u64,
     cycles: usize,
@@ -76,13 +76,25 @@ impl core::fmt::Debug for MOS6502 {
 /// - https://www.pagetable.com/c64ref/6502/
 pub type OpCodeFn = dyn Fn(&mut MOS6502, &mut Memory) -> Option<LoHi>;
 
-pub type OpCodeStepFn = dyn Fn(&mut MOS6502, &mut Memory) -> bool;
+pub type OpCodeStepFn = fn(&mut OpcExecutionState, &mut MOS6502, &mut Memory) -> bool;
+
+pub fn execute_opc_step(step: OpCodeStepFn, cpu: &mut MOS6502, mem: &mut Memory) -> bool {
+    let mut state = cpu.execution_state().clone();
+    let done = step(&mut state, cpu, mem);
+    cpu.set_execution_state(state);
+
+    done
+}
+
+pub const MAX_OPCODE_STEPS: usize = 0x06;
+
+pub type OpCodeSteps<'a> = &'a [OpCodeStepFn; MAX_OPCODE_STEPS];
 
 impl MOS6502 {
     pub fn new(rdy: Line, mem: &Memory) -> Self {
         let mut cpu = Self {
             rdy,
-            execution_state: ExecutionState {
+            execution_state: OpcExecutionState {
                 done: true,
                 ..Default::default()
             },
@@ -137,7 +149,11 @@ impl MOS6502 {
 
             false
         } else {
-            ALL_OPCODE_STEPS[self.execution_state.opc][self.execution_state.step](self, mem)
+            execute_opc_step(
+                ALL_OPCODE_STEPS[self.execution_state.opc][self.execution_state.step],
+                self,
+                mem,
+            )
         };
 
         self.execution_state.step += 1;
@@ -225,11 +241,6 @@ impl MOS6502 {
     }
 
     #[inline]
-    pub fn execution_state(&mut self) -> &mut ExecutionState {
-        &mut self.execution_state
-    }
-
-    #[inline]
     pub fn instructions(&self) -> u64 {
         self.instructions
     }
@@ -249,10 +260,20 @@ impl MOS6502 {
     pub fn pc_incr(&mut self, index: u8) {
         self.PC += index;
     }
+
+    #[inline]
+    pub fn execution_state(&mut self) -> OpcExecutionState {
+        self.execution_state.clone()
+    }
+
+    #[inline]
+    pub fn set_execution_state(&mut self, state: OpcExecutionState) {
+        self.execution_state = state;
+    }
 }
 
 #[derive(Default, Clone)]
-pub struct ExecutionState {
+pub struct OpcExecutionState {
     opc: usize,
     done: bool,
     step: usize,
@@ -260,7 +281,7 @@ pub struct ExecutionState {
     regs: [u8; 2],
 }
 
-impl ExecutionState {
+impl OpcExecutionState {
     #[inline]
     pub fn opc(&self) -> usize {
         self.opc
