@@ -29,6 +29,6 @@ fn spiceware_collect_3_score_timer_display() {
 
     assert_debug_snapshot!(common::serialize_tv_buffer(&tv.borrow().buffer()));
     assert_eq!(tv.borrow().frame_counter(), 55);
-    assert_eq!(atari.cpu_state().cycles(), 199024);
-    assert_eq!(atari.cpu_state().pc(), cmn::LoHi(0xB0, 0xF8));
+    assert_eq!(atari.cpu_state().cycles(), 196871);
+    assert_eq!(atari.cpu_state().pc(), cmn::LoHi(0x9D, 0xF8));
 }

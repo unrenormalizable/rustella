@@ -86,7 +86,7 @@ pub fn execute_opc_step(step: OpCodeStepFn, cpu: &mut MOS6502, mem: &mut Memory)
     done
 }
 
-pub const MAX_OPCODE_STEPS: usize = 0x06;
+pub const MAX_OPCODE_STEPS: usize = 0x08;
 
 pub type OpCodeSteps<'a> = &'a [OpCodeStepFn; MAX_OPCODE_STEPS];
 
@@ -277,7 +277,6 @@ pub struct OpcExecutionState {
     opc: usize,
     done: bool,
     step: usize,
-    throw_away: u8,
     regs_u8: [u8; 4],
     regs_u16: [u16; 2],
 }
@@ -301,11 +300,6 @@ impl OpcExecutionState {
     #[inline]
     pub fn regs_u16(&mut self) -> &mut [u16; 2] {
         &mut self.regs_u16
-    }
-
-    #[inline]
-    pub fn set_throw_away(&mut self, val: u8) {
-        self.throw_away = val
     }
 }
 

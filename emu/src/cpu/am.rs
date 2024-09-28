@@ -194,6 +194,198 @@ pub mod zero_page {
 pub mod indexed_absolute {
     use super::*;
 
+    macro_rules! opcode_steps_read {
+        ($main:expr, $index: expr, $illegal: expr) => {
+            &[
+                // Read instructions (LDA, LDX, LDY, EOR, AND, ORA, ADC, SBC, CMP, BIT,
+                //                    LAX, LAE, SHS, NOP)
+                //
+                //    #   address  R/W description
+                //   --- --------- --- ------------------------------------------
+                //    1     PC      R  fetch opcode, increment PC
+                $illegal,
+                //    2     PC      R  fetch low byte of address, increment PC
+                #[inline]
+                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[0] = mem.get(cpu.pc(), 0);
+                    cpu.pc_incr(1);
+                    false
+                },
+                //    3     PC      R  fetch high byte of address,
+                //                     add index register to low address byte,
+                //                     increment PC
+                #[inline]
+                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u16()[1] = mem.get(cpu.pc(), 0) as u16;
+                    s.regs_u16()[0] = s.regs_u8()[0] as u16 + ($index)(cpu) as u16;
+                    cpu.pc_incr(1);
+                    false
+                },
+                //    4  address+I* R  read from effective address,
+                //                     fix the high byte of effective address
+                #[inline]
+                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                    let val = mem.get(LoHi(s.regs_u16()[0] as u8, s.regs_u16()[1] as u8), 0);
+                    if crate::bits::tst_bits(s.regs_u16()[0], 0x0100) {
+                        s.regs_u16()[1] = s.regs_u16()[1].wrapping_add(1);
+                        false
+                    } else {
+                        $main(cpu, val);
+                        true
+                    }
+                },
+                //    5+ address+I  R  re-read from effective address
+                //
+                #[inline]
+                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                    let val = mem.get(LoHi(s.regs_u16()[0] as u8, s.regs_u16()[1] as u8), 0);
+                    $main(cpu, val);
+                    true
+                },
+                $illegal,
+                $illegal,
+                $illegal,
+                //   Notes: I denotes either index register (X or Y).
+                //
+                //          * The high byte of the effective address may be invalid
+                //            at this time, i.e. it may be smaller by $100.
+                //
+                //          + This cycle will be executed only if the effective address
+                //            was invalid during cycle #4, i.e. page boundary was crossed.
+                //
+            ]
+        };
+    }
+
+    pub(crate) use opcode_steps_read;
+
+    macro_rules! opcode_steps_read_modify_write {
+        ($main:expr, $index: expr, $illegal: expr) => {
+            &[
+                // Read-Modify-Write instructions (ASL, LSR, ROL, ROR, INC, DEC,
+                //                                 SLO, SRE, RLA, RRA, ISB, DCP)
+                //
+                //    #   address  R/W description
+                //   --- --------- --- ------------------------------------------
+                //    1    PC       R  fetch opcode, increment PC
+                $illegal,
+                //    2    PC       R  fetch low byte of address, increment PC
+                #[inline]
+                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[0] = mem.get(cpu.pc(), 0);
+                    cpu.pc_incr(1);
+                    false
+                },
+                //    3    PC       R  fetch high byte of address,
+                //                     add index register X to low address byte,
+                //                     increment PC
+                #[inline]
+                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u16()[1] = mem.get(cpu.pc(), 0) as u16;
+                    s.regs_u16()[0] = s.regs_u8()[0] as u16 + ($index)(cpu) as u16;
+                    cpu.pc_incr(1);
+                    false
+                },
+                //    4  address+X* R  read from effective address,
+                //                     fix the high byte of effective address
+                #[inline]
+                |s: &mut OpcExecutionState, _: &mut MOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[1] = mem.get(LoHi(s.regs_u16()[0] as u8, s.regs_u16()[1] as u8), 0);
+                    if crate::bits::tst_bits(s.regs_u16()[0], 0x0100) {
+                        s.regs_u16()[1] = s.regs_u16()[1].wrapping_add(1);
+                    }
+                    false
+                },
+                //    5  address+X  R  re-read from effective address
+                #[inline]
+                |s: &mut OpcExecutionState, _: &mut MOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u16()[0] = LoHi(s.regs_u16()[0] as u8, s.regs_u16()[1] as u8).into();
+                    s.regs_u8()[1] = mem.get(s.regs_u16()[0].into(), 0);
+                    false
+                },
+                //    6  address+X  W  write the value back to effective address,
+                //                     and do the operation on it
+                #[inline]
+                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                    mem.set(s.regs_u16()[0].into(), 0, s.regs_u8()[1]);
+                    s.regs_u8()[1] = $main(cpu, s.regs_u8()[1]);
+                    false
+                },
+                //    7  address+X  W  write the new value to effective address
+                #[inline]
+                |s: &mut OpcExecutionState, _: &mut MOS6502, mem: &mut Memory| -> bool {
+                    mem.set(s.regs_u16()[0].into(), 0, s.regs_u8()[1]);
+                    true
+                },
+                $illegal,
+                //
+                //   Notes: * The high byte of the effective address may be invalid
+                //            at this time, i.e. it may be smaller by $100.
+            ]
+        };
+    }
+
+    pub(crate) use opcode_steps_read_modify_write;
+
+    macro_rules! opcode_steps_write {
+        ($main:expr, $index: expr, $illegal: expr) => {
+            &[
+                // Write instructions (STA, STX, STY, SHA, SHX, SHY)
+                //
+                //    #   address  R/W description
+                //   --- --------- --- ------------------------------------------
+                //    1     PC      R  fetch opcode, increment PC
+                $illegal,
+                //    2     PC      R  fetch low byte of address, increment PC
+                #[inline]
+                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[0] = mem.get(cpu.pc(), 0);
+                    cpu.pc_incr(1);
+                    false
+                },
+                //    3     PC      R  fetch high byte of address,
+                //                     add index register to low address byte,
+                //                     increment PC
+                #[inline]
+                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u16()[1] = mem.get(cpu.pc(), 0) as u16;
+                    s.regs_u16()[0] = s.regs_u8()[0] as u16 + ($index)(cpu) as u16;
+                    cpu.pc_incr(1);
+                    false
+                },
+                //    4  address+I* R  read from effective address,
+                //                     fix the high byte of effective address
+                #[inline]
+                |s: &mut OpcExecutionState, _: &mut MOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[1] = mem.get(LoHi(s.regs_u16()[0] as u8, s.regs_u16()[1] as u8), 0);
+                    if crate::bits::tst_bits(s.regs_u16()[0], 0x0100) {
+                        s.regs_u16()[1] = s.regs_u16()[1].wrapping_add(1);
+                    }
+                    false
+                },
+                //    5  address+I  W  write to effective address
+                //
+                #[inline]
+                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                    let val = $main(cpu);
+                    mem.set(LoHi(s.regs_u16()[0] as u8, s.regs_u16()[1] as u8), 0, val);
+                    true
+                },
+                $illegal,
+                $illegal,
+                $illegal,
+                //   Notes: I denotes either index register (X or Y).
+                //
+                //          * The high byte of the effective address may be invalid
+                //            at this time, i.e. it may be smaller by $100. Because
+                //            the processor cannot undo a write to an invalid
+                //            address, it always reads from the address first.
+            ]
+        };
+    }
+
+    pub(crate) use opcode_steps_write;
+
     #[inline]
     fn ea(mem: &Memory, pc: LoHi, index: u8) -> LoHi {
         let abs_args = absolute::load_lohi(mem, pc);
@@ -217,45 +409,73 @@ pub mod indexed_absolute {
     #[cfg(test)]
     mod tests {
         use super::*;
-        use crate::riot;
+        use crate::{
+            cpu::am::opc_step_illegal,
+            cpu::core::{execute_opc_step, OpcExecutionState, MAX_OPCODE_STEPS, MOS6502},
+            riot::Memory,
+        };
         use test_case::test_case;
 
         #[test_case((0x20, 0x31), 0x12, LoHi(0x32, 0x31), 0x78; "Example from https://www.masswerk.at/6502/6502_instruction_set.htm")]
         #[test_case((0xFF, 0x31), 0x01, LoHi(0x00, 0x32), 0x78; "Page wrap around")]
         #[test_case((0xFF, 0xFF), 0x01, LoHi(0x00, 0x00), 0x78; "Address space wrap around")]
         fn test_load(op_args: (u8, u8), index: u8, lookup: LoHi, exp: u8) {
-            let mut mem = riot::Memory::new(true);
-            let pc = 0x0000u16.into();
+            let mut mem = Memory::new(true);
+            let mut cpu = MOS6502::new(LineState::High.rc_cell(), &mem);
+            cpu.set_pc(0x0000u16.into());
 
             // Set up OpCode.
-            mem.set(pc, 0, 0xBD);
-            mem.set(pc, 1, op_args.0);
-            mem.set(pc, 2, op_args.1);
+            mem.set(cpu.pc(), 0, 0xBD);
+            mem.set(cpu.pc(), 1, op_args.0);
+            mem.set(cpu.pc(), 2, op_args.1);
 
             // Setup lookup.
             mem.set(lookup, 0, exp);
 
-            let obt = super::load(&mem, pc, index);
+            cpu.set_y(index);
+            cpu.pc_incr(1);
+            let steps = opcode_steps_read!(
+                |cpu: &mut MOS6502, val: u8| cpu.set_a(val),
+                |cpu: &MOS6502| cpu.y(),
+                opc_step_illegal
+            );
+            for &step in steps.iter().take(MAX_OPCODE_STEPS).skip(1) {
+                if execute_opc_step(step, &mut cpu, &mut mem) {
+                    break;
+                }
+            }
 
-            assert_eq!(obt, exp);
+            assert_eq!(cpu.a(), exp);
         }
 
         #[test_case((0x20, 0x31), 0x12, LoHi(0x32, 0x31), 0x78; "Example from https://www.masswerk.at/6502/6502_instruction_set.htm")]
         #[test_case((0xFF, 0x31), 0x01, LoHi(0x00, 0x32), 0x78; "Page wrap around")]
         #[test_case((0xFF, 0xFF), 0x01, LoHi(0x00, 0x00), 0x78; "Address space wrap around")]
         fn test_store(op_args: (u8, u8), index: u8, lookup: LoHi, exp: u8) {
-            let mut mem = riot::Memory::new(true);
-            let pc = 0x0000u16.into();
+            let mut mem = Memory::new(true);
+            let mut cpu = MOS6502::new(LineState::High.rc_cell(), &mem);
+            cpu.set_pc(0x0000u16.into());
 
             // Set up OpCode.
-            mem.set(pc, 0, 0xBD);
-            mem.set(pc, 1, op_args.0);
-            mem.set(pc, 2, op_args.1);
+            mem.set(cpu.pc(), 0, 0xBD);
+            mem.set(cpu.pc(), 1, op_args.0);
+            mem.set(cpu.pc(), 2, op_args.1);
 
-            super::store(&mut mem, pc, index, exp);
+            cpu.set_a(exp);
+            cpu.set_y(index);
+            cpu.pc_incr(1);
+            let steps = opcode_steps_write!(
+                |cpu: &MOS6502| cpu.a(),
+                |cpu: &MOS6502| cpu.y(),
+                opc_step_illegal
+            );
+            for &step in steps.iter().take(MAX_OPCODE_STEPS).skip(1) {
+                if execute_opc_step(step, &mut cpu, &mut mem) {
+                    break;
+                }
+            }
 
-            let obt = mem.get(lookup, 0);
-            assert_eq!(obt, exp);
+            assert_eq!(mem.get(lookup, 0), exp);
         }
     }
 }
@@ -517,6 +737,8 @@ pub mod post_indexed_indirect {
                     $main(cpu, val);
                     true
                 },
+                $illegal,
+                $illegal,
                 //
                 //   Notes: The effective address is always fetched from zero page,
                 //          i.e. the zero page boundary crossing is not handled.
@@ -571,6 +793,8 @@ pub mod post_indexed_indirect {
                     mem.set(LoHi(s.regs_u16()[0] as u8, s.regs_u16()[1] as u8), 0, val);
                     true
                 },
+                $illegal,
+                $illegal,
                 //
                 //   Notes: The effective address is always fetched from zero page,
                 //          i.e. the zero page boundary crossing is not handled.
@@ -690,8 +914,7 @@ pub mod relative {
                 //                         Otherwise increment PC.
                 #[inline]
                 |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
-                    s.set_throw_away(mem.get(cpu.pc(), 0));
-
+                    s.regs_u8()[3] = mem.get(cpu.pc(), 0);
                     let new_pc =
                         u16::from(cpu.pc()).wrapping_add_signed(s.regs_u8()[0] as i8 as i16);
                     cpu.set_pc(LoHi(new_pc as u8, cpu.pc().1));
@@ -702,11 +925,13 @@ pub mod relative {
                 //                         Fix PCH. If it did not change, increment PC.
                 #[inline]
                 |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
-                    s.set_throw_away(mem.get(cpu.pc(), 0));
+                    s.regs_u8()[3] = mem.get(cpu.pc(), 0);
                     let new_pc = LoHi(cpu.pc().0, s.regs_u8()[1]);
                     cpu.set_pc(new_pc);
                     true
                 },
+                $illegal,
+                $illegal,
                 $illegal,
                 $illegal,
                 //        5!    PC      R  Fetch opcode of next instruction,
@@ -783,7 +1008,9 @@ pub fn opc_step_illegal(s: &mut OpcExecutionState, cpu: &mut MOS6502, _: &mut Me
 
 macro_rules! stub_opcode_steps {
     ($illegal:expr) => {
-        &[$illegal, $illegal, $illegal, $illegal, $illegal, $illegal]
+        &[
+            $illegal, $illegal, $illegal, $illegal, $illegal, $illegal, $illegal, $illegal,
+        ]
     };
 }
 
