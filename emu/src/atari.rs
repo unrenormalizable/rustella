@@ -34,8 +34,8 @@ impl NtscAtari {
         self.cpu.borrow_mut().reset_pc(&self.mem);
     }
 
-    pub fn tick(&mut self, loops: usize) {
-        for _ in 0..loops {
+    pub fn tick(&mut self, cycles: usize) {
+        for _ in 0..cycles {
             let cycles = self.cpu.borrow_mut().tick(&mut self.mem);
             let cycles = if cycles == 0 { 1 } else { cycles };
             self.tia.borrow_mut().tick(cycles * 3);

@@ -25,7 +25,12 @@ fn spiceware_collect_2_timers() {
     let buffer = fs::read(bin_path).unwrap();
     atari.load_rom(0xF800u16, &buffer);
 
-    atari.tick(1000000);
+    loop {
+        atari.tick(1);
+        if atari.cpu_state().instructions() == 54143 {
+            break;
+        }
+    }
 
     assert_debug_snapshot!(common::serialize_tv_buffer(&tv.borrow().buffer()));
     assert_eq!(tv.borrow().frame_counter(), 54);

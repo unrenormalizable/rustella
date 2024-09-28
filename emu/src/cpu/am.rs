@@ -14,6 +14,36 @@ use crate::{
     - TODO: Combine load store tests.
 */
 
+pub mod implied {
+    macro_rules! opcode_steps {
+        ($main:expr, $illegal:expr) => {
+            &[
+                // Accumulator or implied addressing
+                //
+                //       #  address R/W description
+                //      --- ------- --- -----------------------------------------------
+                //       1    PC     R  fetch opcode, increment PC
+                $illegal,
+                //       2    PC     R  read next instruction byte (and throw it away)
+                #[inline]
+                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[0] = mem.get(cpu.pc(), 0);
+                    $main(cpu);
+                    true
+                },
+                $illegal,
+                $illegal,
+                $illegal,
+                $illegal,
+                $illegal,
+                $illegal,
+            ]
+        };
+    }
+
+    pub(crate) use opcode_steps;
+}
+
 /// #2 Immediate Addressing | Immediate
 ///
 /// LDA #$07 - load the literal hexidecimal value "$7" into the accumulator
@@ -21,6 +51,35 @@ use crate::{
 /// CPX #$32 - compare the X-register to the literal hexidecimal value "$32"
 pub mod immediate {
     use super::*;
+
+    macro_rules! opcode_steps {
+        ($main:expr, $illegal:expr) => {
+            &[
+                // Immediate addressing
+                //
+                //       #  address R/W description
+                //      --- ------- --- ------------------------------------------
+                //       1    PC     R  fetch opcode, increment PC
+                $illegal,
+                //       2    PC     R  fetch value, increment PC
+                #[inline]
+                |_: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                    let val = mem.get(cpu.pc(), 0);
+                    cpu.pc_incr(1);
+                    $main(cpu, val);
+                    true
+                },
+                $illegal,
+                $illegal,
+                $illegal,
+                $illegal,
+                $illegal,
+                $illegal,
+            ]
+        };
+    }
+
+    pub(crate) use opcode_steps;
 
     #[inline]
     pub fn load(mem: &Memory, pc: LoHi) -> u8 {

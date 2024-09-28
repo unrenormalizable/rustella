@@ -25,7 +25,12 @@ fn spiceware_collect_3_score_timer_display() {
     let buffer = fs::read(bin_path).unwrap();
     atari.load_rom(0xF800u16, &buffer);
 
-    atari.tick(1000000);
+    loop {
+        atari.tick(1);
+        if atari.cpu_state().instructions() == 65895 {
+            break;
+        }
+    }
 
     assert_debug_snapshot!(common::serialize_tv_buffer(&tv.borrow().buffer()));
     assert_eq!(tv.borrow().frame_counter(), 55);
