@@ -44,6 +44,7 @@ Why not?
 - CPU
   - [6502 Instruction set](https://www.masswerk.at/6502/6502_instruction_set.html)
   - [6502 Family CPU Reference](https://www.pagetable.com/c64ref/6502/?tab=2)
+  - [Ultimate Commodore64 Reference Guide](https://github.com/mist64/c64ref)
   - [6502 primer](https://wilsonminesco.com/6502primer/)
   - [The 6502 Microprocessor Resource](http://www.6502.org/)
   - [6502 datasheet](https://www.princeton.edu/~mae412/HANDOUTS/Datasheets/6502.pdf)

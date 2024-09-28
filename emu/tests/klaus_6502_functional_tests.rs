@@ -30,7 +30,7 @@ fn klaus_6502_65c02_functional_tests_main() {
     }
 
     assert_eq!(mem.get(cmn::LoHi(0x00, 0x02), 0), 0x29, "CPU: {cpu:?}"); // NOTE: This indicates the number of tests ran.
-    assert_eq!(cpu.cycles(), 126_852);
+    assert_eq!(cpu.cycles(), 126794);
     assert_eq!(cpu.pc(), cmn::LoHi(0x08, 0x33));
     assert_eq!(cpu.a(), 0x29);
     assert_eq!(cpu.x(), 0xFE);

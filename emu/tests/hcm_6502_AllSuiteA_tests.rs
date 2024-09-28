@@ -28,7 +28,7 @@ fn hcm_6502_allsuitea_tests_main() {
 
     assert_eq!(cpu.pc(), cmn::LoHi(0xC0, 0x45));
     assert_eq!(mem.get(cmn::LoHi(0x10, 0x02), 0), 0xFF);
-    assert_eq!(cpu.cycles(), 1970);
+    assert_eq!(cpu.cycles(), 1965);
     assert_eq!(cpu.a(), 0xFE);
     assert_eq!(cpu.x(), 0x0D);
     assert_eq!(cpu.y(), 0x54);

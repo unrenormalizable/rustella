@@ -278,7 +278,8 @@ pub struct OpcExecutionState {
     done: bool,
     step: usize,
     throw_away: u8,
-    regs: [u8; 2],
+    regs_u8: [u8; 4],
+    regs_u16: [u16; 2],
 }
 
 impl OpcExecutionState {
@@ -293,8 +294,13 @@ impl OpcExecutionState {
     }
 
     #[inline]
-    pub fn regs(&mut self) -> &mut [u8; 2] {
-        &mut self.regs
+    pub fn regs_u8(&mut self) -> &mut [u8; 4] {
+        &mut self.regs_u8
+    }
+
+    #[inline]
+    pub fn regs_u16(&mut self) -> &mut [u16; 2] {
+        &mut self.regs_u16
     }
 
     #[inline]
