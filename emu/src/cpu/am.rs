@@ -804,7 +804,7 @@ pub mod indexed_absolute {
                 #[inline]
                 |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     s.regs_u16()[1] = mem.get(cpu.pc(), 0) as u16;
-                    s.regs_u16()[0] = s.regs_u8()[0] as u16 + ($index)(cpu) as u16;
+                    s.regs_u16()[0] = (s.regs_u8()[0] as u16).wrapping_add(($index)(cpu) as u16);
                     cpu.pc_incr(1);
                     false
                 },
@@ -869,7 +869,7 @@ pub mod indexed_absolute {
                 #[inline]
                 |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     s.regs_u16()[1] = mem.get(cpu.pc(), 0) as u16;
-                    s.regs_u16()[0] = s.regs_u8()[0] as u16 + ($index)(cpu) as u16;
+                    s.regs_u16()[0] = (s.regs_u8()[0] as u16).wrapping_add(($index)(cpu) as u16);
                     cpu.pc_incr(1);
                     false
                 },
@@ -936,7 +936,7 @@ pub mod indexed_absolute {
                 #[inline]
                 |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     s.regs_u16()[1] = mem.get(cpu.pc(), 0) as u16;
-                    s.regs_u16()[0] = s.regs_u8()[0] as u16 + ($index)(cpu) as u16;
+                    s.regs_u16()[0] = (s.regs_u8()[0] as u16).wrapping_add(($index)(cpu) as u16);
                     cpu.pc_incr(1);
                     false
                 },
@@ -1199,12 +1199,6 @@ pub mod indexed_zero_page {
 
     pub(crate) use opcode_steps_write;
 
-    // TODO: all adding index should be wrapping_add
-    // TODO: all adding index should be wrapping_add
-    // TODO: all adding index should be wrapping_add
-    // TODO: all adding index should be wrapping_add
-    // TODO: all adding index should be wrapping_add
-
     #[inline]
     fn ea(mem: &Memory, pc: LoHi, index: u8) -> LoHi {
         let abs_args = immediate::load(mem, pc);
@@ -1454,7 +1448,7 @@ pub mod post_indexed_indirect {
                 #[inline]
                 |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     s.regs_u16()[1] = mem.get(LoHi(s.regs_u8()[0], 0x00), 1) as u16;
-                    s.regs_u16()[0] = s.regs_u8()[1] as u16 + ($index)(cpu) as u16;
+                    s.regs_u16()[0] = (s.regs_u8()[1] as u16).wrapping_add(($index)(cpu) as u16);
                     false
                 },
                 //    5   address+Y*  R  read from effective address,
@@ -1513,7 +1507,7 @@ pub mod post_indexed_indirect {
                 #[inline]
                 |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     s.regs_u16()[1] = mem.get(LoHi(s.regs_u8()[0], 0x00), 1) as u16;
-                    s.regs_u16()[0] = s.regs_u8()[1] as u16 + ($index)(cpu) as u16;
+                    s.regs_u16()[0] = (s.regs_u8()[1] as u16).wrapping_add(($index)(cpu) as u16);
                     false
                 },
                 //    5   address+Y*  R  read from effective address,
