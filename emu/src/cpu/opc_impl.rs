@@ -29,28 +29,6 @@ fn ORA_idx_ind_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
-/// 0x05 | zpg | ORA oper
-fn ORA_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let v2 = am::zero_page::load(mem, pc);
-
-    ORA_core(cpu, v2);
-
-    None
-}
-
-/// 0x06 | zpg | ASL oper
-fn ASL_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let old_v = am::zero_page::load(mem, pc);
-
-    let new_v = ASL_core(cpu, old_v);
-
-    am::zero_page::store(mem, pc, new_v);
-
-    None
-}
-
 #[inline]
 fn ASL_A(cpu: &mut NMOS6502) {
     let old_v = cpu.a();
@@ -58,28 +36,6 @@ fn ASL_A(cpu: &mut NMOS6502) {
     let new_v = ASL_core(cpu, old_v);
 
     cpu.set_a(new_v);
-}
-
-/// 0x15 | zpg,X | ORA oper,X
-fn ORA_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let v2 = am::indexed_zero_page::load(mem, pc, cpu.x());
-
-    ORA_core(cpu, v2);
-
-    None
-}
-
-/// 0x16 | zpg,X | ASL oper,X
-fn ASL_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let old_v = am::indexed_zero_page::load(mem, pc, cpu.x());
-
-    let new_v = ASL_core(cpu, old_v);
-
-    am::indexed_zero_page::store(mem, pc, cpu.x(), new_v);
-
-    None
 }
 
 #[inline]
@@ -107,65 +63,11 @@ fn AND_idx_ind_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
-/// 0x24 | zpg | BIT oper
-fn BIT_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let v2 = am::zero_page::load(mem, pc);
-
-    adder::BIT_core(cpu, v2);
-
-    None
-}
-
-/// 0x25 | zpg | AND oper
-fn AND_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let v2 = am::zero_page::load(mem, pc);
-
-    AND_core(cpu, v2);
-
-    None
-}
-
-/// 0x26 | zpg | ROL oper
-fn ROL_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let old_v = am::zero_page::load(mem, pc);
-
-    let new_v = ROL_core(cpu, old_v);
-
-    am::zero_page::store(mem, pc, new_v);
-
-    None
-}
-
 #[inline]
 fn ROL_A(cpu: &mut NMOS6502) {
     let old_v = cpu.a();
     let new_v = ROL_core(cpu, old_v);
     cpu.set_a(new_v);
-}
-
-/// 0x35 | zpg,X | AND oper,X
-fn AND_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let v2 = am::indexed_zero_page::load(mem, pc, cpu.x());
-
-    AND_core(cpu, v2);
-
-    None
-}
-
-/// 0x36 | zpg,X | ROL oper,X
-fn ROL_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let old_v = am::indexed_zero_page::load(mem, pc, cpu.x());
-
-    let new_v = ROL_core(cpu, old_v);
-
-    am::indexed_zero_page::store(mem, pc, cpu.x(), new_v);
-
-    None
 }
 
 #[inline]
@@ -193,54 +95,10 @@ fn EOR_idx_ind_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
-/// 0x45 | zpg | EOR oper
-fn EOR_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let v2 = am::zero_page::load(mem, pc);
-
-    EOR_core(cpu, v2);
-
-    None
-}
-
-/// 0x46 | zpg | LSR oper
-fn LSR_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let old_v = am::zero_page::load(mem, pc);
-
-    let new_v = LSR_core(cpu, old_v);
-
-    am::zero_page::store(mem, pc, new_v);
-
-    None
-}
-
 fn LSR_A(cpu: &mut NMOS6502) {
     let old_v = cpu.a();
     let new_v = LSR_core(cpu, old_v);
     cpu.set_a(new_v);
-}
-
-/// 0x55 | zpg,X | EOR oper,X
-fn EOR_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let v2 = am::indexed_zero_page::load(mem, pc, cpu.x());
-
-    EOR_core(cpu, v2);
-
-    None
-}
-
-/// 0x56 | zpg,X | LSR oper,X
-fn LSR_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let old_v = am::indexed_zero_page::load(mem, pc, cpu.x());
-
-    let new_v = LSR_core(cpu, old_v);
-
-    am::indexed_zero_page::store(mem, pc, cpu.x(), new_v);
-
-    None
 }
 
 #[inline]
@@ -268,28 +126,6 @@ fn ADC_idx_ind_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
-/// 0x65 | zpg | ADC oper
-fn ADC_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let n2 = am::zero_page::load(mem, pc);
-
-    adder::ADC_core(cpu, n2);
-
-    None
-}
-
-/// 0x66 | zpg | ROR oper
-fn ROR_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let old_v = am::zero_page::load(mem, pc);
-
-    let new_v = ROR_core(cpu, old_v);
-
-    am::zero_page::store(mem, pc, new_v);
-
-    None
-}
-
 fn ROR_A(cpu: &mut NMOS6502) {
     let old_v = cpu.a();
     let new_v = ROR_core(cpu, old_v);
@@ -302,28 +138,6 @@ fn JMP_ind(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let addr = am::indirect::load(mem, pc);
 
     Some(addr)
-}
-
-/// 0x75 | zpg,X | ADC oper,X
-fn ADC_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let n2 = am::indexed_zero_page::load(mem, pc, cpu.x());
-
-    adder::ADC_core(cpu, n2);
-
-    None
-}
-
-/// 0x76 | zpg,X | ROR oper,X
-fn ROR_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let old_v = am::indexed_zero_page::load(mem, pc, cpu.x());
-
-    let new_v = ROR_core(cpu, old_v);
-
-    am::indexed_zero_page::store(mem, pc, cpu.x(), new_v);
-
-    None
 }
 
 #[inline]
@@ -452,54 +266,6 @@ fn STA_idx_ind_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
-/// 0x84 | zpg | STY oper
-fn STY_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    am::zero_page::store(mem, pc, cpu.y());
-
-    None
-}
-
-/// 0x85 | zpg | STA oper
-fn STA_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    am::zero_page::store(mem, pc, cpu.a());
-
-    None
-}
-
-/// 0x86 | zpg | STX oper
-fn STX_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    am::zero_page::store(mem, pc, cpu.x());
-
-    None
-}
-
-/// 0x94 | zpg,X | STY oper,X
-fn STY_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    am::indexed_zero_page::store(mem, pc, cpu.x(), cpu.y());
-
-    None
-}
-
-/// 0x95 | zpg,X | STA oper,X
-fn STA_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    am::indexed_zero_page::store(mem, pc, cpu.x(), cpu.a());
-
-    None
-}
-
-/// 0x96 | zpg,Y | STX oper,Y
-fn STX_zpg_Y(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    am::indexed_zero_page::store(mem, pc, cpu.y(), cpu.x());
-
-    None
-}
-
 /// 0xA1 | (ind,X) | LDA (oper,X)
 fn LDA_idx_ind_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
@@ -508,70 +274,6 @@ fn LDA_idx_ind_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
 
     pcr::sync_pcr_n(cpu, val);
     pcr::sync_pcr_z(cpu, val);
-
-    None
-}
-
-/// 0xA4 | zpg | LDY oper
-fn LDY_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let val = am::zero_page::load(mem, pc);
-
-    set_reg_Y(cpu, val);
-
-    None
-}
-
-/// 0xA5 | zpg | LDA oper
-fn LDA_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let val = am::zero_page::load(mem, pc);
-    cpu.set_a(val);
-
-    pcr::sync_pcr_n(cpu, val);
-    pcr::sync_pcr_z(cpu, val);
-
-    None
-}
-
-/// 0xA6 | zpg | LDX oper
-fn LDX_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let val = am::zero_page::load(mem, pc);
-
-    set_reg_X(cpu, val);
-
-    None
-}
-
-/// 0xB4 | zpg,X | LDY oper,X
-fn LDY_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let val = am::indexed_zero_page::load(mem, pc, cpu.x());
-
-    set_reg_Y(cpu, val);
-
-    None
-}
-
-/// 0xB5 | zpg,X | LDA oper,X
-fn LDA_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let val = am::indexed_zero_page::load(mem, pc, cpu.x());
-    cpu.set_a(val);
-
-    pcr::sync_pcr_n(cpu, val);
-    pcr::sync_pcr_z(cpu, val);
-
-    None
-}
-
-/// 0xB6 | zpg,Y | LDX oper,Y
-fn LDX_zpg_Y(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let val = am::indexed_zero_page::load(mem, pc, cpu.y());
-
-    set_reg_X(cpu, val);
 
     None
 }
@@ -586,100 +288,12 @@ fn CMP_idx_ind_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
-/// 0xC4 | zpg | CPY oper
-fn CPY_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let n1 = cpu.y();
-    let n2 = am::zero_page::load(mem, pc);
-
-    adder::CMP_core(cpu, n1, n2);
-
-    None
-}
-
-/// 0xC5 | zpg | CMP oper
-fn CMP_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let n2 = am::zero_page::load(mem, pc);
-
-    CMP_A_core(cpu, n2);
-
-    None
-}
-
-/// 0xC6 | zpg | DEC oper
-fn DEC_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let val = am::zero_page::load(mem, pc);
-
-    let val = DEC_core(cpu, val);
-
-    am::zero_page::store(mem, pc, val);
-
-    None
-}
-
-/// 0xD5 | zpg,X | CMP oper,X
-fn CMP_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let n2 = am::indexed_zero_page::load(mem, pc, cpu.x());
-
-    CMP_A_core(cpu, n2);
-
-    None
-}
-
-/// 0xD6 | zpg,X | DEC oper,X
-fn DEC_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let val = am::indexed_zero_page::load(mem, pc, cpu.x());
-
-    let val = DEC_core(cpu, val);
-
-    am::indexed_zero_page::store(mem, pc, cpu.x(), val);
-
-    None
-}
-
 /// 0xE1 | (ind,X) | SBC (oper,X)
 fn SBC_idx_ind_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let n2 = am::pre_indexed_indirect::load(mem, pc, cpu.x());
 
     adder::SBC_core(cpu, n2);
-
-    None
-}
-
-/// 0xE4 | zpg | CPX oper
-fn CPX_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let n1 = cpu.x();
-    let n2 = am::zero_page::load(mem, pc);
-
-    adder::CMP_core(cpu, n1, n2);
-
-    None
-}
-
-/// 0xE5 | zpg | SBC oper
-fn SBC_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let n2 = am::zero_page::load(mem, pc);
-
-    adder::SBC_core(cpu, n2);
-
-    None
-}
-
-/// 0xE6 | zpg | INC oper
-fn INC_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let val = am::zero_page::load(mem, pc);
-
-    let val = INC_core(cpu, val);
-
-    am::zero_page::store(mem, pc, val);
 
     None
 }
@@ -698,28 +312,6 @@ fn CMP_X_core(cpu: &mut NMOS6502, val: u8) {
 #[inline]
 fn CMP_Y_core(cpu: &mut NMOS6502, val: u8) {
     adder::CMP_core(cpu, cpu.y(), val);
-}
-
-/// 0xF5 | zpg,X | SBC oper,X
-fn SBC_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let n2 = am::indexed_zero_page::load(mem, pc, cpu.x());
-
-    adder::SBC_core(cpu, n2);
-
-    None
-}
-
-/// 0xF6 | zpg,X | INC oper,X
-fn INC_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let val = am::indexed_zero_page::load(mem, pc, cpu.x());
-
-    let val = INC_core(cpu, val);
-
-    am::indexed_zero_page::store(mem, pc, cpu.x(), val);
-
-    None
 }
 
 /*
@@ -742,8 +334,8 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0x02 */ &illegal,        //
     /* 0x03 */ &illegal,        //
     /* 0x04 */ &illegal,        //
-    /* 0x05 */ &ORA_zpg,        // zpg | ORA oper
-    /* 0x06 */ &ASL_zpg,        // zpg | ASL oper
+    /* 0x05 */ &illegal,        // zpg | ORA oper
+    /* 0x06 */ &illegal,        // zpg | ASL oper
     /* 0x07 */ &illegal,        //
     /* 0x08 */ &illegal,        // impl | PHP
     /* 0x09 */ &illegal,        // # | ORA #oper
@@ -758,8 +350,8 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0x12 */ &illegal,        //
     /* 0x13 */ &illegal,        //
     /* 0x14 */ &illegal,        //
-    /* 0x15 */ &ORA_zpg_X,      // zpg,X | ORA oper,X
-    /* 0x16 */ &ASL_zpg_X,      // zpg,X | ASL oper,X
+    /* 0x15 */ &illegal,        // zpg,X | ORA oper,X
+    /* 0x16 */ &illegal,        // zpg,X | ASL oper,X
     /* 0x17 */ &illegal,        //
     /* 0x18 */ &illegal,        // impl | CLC
     /* 0x19 */ &illegal,        // abs,Y | ORA oper,Y
@@ -773,9 +365,9 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0x21 */ &AND_idx_ind_X,  // (ind,X) | AND (oper,X)
     /* 0x22 */ &illegal,        //
     /* 0x23 */ &illegal,        //
-    /* 0x24 */ &BIT_zpg,        // zpg | BIT oper
-    /* 0x25 */ &AND_zpg,        // zpg | AND oper
-    /* 0x26 */ &ROL_zpg,        // zpg | ROL oper
+    /* 0x24 */ &illegal,        // zpg | BIT oper
+    /* 0x25 */ &illegal,        // zpg | AND oper
+    /* 0x26 */ &illegal,        // zpg | ROL oper
     /* 0x27 */ &illegal,        //
     /* 0x28 */ &illegal,        // impl | PLP
     /* 0x29 */ &illegal,        // # | AND #oper
@@ -790,8 +382,8 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0x32 */ &illegal,        //
     /* 0x33 */ &illegal,        //
     /* 0x34 */ &illegal,        //
-    /* 0x35 */ &AND_zpg_X,      // zpg,X | AND oper,X
-    /* 0x36 */ &ROL_zpg_X,      // zpg,X | ROL oper,X
+    /* 0x35 */ &illegal,        // zpg,X | AND oper,X
+    /* 0x36 */ &illegal,        // zpg,X | ROL oper,X
     /* 0x37 */ &illegal,        //
     /* 0x38 */ &illegal,        // impl | SEC
     /* 0x39 */ &illegal,        // abs,Y | AND oper,Y
@@ -806,8 +398,8 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0x42 */ &illegal,        //
     /* 0x43 */ &illegal,        //
     /* 0x44 */ &illegal,        //
-    /* 0x45 */ &EOR_zpg,        // zpg | EOR oper
-    /* 0x46 */ &LSR_zpg,        // zpg | LSR oper
+    /* 0x45 */ &illegal,        // zpg | EOR oper
+    /* 0x46 */ &illegal,        // zpg | LSR oper
     /* 0x47 */ &illegal,        //
     /* 0x48 */ &illegal,        // impl | PHA
     /* 0x49 */ &illegal,        // # | EOR #oper
@@ -822,8 +414,8 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0x52 */ &illegal,        //
     /* 0x53 */ &illegal,        //
     /* 0x54 */ &illegal,        //
-    /* 0x55 */ &EOR_zpg_X,      // zpg,X | EOR oper,X
-    /* 0x56 */ &LSR_zpg_X,      // zpg,X | LSR oper,X
+    /* 0x55 */ &illegal,        // zpg,X | EOR oper,X
+    /* 0x56 */ &illegal,        // zpg,X | LSR oper,X
     /* 0x57 */ &illegal,        //
     /* 0x58 */ &illegal,        // impl | CLI
     /* 0x59 */ &illegal,        // abs,Y | EOR oper,Y
@@ -838,8 +430,8 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0x62 */ &illegal,        //
     /* 0x63 */ &illegal,        //
     /* 0x64 */ &illegal,        //
-    /* 0x65 */ &ADC_zpg,        // zpg | ADC oper
-    /* 0x66 */ &ROR_zpg,        // zpg | ROR oper
+    /* 0x65 */ &illegal,        // zpg | ADC oper
+    /* 0x66 */ &illegal,        // zpg | ROR oper
     /* 0x67 */ &illegal,        //
     /* 0x68 */ &illegal,        // impl | PLA
     /* 0x69 */ &illegal,        // # | ADC #oper
@@ -854,8 +446,8 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0x72 */ &illegal,        //
     /* 0x73 */ &illegal,        //
     /* 0x74 */ &illegal,        //
-    /* 0x75 */ &ADC_zpg_X,      // zpg,X | ADC oper,X
-    /* 0x76 */ &ROR_zpg_X,      // zpg,X | ROR oper,X
+    /* 0x75 */ &illegal,        // zpg,X | ADC oper,X
+    /* 0x76 */ &illegal,      // zpg,X | ROR oper,X
     /* 0x77 */ &illegal,        //
     /* 0x78 */ &illegal,        // impl | SEI
     /* 0x79 */ &illegal,        // abs,Y | ADC oper,Y
@@ -869,9 +461,9 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0x81 */ &STA_idx_ind_X,  // (ind,X) | STA (oper,X)
     /* 0x82 */ &illegal,        //
     /* 0x83 */ &illegal,        //
-    /* 0x84 */ &STY_zpg,        // zpg | STY oper
-    /* 0x85 */ &STA_zpg,        // zpg | STA oper
-    /* 0x86 */ &STX_zpg,        // zpg | STX oper
+    /* 0x84 */ &illegal,        // zpg | STY oper
+    /* 0x85 */ &illegal,        // zpg | STA oper
+    /* 0x86 */ &illegal,        // zpg | STX oper
     /* 0x87 */ &illegal,        //
     /* 0x88 */ &illegal,        // impl | DEY
     /* 0x89 */ &illegal,        //
@@ -885,9 +477,9 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0x91 */ &illegal,        // (ind),Y | STA (oper),Y
     /* 0x92 */ &illegal,        //
     /* 0x93 */ &illegal,        //
-    /* 0x94 */ &STY_zpg_X,      // zpg,X | STY oper,X
-    /* 0x95 */ &STA_zpg_X,      // zpg,X | STA oper,X
-    /* 0x96 */ &STX_zpg_Y,      // zpg,Y | STX oper,Y
+    /* 0x94 */ &illegal,        // zpg,X | STY oper,X
+    /* 0x95 */ &illegal,        // zpg,X | STA oper,X
+    /* 0x96 */ &illegal,        // zpg,Y | STX oper,Y
     /* 0x97 */ &illegal,        //
     /* 0x98 */ &illegal,        // impl | TYA
     /* 0x99 */ &illegal,        // abs,Y | STA oper,Y
@@ -901,9 +493,9 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0xA1 */ &LDA_idx_ind_X,  // (ind,X) | LDA (oper,X)
     /* 0xA2 */ &illegal,        // # | LDX #oper
     /* 0xA3 */ &illegal,        //
-    /* 0xA4 */ &LDY_zpg,        // zpg | LDY oper
-    /* 0xA5 */ &LDA_zpg,        // zpg | LDA oper
-    /* 0xA6 */ &LDX_zpg,        // zpg | LDX oper
+    /* 0xA4 */ &illegal,        // zpg | LDY oper
+    /* 0xA5 */ &illegal,        // zpg | LDA oper
+    /* 0xA6 */ &illegal,        // zpg | LDX oper
     /* 0xA7 */ &illegal,        //
     /* 0xA8 */ &illegal,        // impl | TAY
     /* 0xA9 */ &illegal,        // # | LDA #oper
@@ -917,9 +509,9 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0xB1 */ &illegal,        // (ind),Y | LDA (oper),Y
     /* 0xB2 */ &illegal,        //
     /* 0xB3 */ &illegal,        //
-    /* 0xB4 */ &LDY_zpg_X,      // zpg,X | LDY oper,X
-    /* 0xB5 */ &LDA_zpg_X,      // zpg,X | LDA oper,X
-    /* 0xB6 */ &LDX_zpg_Y,      // zpg,Y | LDX oper,Y
+    /* 0xB4 */ &illegal,        // zpg,X | LDY oper,X
+    /* 0xB5 */ &illegal,        // zpg,X | LDA oper,X
+    /* 0xB6 */ &illegal,        // zpg,Y | LDX oper,Y
     /* 0xB7 */ &illegal,        //
     /* 0xB8 */ &illegal,        // impl | CLV
     /* 0xB9 */ &illegal,        // abs,Y | LDA oper,Y
@@ -933,9 +525,9 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0xC1 */ &CMP_idx_ind_X,  // (ind,X) | CMP (oper,X)
     /* 0xC2 */ &illegal,        //
     /* 0xC3 */ &illegal,        //
-    /* 0xC4 */ &CPY_zpg,        // zpg | CPY oper
-    /* 0xC5 */ &CMP_zpg,        // zpg | CMP oper
-    /* 0xC6 */ &DEC_zpg,        // zpg | DEC oper
+    /* 0xC4 */ &illegal,        // zpg | CPY oper
+    /* 0xC5 */ &illegal,        // zpg | CMP oper
+    /* 0xC6 */ &illegal,        // zpg | DEC oper
     /* 0xC7 */ &illegal,        //
     /* 0xC8 */ &illegal,        // impl | INY
     /* 0xC9 */ &illegal,        // # | CMP #oper
@@ -950,8 +542,8 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0xD2 */ &illegal,        //
     /* 0xD3 */ &illegal,        //
     /* 0xD4 */ &illegal,        //
-    /* 0xD5 */ &CMP_zpg_X,      // zpg,X | CMP oper,X
-    /* 0xD6 */ &DEC_zpg_X,      // zpg,X | DEC oper,X
+    /* 0xD5 */ &illegal,        // zpg,X | CMP oper,X
+    /* 0xD6 */ &illegal,        // zpg,X | DEC oper,X
     /* 0xD7 */ &illegal,        //
     /* 0xD8 */ &illegal,        // impl | CLD
     /* 0xD9 */ &illegal,        // abs,Y | CMP oper,Y
@@ -965,9 +557,9 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0xE1 */ &SBC_idx_ind_X,  // (ind,X) | SBC (oper,X)
     /* 0xE2 */ &illegal,        //
     /* 0xE3 */ &illegal,        //
-    /* 0xE4 */ &CPX_zpg,        // zpg | CPX oper
-    /* 0xE5 */ &SBC_zpg,        // zpg | SBC oper
-    /* 0xE6 */ &INC_zpg,        // zpg | INC oper
+    /* 0xE4 */ &illegal,        // zpg | CPX oper
+    /* 0xE5 */ &illegal,        // zpg | SBC oper
+    /* 0xE6 */ &illegal,        // zpg | INC oper
     /* 0xE7 */ &illegal,        //
     /* 0xE8 */ &illegal,        // impl | INX
     /* 0xE9 */ &illegal,        // # | SBC #oper
@@ -982,8 +574,8 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0xF2 */ &illegal,        //
     /* 0xF3 */ &illegal,        //
     /* 0xF4 */ &illegal,        //
-    /* 0xF5 */ &SBC_zpg_X,      // zpg,X | SBC oper,X
-    /* 0xF6 */ &INC_zpg_X,      // zpg,X | INC oper,X
+    /* 0xF5 */ &illegal,        // zpg,X | SBC oper,X
+    /* 0xF6 */ &illegal,        // zpg,X | INC oper,X
     /* 0xF7 */ &illegal,        //
     /* 0xF8 */ &illegal,        // impl | SED
     /* 0xF9 */ &illegal,        // abs,Y | SBC oper,Y
@@ -1261,8 +853,8 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0x02 */ false,   //
     /* 0x03 */ false,   //
     /* 0x04 */ false,   //
-    /* 0x05 */ false,   // zpg | ORA oper
-    /* 0x06 */ false,   // zpg | ASL oper
+    /* 0x05 */ true,    // zpg | ORA oper
+    /* 0x06 */ true,    // zpg | ASL oper
     /* 0x07 */ false,   //
     /* 0x08 */ true,    // impl | PHP
     /* 0x09 */ true,    // # | ORA #oper
@@ -1277,8 +869,8 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0x12 */ false,   //
     /* 0x13 */ false,   //
     /* 0x14 */ false,   //
-    /* 0x15 */ false,   // zpg,X | ORA oper,X
-    /* 0x16 */ false,   // zpg,X | ASL oper,X
+    /* 0x15 */ true,    // zpg,X | ORA oper,X
+    /* 0x16 */ true,    // zpg,X | ASL oper,X
     /* 0x17 */ false,   //
     /* 0x18 */ true,    // impl | CLC
     /* 0x19 */ true,    // abs,Y | ORA oper,Y
@@ -1292,9 +884,9 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0x21 */ false,   // (ind,X) | AND (oper,X)
     /* 0x22 */ false,   //
     /* 0x23 */ false,   //
-    /* 0x24 */ false,   // zpg | BIT oper
-    /* 0x25 */ false,   // zpg | AND oper
-    /* 0x26 */ false,   // zpg | ROL oper
+    /* 0x24 */ true,    // zpg | BIT oper
+    /* 0x25 */ true,    // zpg | AND oper
+    /* 0x26 */ true,    // zpg | ROL oper
     /* 0x27 */ false,   //
     /* 0x28 */ true,    // impl | PLP
     /* 0x29 */ true,    // # | AND #oper
@@ -1309,8 +901,8 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0x32 */ false,   //
     /* 0x33 */ false,   //
     /* 0x34 */ false,   //
-    /* 0x35 */ false,   // zpg,X | AND oper,X
-    /* 0x36 */ false,   // zpg,X | ROL oper,X
+    /* 0x35 */ true,    // zpg,X | AND oper,X
+    /* 0x36 */ true,    // zpg,X | ROL oper,X
     /* 0x37 */ false,   //
     /* 0x38 */ true,    // impl | SEC
     /* 0x39 */ true,    // abs,Y | AND oper,Y
@@ -1325,8 +917,8 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0x42 */ false,   //
     /* 0x43 */ false,   //
     /* 0x44 */ false,   //
-    /* 0x45 */ false,   // zpg | EOR oper
-    /* 0x46 */ false,   // zpg | LSR oper
+    /* 0x45 */ true,    // zpg | EOR oper
+    /* 0x46 */ true,    // zpg | LSR oper
     /* 0x47 */ false,   //
     /* 0x48 */ true,    // impl | PHA
     /* 0x49 */ true,    // # | EOR #oper
@@ -1341,8 +933,8 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0x52 */ false,   //
     /* 0x53 */ false,   //
     /* 0x54 */ false,   //
-    /* 0x55 */ false,   // zpg,X | EOR oper,X
-    /* 0x56 */ false,   // zpg,X | LSR oper,X
+    /* 0x55 */ true,    // zpg,X | EOR oper,X
+    /* 0x56 */ true,    // zpg,X | LSR oper,X
     /* 0x57 */ false,   //
     /* 0x58 */ true,    // impl | CLI
     /* 0x59 */ true,    // abs,Y | EOR oper,Y
@@ -1357,8 +949,8 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0x62 */ false,   //
     /* 0x63 */ false,   //
     /* 0x64 */ false,   //
-    /* 0x65 */ false,   // zpg | ADC oper
-    /* 0x66 */ false,   // zpg | ROR oper
+    /* 0x65 */ true,    // zpg | ADC oper
+    /* 0x66 */ true,    // zpg | ROR oper
     /* 0x67 */ false,   //
     /* 0x68 */ true,    // impl | PLA
     /* 0x69 */ true,    // # | ADC #oper
@@ -1373,8 +965,8 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0x72 */ false,   //
     /* 0x73 */ false,   //
     /* 0x74 */ false,   //
-    /* 0x75 */ false,   // zpg,X | ADC oper,X
-    /* 0x76 */ false,   // zpg,X | ROR oper,X
+    /* 0x75 */ true,    // zpg,X | ADC oper,X
+    /* 0x76 */ true,    // zpg,X | ROR oper,X
     /* 0x77 */ false,   //
     /* 0x78 */ true,    // impl | SEI
     /* 0x79 */ true,    // abs,Y | ADC oper,Y
@@ -1388,9 +980,9 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0x81 */ false,   // (ind,X) | STA (oper,X)
     /* 0x82 */ false,   //
     /* 0x83 */ false,   //
-    /* 0x84 */ false,   // zpg | STY oper
-    /* 0x85 */ false,   // zpg | STA oper
-    /* 0x86 */ false,   // zpg | STX oper
+    /* 0x84 */ true,    // zpg | STY oper
+    /* 0x85 */ true,    // zpg | STA oper
+    /* 0x86 */ true,    // zpg | STX oper
     /* 0x87 */ false,   //
     /* 0x88 */ true,    // impl | DEY
     /* 0x89 */ false,   //
@@ -1404,9 +996,9 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0x91 */ true,    // (ind),Y | STA (oper),Y
     /* 0x92 */ false,   //
     /* 0x93 */ false,   //
-    /* 0x94 */ false,   // zpg,X | STY oper,X
-    /* 0x95 */ false,   // zpg,X | STA oper,X
-    /* 0x96 */ false,   // zpg,Y | STX oper,Y
+    /* 0x94 */ true,    // zpg,X | STY oper,X
+    /* 0x95 */ true,    // zpg,X | STA oper,X
+    /* 0x96 */ true,    // zpg,Y | STX oper,Y
     /* 0x97 */ false,   //
     /* 0x98 */ true,    // impl | TYA
     /* 0x99 */ true,    // abs,Y | STA oper,Y
@@ -1420,9 +1012,9 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0xA1 */ false,   // (ind,X) | LDA (oper,X)
     /* 0xA2 */ true,    // # | LDX #oper
     /* 0xA3 */ false,   //
-    /* 0xA4 */ false,   // zpg | LDY oper
-    /* 0xA5 */ false,   // zpg | LDA oper
-    /* 0xA6 */ false,   // zpg | LDX oper
+    /* 0xA4 */ true,    // zpg | LDY oper
+    /* 0xA5 */ true,    // zpg | LDA oper
+    /* 0xA6 */ true,    // zpg | LDX oper
     /* 0xA7 */ false,   //
     /* 0xA8 */ true,    // impl | TAY
     /* 0xA9 */ true,    // # | LDA #oper
@@ -1436,9 +1028,9 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0xB1 */ true,    // (ind),Y | LDA (oper),Y
     /* 0xB2 */ false,   //
     /* 0xB3 */ false,   //
-    /* 0xB4 */ false,   // zpg,X | LDY oper,X
-    /* 0xB5 */ false,   // zpg,X | LDA oper,X
-    /* 0xB6 */ false,   // zpg,Y | LDX oper,Y
+    /* 0xB4 */ true,    // zpg,X | LDY oper,X
+    /* 0xB5 */ true,    // zpg,X | LDA oper,X
+    /* 0xB6 */ true,    // zpg,Y | LDX oper,Y
     /* 0xB7 */ false,   //
     /* 0xB8 */ true,    // impl | CLV
     /* 0xB9 */ true,    // abs,Y | LDA oper,Y
@@ -1452,9 +1044,9 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0xC1 */ false,   // (ind,X) | CMP (oper,X)
     /* 0xC2 */ false,   //
     /* 0xC3 */ false,   //
-    /* 0xC4 */ false,   // zpg | CPY oper
-    /* 0xC5 */ false,   // zpg | CMP oper
-    /* 0xC6 */ false,   // zpg | DEC oper
+    /* 0xC4 */ true,    // zpg | CPY oper
+    /* 0xC5 */ true,    // zpg | CMP oper
+    /* 0xC6 */ true,    // zpg | DEC oper
     /* 0xC7 */ false,   //
     /* 0xC8 */ true,    // impl | INY
     /* 0xC9 */ true,    // # | CMP #oper
@@ -1469,8 +1061,8 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0xD2 */ false,   //
     /* 0xD3 */ false,   //
     /* 0xD4 */ false,   //
-    /* 0xD5 */ false,   // zpg,X | CMP oper,X
-    /* 0xD6 */ false,   // zpg,X | DEC oper,X
+    /* 0xD5 */ true,    // zpg,X | CMP oper,X
+    /* 0xD6 */ true,    // zpg,X | DEC oper,X
     /* 0xD7 */ false,   //
     /* 0xD8 */ true,    // impl | CLD
     /* 0xD9 */ true,    // abs,Y | CMP oper,Y
@@ -1484,9 +1076,9 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0xE1 */ false,   // (ind,X) | SBC (oper,X)
     /* 0xE2 */ false,   //
     /* 0xE3 */ false,   //
-    /* 0xE4 */ false,   // zpg | CPX oper
-    /* 0xE5 */ false,   // zpg | SBC oper
-    /* 0xE6 */ false,   // zpg | INC oper
+    /* 0xE4 */ true,    // zpg | CPX oper
+    /* 0xE5 */ true,    // zpg | SBC oper
+    /* 0xE6 */ true,    // zpg | INC oper
     /* 0xE7 */ false,   //
     /* 0xE8 */ true,    // impl | INX
     /* 0xE9 */ true,    // # | SBC #oper
@@ -1501,8 +1093,8 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0xF2 */ false,   //
     /* 0xF3 */ false,   //
     /* 0xF4 */ false,   //
-    /* 0xF5 */ false,   // zpg,X | SBC oper,X
-    /* 0xF6 */ false,   // zpg,X | INC oper,X
+    /* 0xF5 */ true,    // zpg,X | SBC oper,X
+    /* 0xF6 */ true,    // zpg,X | INC oper,X
     /* 0xF7 */ false,   //
     /* 0xF8 */ true,    // impl | SED
     /* 0xF9 */ true,    // abs,Y | SBC oper,Y
@@ -1653,8 +1245,8 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x02 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x03 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x04 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x05 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | ORA oper
-    /* 0x06 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | ASL oper
+    /* 0x05 */ am::zero_page::opcode_steps_read!(ORA_core, am::opc_step_illegal),   // zpg | ORA oper
+    /* 0x06 */ am::zero_page::opcode_steps_read_modify_write!(ASL_core, am::opc_step_illegal),   // zpg | ASL oper
     /* 0x07 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x08 */ am::stack::opcode_steps_PHX!(reg_PSR, am::opc_step_illegal),   // impl | PHP
     /* 0x09 */ am::immediate::opcode_steps!(ORA_core, am::opc_step_illegal),   // # | ORA #oper
@@ -1669,8 +1261,8 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x12 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x13 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x14 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x15 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | ORA oper,X
-    /* 0x16 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | ASL oper,X
+    /* 0x15 */ am::indexed_zero_page::opcode_steps_read!(ORA_core, reg_X, am::opc_step_illegal),   // zpg,X | ORA oper,X
+    /* 0x16 */ am::indexed_zero_page::opcode_steps_read_modify_write!(ASL_core, reg_X, am::opc_step_illegal),   // zpg,X | ASL oper,X
     /* 0x17 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x18 */ am::implied::opcode_steps!(CLC_core, am::opc_step_illegal),  // impl | CLC
     /* 0x19 */ am::indexed_absolute::opcode_steps_read!(ORA_core, reg_Y, am::opc_step_illegal),   // abs,Y | ORA oper,Y
@@ -1684,9 +1276,9 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x21 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind,X) | AND (oper,X)
     /* 0x22 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x23 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x24 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | BIT oper
-    /* 0x25 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | AND oper
-    /* 0x26 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | ROL oper
+    /* 0x24 */ am::zero_page::opcode_steps_read!(adder::BIT_core, am::opc_step_illegal),   // zpg | BIT oper
+    /* 0x25 */ am::zero_page::opcode_steps_read!(AND_core, am::opc_step_illegal),   // zpg | AND oper
+    /* 0x26 */ am::zero_page::opcode_steps_read_modify_write!(ROL_core, am::opc_step_illegal),   // zpg | ROL oper
     /* 0x27 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x28 */ am::stack::opcode_steps_PLX!(set_reg_PSR, am::opc_step_illegal),   // impl | PLP
     /* 0x29 */ am::immediate::opcode_steps!(AND_core, am::opc_step_illegal),   // # | AND #oper
@@ -1701,8 +1293,8 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x32 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x33 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x34 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x35 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | AND oper,X
-    /* 0x36 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | ROL oper,X
+    /* 0x35 */ am::indexed_zero_page::opcode_steps_read!(AND_core, reg_X, am::opc_step_illegal),   // zpg,X | AND oper,X
+    /* 0x36 */ am::indexed_zero_page::opcode_steps_read_modify_write!(ROL_core, reg_X, am::opc_step_illegal),   // zpg,X | ROL oper,X
     /* 0x37 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x38 */ am::implied::opcode_steps!(SEC_core, am::opc_step_illegal),   // impl | SEC
     /* 0x39 */ am::indexed_absolute::opcode_steps_read!(AND_core, reg_Y, am::opc_step_illegal),   // abs,Y | AND oper,Y
@@ -1717,8 +1309,8 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x42 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x43 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x44 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x45 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | EOR oper
-    /* 0x46 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | LSR oper
+    /* 0x45 */ am::zero_page::opcode_steps_read!(EOR_core, am::opc_step_illegal),   // zpg | EOR oper
+    /* 0x46 */ am::zero_page::opcode_steps_read_modify_write!(LSR_core, am::opc_step_illegal),   // zpg | LSR oper
     /* 0x47 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x48 */ am::stack::opcode_steps_PHX!(reg_A, am::opc_step_illegal),   // impl | PHA
     /* 0x49 */ am::immediate::opcode_steps!(EOR_core, am::opc_step_illegal),   // # | EOR #oper
@@ -1733,8 +1325,8 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x52 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x53 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x54 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x55 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | EOR oper,X
-    /* 0x56 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | LSR oper,X
+    /* 0x55 */ am::indexed_zero_page::opcode_steps_read!(EOR_core, reg_X, am::opc_step_illegal),   // zpg,X | EOR oper,X
+    /* 0x56 */ am::indexed_zero_page::opcode_steps_read_modify_write!(LSR_core, reg_X, am::opc_step_illegal),   // zpg,X | LSR oper,X
     /* 0x57 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x58 */ am::implied::opcode_steps!(CLI_core, am::opc_step_illegal),   // impl | CLI
     /* 0x59 */ am::indexed_absolute::opcode_steps_read!(EOR_core, reg_Y, am::opc_step_illegal),   // abs,Y | EOR oper,Y
@@ -1749,8 +1341,8 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x62 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x63 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x64 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x65 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | ADC oper
-    /* 0x66 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | ROR oper
+    /* 0x65 */ am::zero_page::opcode_steps_read!(adder::ADC_core, am::opc_step_illegal),   // zpg | ADC oper
+    /* 0x66 */ am::zero_page::opcode_steps_read_modify_write!(ROR_core, am::opc_step_illegal),   // zpg | ROR oper
     /* 0x67 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x68 */ am::stack::opcode_steps_PLX!(set_reg_A, am::opc_step_illegal),   // impl | PLA
     /* 0x69 */ am::immediate::opcode_steps!(adder::ADC_core, am::opc_step_illegal),   // # | ADC #oper
@@ -1765,8 +1357,8 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x72 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x73 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x74 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x75 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | ADC oper,X
-    /* 0x76 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | ROR oper,X
+    /* 0x75 */ am::indexed_zero_page::opcode_steps_read!(adder::ADC_core, reg_X, am::opc_step_illegal),   // zpg,X | ADC oper,X
+    /* 0x76 */ am::indexed_zero_page::opcode_steps_read_modify_write!(ROR_core, reg_X, am::opc_step_illegal),   // zpg,X | ROR oper,X
     /* 0x77 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x78 */ am::implied::opcode_steps!(SEI_core, am::opc_step_illegal),   // impl | SEI
     /* 0x79 */ am::indexed_absolute::opcode_steps_read!(adder::ADC_core, reg_Y, am::opc_step_illegal),   // abs,Y | ADC oper,Y
@@ -1780,9 +1372,9 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x81 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind,X) | STA (oper,X)
     /* 0x82 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x83 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x84 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | STY oper
-    /* 0x85 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | STA oper
-    /* 0x86 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | STX oper
+    /* 0x84 */ am::zero_page::opcode_steps_write!(reg_Y, am::opc_step_illegal),   // zpg | STY oper
+    /* 0x85 */ am::zero_page::opcode_steps_write!(reg_A, am::opc_step_illegal),   // zpg | STA oper
+    /* 0x86 */ am::zero_page::opcode_steps_write!(reg_X, am::opc_step_illegal),   // zpg | STX oper
     /* 0x87 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x88 */ am::implied::opcode_steps!(DEY_core, am::opc_step_illegal),   // impl | DEY
     /* 0x89 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
@@ -1796,9 +1388,9 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x91 */ am::post_indexed_indirect::opcode_steps_write!(reg_A, reg_Y, am::opc_step_illegal),   // (ind),Y | STA (oper),Y
     /* 0x92 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x93 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x94 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | STY oper,X
-    /* 0x95 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | STA oper,X
-    /* 0x96 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,Y | STX oper,Y
+    /* 0x94 */ am::indexed_zero_page::opcode_steps_write!(reg_Y, reg_X, am::opc_step_illegal),   // zpg,X | STY oper,X
+    /* 0x95 */ am::indexed_zero_page::opcode_steps_write!(reg_A, reg_X, am::opc_step_illegal),   // zpg,X | STA oper,X
+    /* 0x96 */ am::indexed_zero_page::opcode_steps_write!(reg_X, reg_Y, am::opc_step_illegal),   // zpg,Y | STX oper,Y
     /* 0x97 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x98 */ am::implied::opcode_steps!(TYA_core, am::opc_step_illegal),   // impl | TYA
     /* 0x99 */ am::indexed_absolute::opcode_steps_write!(reg_A, reg_Y, am::opc_step_illegal),   // abs,Y | STA oper,Y
@@ -1812,9 +1404,9 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0xA1 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind,X) | LDA (oper,X)
     /* 0xA2 */ am::immediate::opcode_steps!(set_reg_X, am::opc_step_illegal),   // # | LDX #oper
     /* 0xA3 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0xA4 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | LDY oper
-    /* 0xA5 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | LDA oper
-    /* 0xA6 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | LDX oper
+    /* 0xA4 */ am::zero_page::opcode_steps_read!(set_reg_Y, am::opc_step_illegal),   // zpg | LDY oper
+    /* 0xA5 */ am::zero_page::opcode_steps_read!(set_reg_A, am::opc_step_illegal),   // zpg | LDA oper
+    /* 0xA6 */ am::zero_page::opcode_steps_read!(set_reg_X, am::opc_step_illegal),   // zpg | LDX oper
     /* 0xA7 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xA8 */ am::implied::opcode_steps!(TAY_core, am::opc_step_illegal),   // impl | TAY
     /* 0xA9 */ am::immediate::opcode_steps!(set_reg_A, am::opc_step_illegal),   // # | LDA #oper
@@ -1828,9 +1420,9 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0xB1 */ am::post_indexed_indirect::opcode_steps_read!(set_reg_A, reg_Y, am::opc_step_illegal),   // (ind),Y | LDA (oper),Y
     /* 0xB2 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xB3 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0xB4 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | LDY oper,X
-    /* 0xB5 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | LDA oper,X
-    /* 0xB6 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,Y | LDX oper,Y
+    /* 0xB4 */ am::indexed_zero_page::opcode_steps_read!(set_reg_Y, reg_X, am::opc_step_illegal),   // zpg,X | LDY oper,X
+    /* 0xB5 */ am::indexed_zero_page::opcode_steps_read!(set_reg_A, reg_X, am::opc_step_illegal),   // zpg,X | LDA oper,X
+    /* 0xB6 */ am::indexed_zero_page::opcode_steps_read!(set_reg_X, reg_Y, am::opc_step_illegal),   // zpg,Y | LDX oper,Y
     /* 0xB7 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xB8 */ am::implied::opcode_steps!(CLV_core, am::opc_step_illegal),   // impl | CLV
     /* 0xB9 */ am::indexed_absolute::opcode_steps_read!(set_reg_A, reg_Y, am::opc_step_illegal),   // abs,Y | LDA oper,Y
@@ -1844,9 +1436,9 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0xC1 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind,X) | CMP (oper,X)
     /* 0xC2 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xC3 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0xC4 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | CPY oper
-    /* 0xC5 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | CMP oper
-    /* 0xC6 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | DEC oper
+    /* 0xC4 */ am::zero_page::opcode_steps_read!(CMP_Y_core, am::opc_step_illegal),   // zpg | CPY oper
+    /* 0xC5 */ am::zero_page::opcode_steps_read!(CMP_A_core, am::opc_step_illegal),   // zpg | CMP oper
+    /* 0xC6 */ am::zero_page::opcode_steps_read_modify_write!(DEC_core, am::opc_step_illegal),   // zpg | DEC oper
     /* 0xC7 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xC8 */ am::implied::opcode_steps!(INY_core, am::opc_step_illegal),   // impl | INY
     /* 0xC9 */ am::immediate::opcode_steps!(CMP_A_core, am::opc_step_illegal),   // # | CMP #oper
@@ -1861,8 +1453,8 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0xD2 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xD3 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xD4 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0xD5 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | CMP oper,X
-    /* 0xD6 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | DEC oper,X
+    /* 0xD5 */ am::indexed_zero_page::opcode_steps_read!(CMP_A_core, reg_X, am::opc_step_illegal),   // zpg,X | CMP oper,X
+    /* 0xD6 */ am::indexed_zero_page::opcode_steps_read_modify_write!(DEC_core, reg_X, am::opc_step_illegal),   // zpg,X | DEC oper,X
     /* 0xD7 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xD8 */ am::implied::opcode_steps!(CLD_core, am::opc_step_illegal),   // impl | CLD
     /* 0xD9 */ am::indexed_absolute::opcode_steps_read!(CMP_A_core, reg_Y, am::opc_step_illegal),   // abs,Y | CMP oper,Y
@@ -1876,9 +1468,9 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0xE1 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind,X) | SBC (oper,X)
     /* 0xE2 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xE3 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0xE4 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | CPX oper
-    /* 0xE5 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | SBC oper
-    /* 0xE6 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | INC oper
+    /* 0xE4 */ am::zero_page::opcode_steps_read!(CMP_X_core, am::opc_step_illegal),   // zpg | CPX oper
+    /* 0xE5 */ am::zero_page::opcode_steps_read!(adder::SBC_core, am::opc_step_illegal),   // zpg | SBC oper
+    /* 0xE6 */ am::zero_page::opcode_steps_read_modify_write!(INC_core, am::opc_step_illegal),   // zpg | INC oper
     /* 0xE7 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xE8 */ am::implied::opcode_steps!(INX_core, am::opc_step_illegal),   // impl | INX
     /* 0xE9 */ am::immediate::opcode_steps!(adder::SBC_core, am::opc_step_illegal),   // # | SBC #oper
@@ -1893,8 +1485,8 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0xF2 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xF3 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xF4 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0xF5 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | SBC oper,X
-    /* 0xF6 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | INC oper,X
+    /* 0xF5 */ am::indexed_zero_page::opcode_steps_read!(adder::SBC_core, reg_X, am::opc_step_illegal),   // zpg,X | SBC oper,X
+    /* 0xF6 */ am::indexed_zero_page::opcode_steps_read_modify_write!(INC_core, reg_X, am::opc_step_illegal),   // zpg,X | INC oper,X
     /* 0xF7 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xF8 */ am::implied::opcode_steps!(SED_core, am::opc_step_illegal),   // impl | SED
     /* 0xF9 */ am::indexed_absolute::opcode_steps_read!(adder::SBC_core, reg_Y, am::opc_step_illegal),   // abs,Y | SBC oper,Y
