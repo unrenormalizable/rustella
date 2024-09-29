@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 
 pub fn go(
-    cpu: &mut cpu::MOS6502,
+    cpu: &mut cpu::NMOS6502,
     mem: &mut riot::Memory,
     break_points: &HashSet<LoHi>,
     count: u64,
@@ -32,7 +32,7 @@ pub fn go(
     registers(cpu, mem, break_points);
 }
 
-pub fn registers(cpu: &cpu::MOS6502, mem: &riot::Memory, bps: &HashSet<LoHi>) {
+pub fn registers(cpu: &cpu::NMOS6502, mem: &riot::Memory, bps: &HashSet<LoHi>) {
     let pc = cpu.pc();
     let (_, bytes_str, instr_str, _, _) = disassemble_one_instruction(mem, bps, pc);
 
@@ -63,7 +63,7 @@ pub fn registers(cpu: &cpu::MOS6502, mem: &riot::Memory, bps: &HashSet<LoHi>) {
     );
 }
 
-pub fn set_register(cpu: &mut cpu::MOS6502, reg: repl::Register, val: u16) {
+pub fn set_register(cpu: &mut cpu::NMOS6502, reg: repl::Register, val: u16) {
     match reg {
         repl::Register::A => cpu.set_a(val as u8),
         repl::Register::X => cpu.set_x(val as u8),
@@ -93,7 +93,7 @@ pub fn memory(mem: &riot::Memory, start: u16) {
 }
 
 pub fn disassemble(
-    cpu: &cpu::MOS6502,
+    cpu: &cpu::NMOS6502,
     mem: &riot::Memory,
     bps: &HashSet<LoHi>,
     start: u16,
@@ -189,7 +189,7 @@ fn disassemble_one_instruction(
     )
 }
 
-fn bit_value(cpu: &cpu::MOS6502, bit: cpu::PSR) -> String {
+fn bit_value(cpu: &cpu::NMOS6502, bit: cpu::PSR) -> String {
     if bits::tst_bits(cpu.psr(), bit.bits()) {
         "1".to_string()
     } else {
@@ -197,7 +197,7 @@ fn bit_value(cpu: &cpu::MOS6502, bit: cpu::PSR) -> String {
     }
 }
 
-fn clock_speed(cpu: &cpu::MOS6502) -> f64 {
+fn clock_speed(cpu: &cpu::NMOS6502) -> f64 {
     if cpu.duration() != 0 {
         (cpu.cycles() as f64 * 1_000_000_000.0) / cpu.duration() as f64 / 1_000_000.0
     } else {

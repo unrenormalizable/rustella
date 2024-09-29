@@ -1,6 +1,6 @@
 use crate::{
     cmn::*,
-    cpu::core::{OpcExecutionState, MOS6502},
+    cpu::core::{OpcExecutionState, NMOS6502},
     cpu::opc_info,
     riot::Memory,
 };
@@ -26,7 +26,7 @@ pub mod implied {
                 $illegal,
                 //       2    PC     R  read next instruction byte (and throw it away)
                 #[inline]
-                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     s.regs_u8()[0] = mem.get(cpu.pc(), 0);
                     $main(cpu);
                     true
@@ -63,7 +63,7 @@ pub mod immediate {
                 $illegal,
                 //       2    PC     R  fetch value, increment PC
                 #[inline]
-                |_: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                |_: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     let val = mem.get(cpu.pc(), 0);
                     cpu.pc_incr(1);
                     $main(cpu, val);
@@ -265,7 +265,7 @@ pub mod indexed_absolute {
                 $illegal,
                 //    2     PC      R  fetch low byte of address, increment PC
                 #[inline]
-                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     s.regs_u8()[0] = mem.get(cpu.pc(), 0);
                     cpu.pc_incr(1);
                     false
@@ -274,7 +274,7 @@ pub mod indexed_absolute {
                 //                     add index register to low address byte,
                 //                     increment PC
                 #[inline]
-                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     s.regs_u16()[1] = mem.get(cpu.pc(), 0) as u16;
                     s.regs_u16()[0] = s.regs_u8()[0] as u16 + ($index)(cpu) as u16;
                     cpu.pc_incr(1);
@@ -283,7 +283,7 @@ pub mod indexed_absolute {
                 //    4  address+I* R  read from effective address,
                 //                     fix the high byte of effective address
                 #[inline]
-                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     let val = mem.get(LoHi(s.regs_u16()[0] as u8, s.regs_u16()[1] as u8), 0);
                     if crate::bits::tst_bits(s.regs_u16()[0], 0x0100) {
                         s.regs_u16()[1] = s.regs_u16()[1].wrapping_add(1);
@@ -296,7 +296,7 @@ pub mod indexed_absolute {
                 //    5+ address+I  R  re-read from effective address
                 //
                 #[inline]
-                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     let val = mem.get(LoHi(s.regs_u16()[0] as u8, s.regs_u16()[1] as u8), 0);
                     $main(cpu, val);
                     true
@@ -330,7 +330,7 @@ pub mod indexed_absolute {
                 $illegal,
                 //    2    PC       R  fetch low byte of address, increment PC
                 #[inline]
-                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     s.regs_u8()[0] = mem.get(cpu.pc(), 0);
                     cpu.pc_incr(1);
                     false
@@ -339,7 +339,7 @@ pub mod indexed_absolute {
                 //                     add index register X to low address byte,
                 //                     increment PC
                 #[inline]
-                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     s.regs_u16()[1] = mem.get(cpu.pc(), 0) as u16;
                     s.regs_u16()[0] = s.regs_u8()[0] as u16 + ($index)(cpu) as u16;
                     cpu.pc_incr(1);
@@ -348,7 +348,7 @@ pub mod indexed_absolute {
                 //    4  address+X* R  read from effective address,
                 //                     fix the high byte of effective address
                 #[inline]
-                |s: &mut OpcExecutionState, _: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, _: &mut NMOS6502, mem: &mut Memory| -> bool {
                     s.regs_u8()[1] = mem.get(LoHi(s.regs_u16()[0] as u8, s.regs_u16()[1] as u8), 0);
                     if crate::bits::tst_bits(s.regs_u16()[0], 0x0100) {
                         s.regs_u16()[1] = s.regs_u16()[1].wrapping_add(1);
@@ -357,7 +357,7 @@ pub mod indexed_absolute {
                 },
                 //    5  address+X  R  re-read from effective address
                 #[inline]
-                |s: &mut OpcExecutionState, _: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, _: &mut NMOS6502, mem: &mut Memory| -> bool {
                     s.regs_u16()[0] = LoHi(s.regs_u16()[0] as u8, s.regs_u16()[1] as u8).into();
                     s.regs_u8()[1] = mem.get(s.regs_u16()[0].into(), 0);
                     false
@@ -365,14 +365,14 @@ pub mod indexed_absolute {
                 //    6  address+X  W  write the value back to effective address,
                 //                     and do the operation on it
                 #[inline]
-                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     mem.set(s.regs_u16()[0].into(), 0, s.regs_u8()[1]);
                     s.regs_u8()[1] = $main(cpu, s.regs_u8()[1]);
                     false
                 },
                 //    7  address+X  W  write the new value to effective address
                 #[inline]
-                |s: &mut OpcExecutionState, _: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, _: &mut NMOS6502, mem: &mut Memory| -> bool {
                     mem.set(s.regs_u16()[0].into(), 0, s.regs_u8()[1]);
                     true
                 },
@@ -397,7 +397,7 @@ pub mod indexed_absolute {
                 $illegal,
                 //    2     PC      R  fetch low byte of address, increment PC
                 #[inline]
-                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     s.regs_u8()[0] = mem.get(cpu.pc(), 0);
                     cpu.pc_incr(1);
                     false
@@ -406,7 +406,7 @@ pub mod indexed_absolute {
                 //                     add index register to low address byte,
                 //                     increment PC
                 #[inline]
-                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     s.regs_u16()[1] = mem.get(cpu.pc(), 0) as u16;
                     s.regs_u16()[0] = s.regs_u8()[0] as u16 + ($index)(cpu) as u16;
                     cpu.pc_incr(1);
@@ -415,7 +415,7 @@ pub mod indexed_absolute {
                 //    4  address+I* R  read from effective address,
                 //                     fix the high byte of effective address
                 #[inline]
-                |s: &mut OpcExecutionState, _: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, _: &mut NMOS6502, mem: &mut Memory| -> bool {
                     s.regs_u8()[1] = mem.get(LoHi(s.regs_u16()[0] as u8, s.regs_u16()[1] as u8), 0);
                     if crate::bits::tst_bits(s.regs_u16()[0], 0x0100) {
                         s.regs_u16()[1] = s.regs_u16()[1].wrapping_add(1);
@@ -425,7 +425,7 @@ pub mod indexed_absolute {
                 //    5  address+I  W  write to effective address
                 //
                 #[inline]
-                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     let val = $main(cpu);
                     mem.set(LoHi(s.regs_u16()[0] as u8, s.regs_u16()[1] as u8), 0, val);
                     true
@@ -470,7 +470,7 @@ pub mod indexed_absolute {
         use super::*;
         use crate::{
             cpu::am::opc_step_illegal,
-            cpu::core::{execute_opc_step, OpcExecutionState, MAX_OPCODE_STEPS, MOS6502},
+            cpu::core::{execute_opc_step, OpcExecutionState, MAX_OPCODE_STEPS, NMOS6502},
             riot::Memory,
         };
         use test_case::test_case;
@@ -480,7 +480,7 @@ pub mod indexed_absolute {
         #[test_case((0xFF, 0xFF), 0x01, LoHi(0x00, 0x00), 0x78; "Address space wrap around")]
         fn test_load(op_args: (u8, u8), index: u8, lookup: LoHi, exp: u8) {
             let mut mem = Memory::new(true);
-            let mut cpu = MOS6502::new(LineState::High.rc_cell(), &mem);
+            let mut cpu = NMOS6502::new(LineState::High.rc_cell(), &mem);
             cpu.set_pc(0x0000u16.into());
 
             // Set up OpCode.
@@ -494,8 +494,8 @@ pub mod indexed_absolute {
             cpu.set_y(index);
             cpu.pc_incr(1);
             let steps = opcode_steps_read!(
-                |cpu: &mut MOS6502, val: u8| cpu.set_a(val),
-                |cpu: &MOS6502| cpu.y(),
+                |cpu: &mut NMOS6502, val: u8| cpu.set_a(val),
+                |cpu: &NMOS6502| cpu.y(),
                 opc_step_illegal
             );
             for &step in steps.iter().take(MAX_OPCODE_STEPS).skip(1) {
@@ -512,7 +512,7 @@ pub mod indexed_absolute {
         #[test_case((0xFF, 0xFF), 0x01, LoHi(0x00, 0x00), 0x78; "Address space wrap around")]
         fn test_store(op_args: (u8, u8), index: u8, lookup: LoHi, exp: u8) {
             let mut mem = Memory::new(true);
-            let mut cpu = MOS6502::new(LineState::High.rc_cell(), &mem);
+            let mut cpu = NMOS6502::new(LineState::High.rc_cell(), &mem);
             cpu.set_pc(0x0000u16.into());
 
             // Set up OpCode.
@@ -524,8 +524,8 @@ pub mod indexed_absolute {
             cpu.set_y(index);
             cpu.pc_incr(1);
             let steps = opcode_steps_write!(
-                |cpu: &MOS6502| cpu.a(),
-                |cpu: &MOS6502| cpu.y(),
+                |cpu: &NMOS6502| cpu.a(),
+                |cpu: &NMOS6502| cpu.y(),
                 opc_step_illegal
             );
             for &step in steps.iter().take(MAX_OPCODE_STEPS).skip(1) {
@@ -743,14 +743,14 @@ pub mod post_indexed_indirect {
     use super::*;
 
     #[inline]
-    pub fn __step2(s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory) -> bool {
+    pub fn __step2(s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory) -> bool {
         s.regs_u8()[0] = mem.get(cpu.pc(), 0);
         cpu.pc_incr(1);
         false
     }
 
     #[inline]
-    pub fn __step3(s: &mut OpcExecutionState, _: &mut MOS6502, mem: &mut Memory) -> bool {
+    pub fn __step3(s: &mut OpcExecutionState, _: &mut NMOS6502, mem: &mut Memory) -> bool {
         s.regs_u8()[1] = mem.get(LoHi(s.regs_u8()[0], 0x00), 0);
         false
     }
@@ -771,7 +771,7 @@ pub mod post_indexed_indirect {
                 //    4   pointer+1   R  fetch effective address high,
                 //                       add Y to low byte of effective address
                 #[inline]
-                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     s.regs_u16()[1] = mem.get(LoHi(s.regs_u8()[0], 0x00), 1) as u16;
                     s.regs_u16()[0] = s.regs_u8()[1] as u16 + ($index)(cpu) as u16;
                     false
@@ -779,7 +779,7 @@ pub mod post_indexed_indirect {
                 //    5   address+Y*  R  read from effective address,
                 //                       fix high byte of effective address
                 #[inline]
-                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     let val = mem.get(LoHi(s.regs_u16()[0] as u8, s.regs_u16()[1] as u8), 0);
                     if crate::bits::tst_bits(s.regs_u16()[0], 0x0100) {
                         s.regs_u16()[1] = s.regs_u16()[1].wrapping_add(1);
@@ -791,7 +791,7 @@ pub mod post_indexed_indirect {
                 },
                 //    6+  address+Y   R  read from effective address
                 #[inline]
-                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     let val = mem.get(LoHi(s.regs_u16()[0] as u8, s.regs_u16()[1] as u8), 0);
                     $main(cpu, val);
                     true
@@ -830,7 +830,7 @@ pub mod post_indexed_indirect {
                 //    4   pointer+1   R  fetch effective address high,
                 //                       add Y to low byte of effective address
                 #[inline]
-                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     s.regs_u16()[1] = mem.get(LoHi(s.regs_u8()[0], 0x00), 1) as u16;
                     s.regs_u16()[0] = s.regs_u8()[1] as u16 + ($index)(cpu) as u16;
                     false
@@ -838,7 +838,7 @@ pub mod post_indexed_indirect {
                 //    5   address+Y*  R  read from effective address,
                 //                       fix high byte of effective address
                 #[inline]
-                |s: &mut OpcExecutionState, _: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, _: &mut NMOS6502, mem: &mut Memory| -> bool {
                     s.regs_u8()[2] = mem.get(LoHi(s.regs_u16()[0] as u8, s.regs_u16()[1] as u8), 0);
                     if crate::bits::tst_bits(s.regs_u16()[0], 0x0100) {
                         s.regs_u16()[1] = s.regs_u16()[1].wrapping_add(1);
@@ -847,7 +847,7 @@ pub mod post_indexed_indirect {
                 },
                 //    6   address+Y   W  write to effective address
                 #[inline]
-                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     let val = $main(cpu);
                     mem.set(LoHi(s.regs_u16()[0] as u8, s.regs_u16()[1] as u8), 0, val);
                     true
@@ -871,7 +871,7 @@ pub mod post_indexed_indirect {
         use super::*;
         use crate::{
             cpu::am::opc_step_illegal,
-            cpu::core::{execute_opc_step, OpcExecutionState, MAX_OPCODE_STEPS, MOS6502},
+            cpu::core::{execute_opc_step, OpcExecutionState, MAX_OPCODE_STEPS, NMOS6502},
             riot::Memory,
         };
         use test_case::test_case;
@@ -881,7 +881,7 @@ pub mod post_indexed_indirect {
         #[test_case((0x70,), LoHi(0x70, 0x00), LoHi(0xFE, 0xFF), 0x02, LoHi(0x00, 0x00), 0x23; "Address space around")]
         fn test_load(op_args: (u8,), lookup: LoHi, pre_ea: LoHi, index: u8, ea: LoHi, exp: u8) {
             let mut mem = Memory::new(true);
-            let mut cpu = MOS6502::new(LineState::High.rc_cell(), &mem);
+            let mut cpu = NMOS6502::new(LineState::High.rc_cell(), &mem);
             cpu.set_pc(0x0400u16.into());
 
             // Setup OpCode.
@@ -897,8 +897,8 @@ pub mod post_indexed_indirect {
             cpu.set_y(index);
             cpu.pc_incr(1);
             let steps = opcode_steps_read!(
-                |cpu: &mut MOS6502, val: u8| cpu.set_a(val),
-                |cpu: &MOS6502| cpu.y(),
+                |cpu: &mut NMOS6502, val: u8| cpu.set_a(val),
+                |cpu: &NMOS6502| cpu.y(),
                 opc_step_illegal
             );
             for &step in steps.iter().take(MAX_OPCODE_STEPS).skip(1) {
@@ -915,7 +915,7 @@ pub mod post_indexed_indirect {
         #[test_case((0x70,), LoHi(0x70, 0x00), LoHi(0xFE, 0xFF), 0x02, LoHi(0x00, 0x00), 0x23; "Address space around")]
         fn test_store(op_args: (u8,), lookup: LoHi, pre_ea: LoHi, index: u8, ea: LoHi, exp: u8) {
             let mut mem = Memory::new(true);
-            let mut cpu = MOS6502::new(LineState::High.rc_cell(), &mem);
+            let mut cpu = NMOS6502::new(LineState::High.rc_cell(), &mem);
             cpu.set_pc(0x0400u16.into());
 
             // Setup OpCode.
@@ -930,8 +930,8 @@ pub mod post_indexed_indirect {
             cpu.set_y(index);
             cpu.pc_incr(1);
             let steps = opcode_steps_write!(
-                |cpu: &MOS6502| cpu.a(),
-                |cpu: &MOS6502| cpu.y(),
+                |cpu: &NMOS6502| cpu.a(),
+                |cpu: &NMOS6502| cpu.y(),
                 opc_step_illegal
             );
             for &step in steps.iter().take(MAX_OPCODE_STEPS).skip(1) {
@@ -963,7 +963,7 @@ pub mod relative {
                 $illegal,
                 //        2     PC      R  fetch operand, increment PC
                 #[inline]
-                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     s.regs_u8()[0] = mem.get(cpu.pc(), 0);
                     cpu.pc_incr(1);
                     !$main(cpu)
@@ -972,7 +972,7 @@ pub mod relative {
                 //                         If branch is taken, add operand to PCL.
                 //                         Otherwise increment PC.
                 #[inline]
-                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     s.regs_u8()[3] = mem.get(cpu.pc(), 0);
                     let new_pc =
                         u16::from(cpu.pc()).wrapping_add_signed(s.regs_u8()[0] as i8 as i16);
@@ -983,7 +983,7 @@ pub mod relative {
                 //        4+    PC*     R  Fetch opcode of next instruction.
                 //                         Fix PCH. If it did not change, increment PC.
                 #[inline]
-                |s: &mut OpcExecutionState, cpu: &mut MOS6502, mem: &mut Memory| -> bool {
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
                     s.regs_u8()[3] = mem.get(cpu.pc(), 0);
                     let new_pc = LoHi(cpu.pc().0, s.regs_u8()[1]);
                     cpu.set_pc(new_pc);
@@ -1019,7 +1019,7 @@ pub mod relative {
         use crate::{
             cmn::*,
             cpu::am::opc_step_illegal,
-            cpu::core::{execute_opc_step, OpcExecutionState, MAX_OPCODE_STEPS, MOS6502},
+            cpu::core::{execute_opc_step, OpcExecutionState, MAX_OPCODE_STEPS, NMOS6502},
             riot::Memory,
         };
         use test_case::test_case;
@@ -1037,7 +1037,7 @@ pub mod relative {
         #[test_case(LoHi(0x46, 0xF0), 0x80, LoHi(0xC8, 0xEF); "min")]
         fn test_load(pc: LoHi, op_arg: u8, exp: LoHi) {
             let mut mem = Memory::new(true);
-            let mut cpu = MOS6502::new(LineState::High.rc_cell(), &mem);
+            let mut cpu = NMOS6502::new(LineState::High.rc_cell(), &mem);
             cpu.set_pc(pc);
             mem.set(pc, 1, op_arg);
             cpu.pc_incr(1);
@@ -1055,7 +1055,7 @@ pub mod relative {
     }
 }
 
-pub fn opc_step_illegal(s: &mut OpcExecutionState, cpu: &mut MOS6502, _: &mut Memory) -> bool {
+pub fn opc_step_illegal(s: &mut OpcExecutionState, cpu: &mut NMOS6502, _: &mut Memory) -> bool {
     let opc_info = &opc_info::ALL[s.opc()];
     unimplemented!(
         "Step #{} for Opcode {:02X} ({}) not implemented. CPU state: {cpu:?}",

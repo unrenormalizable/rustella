@@ -45,8 +45,12 @@ impl Default for PSR {
 
 #[allow(non_snake_case)]
 #[derive(Default, Clone)]
-/// Refer: https://www.princeton.edu/~mae412/HANDOUTS/Datasheets/6502.pdf
-pub struct MOS6502 {
+/// The 6502 CPU (NMOS variant)
+/// Refer:
+/// - https://www.masswerk.at/6502/
+/// - https://www.nesdev.org/6502_cpu.txt
+/// - https://www.princeton.edu/~mae412/HANDOUTS/Datasheets/6502.pdf
+pub struct NMOS6502 {
     A: u8,
     X: u8,
     Y: u8,
@@ -63,7 +67,7 @@ pub struct MOS6502 {
     duration: u64,
 }
 
-impl core::fmt::Debug for MOS6502 {
+impl core::fmt::Debug for NMOS6502 {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f,
             "CPU: A: {:02X}, X: {:02X}, Y: {:02X}, PC: {:?}, S: {:02X}, P: {:?}\nMetrics: instructions: {}, cycles: {}, duration: {}",
@@ -74,11 +78,11 @@ impl core::fmt::Debug for MOS6502 {
 /// References (use multiple to cross check implementation):
 /// - https://www.masswerk.at/6502/6502_instruction_set.html
 /// - https://www.pagetable.com/c64ref/6502/
-pub type OpCodeFn = dyn Fn(&mut MOS6502, &mut Memory) -> Option<LoHi>;
+pub type OpCodeFn = dyn Fn(&mut NMOS6502, &mut Memory) -> Option<LoHi>;
 
-pub type OpCodeStepFn = fn(&mut OpcExecutionState, &mut MOS6502, &mut Memory) -> bool;
+pub type OpCodeStepFn = fn(&mut OpcExecutionState, &mut NMOS6502, &mut Memory) -> bool;
 
-pub fn execute_opc_step(step: OpCodeStepFn, cpu: &mut MOS6502, mem: &mut Memory) -> bool {
+pub fn execute_opc_step(step: OpCodeStepFn, cpu: &mut NMOS6502, mem: &mut Memory) -> bool {
     let mut state = cpu.execution_state().clone();
     let done = step(&mut state, cpu, mem);
     cpu.set_execution_state(state);
@@ -90,7 +94,7 @@ pub const MAX_OPCODE_STEPS: usize = 0x08;
 
 pub type OpCodeSteps<'a> = &'a [OpCodeStepFn; MAX_OPCODE_STEPS];
 
-impl MOS6502 {
+impl NMOS6502 {
     pub fn new(rdy: Line, mem: &Memory) -> Self {
         let mut cpu = Self {
             rdy,

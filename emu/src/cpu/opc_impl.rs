@@ -5,7 +5,7 @@ use crate::cmn::LoHi;
 use crate::cpu::{am, cmn::IRQ_VECTOR, core::*, opc_info};
 use crate::riot::Memory;
 
-fn illegal(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn illegal(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let opc = mem.get(cpu.pc(), 0);
     let opc_info = &opc_info::ALL[opc as usize];
     unimplemented!(
@@ -17,7 +17,7 @@ fn illegal(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 /// The break instruction (BRK) behaves like a NMI, but will push the value of PC+2 onto the stack to be used as the return address.
 /// It will also set the I flag. See http://6502.org/tutorials/interrupts.html#2.2.
 /// 0x00 | impl | BRK
-fn BRK_impl(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn BRK_impl(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     stack::push_interrupt_call_stack(cpu, mem, cpu.pc() + 2);
     cpu.set_psr_bit(PSR::I);
 
@@ -28,7 +28,7 @@ fn BRK_impl(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x01 | (ind,X) | ORA (oper,X)
-fn ORA_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn ORA_idx_ind_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let v2 = am::pre_indexed_indirect::load(mem, pc, cpu.x());
 
@@ -38,7 +38,7 @@ fn ORA_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x05 | zpg | ORA oper
-fn ORA_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn ORA_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let v2 = am::zero_page::load(mem, pc);
 
@@ -48,7 +48,7 @@ fn ORA_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x06 | zpg | ASL oper
-fn ASL_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn ASL_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let old_v = am::zero_page::load(mem, pc);
 
@@ -60,13 +60,13 @@ fn ASL_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x08 | impl | PHP
-fn PHP_impl(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn PHP_impl(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     stack::push_psr(cpu, mem);
 
     None
 }
 
-fn ASL_A(cpu: &mut MOS6502) {
+fn ASL_A(cpu: &mut NMOS6502) {
     let old_v = cpu.a();
 
     let new_v = ASL_core(cpu, old_v);
@@ -75,7 +75,7 @@ fn ASL_A(cpu: &mut MOS6502) {
 }
 
 /// 0x0D | abs | ORA oper
-fn ORA_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn ORA_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let v2 = am::absolute::load(mem, pc);
 
@@ -85,7 +85,7 @@ fn ORA_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x0E | abs | ASL oper
-fn ASL_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn ASL_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let old_v = am::absolute::load(mem, pc);
 
@@ -97,7 +97,7 @@ fn ASL_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x15 | zpg,X | ORA oper,X
-fn ORA_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn ORA_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let v2 = am::indexed_zero_page::load(mem, pc, cpu.x());
 
@@ -107,7 +107,7 @@ fn ORA_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x16 | zpg,X | ASL oper,X
-fn ASL_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn ASL_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let old_v = am::indexed_zero_page::load(mem, pc, cpu.x());
 
@@ -118,12 +118,12 @@ fn ASL_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
-fn CLC_core(cpu: &mut MOS6502) {
+fn CLC_core(cpu: &mut NMOS6502) {
     cpu.clr_psr_bit(PSR::C);
 }
 
 #[inline]
-fn ASL_core(cpu: &mut MOS6502, old_v: u8) -> u8 {
+fn ASL_core(cpu: &mut NMOS6502, old_v: u8) -> u8 {
     let new_v = old_v << 1;
     pcr::sync_pcr_n(cpu, new_v);
     pcr::sync_pcr_z(cpu, new_v);
@@ -133,7 +133,7 @@ fn ASL_core(cpu: &mut MOS6502, old_v: u8) -> u8 {
 }
 
 /// 0x20 | abs | JSR oper
-fn JSR_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn JSR_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let ret_addr = pc + 2;
     stack::push(cpu, mem, ret_addr.1);
@@ -143,7 +143,7 @@ fn JSR_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x21 | (ind,X) | AND (oper,X)
-fn AND_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn AND_idx_ind_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let v2 = am::pre_indexed_indirect::load(mem, pc, cpu.x());
 
@@ -153,7 +153,7 @@ fn AND_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x24 | zpg | BIT oper
-fn BIT_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn BIT_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let v2 = am::zero_page::load(mem, pc);
 
@@ -163,7 +163,7 @@ fn BIT_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x25 | zpg | AND oper
-fn AND_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn AND_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let v2 = am::zero_page::load(mem, pc);
 
@@ -173,7 +173,7 @@ fn AND_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x26 | zpg | ROL oper
-fn ROL_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn ROL_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let old_v = am::zero_page::load(mem, pc);
 
@@ -185,20 +185,20 @@ fn ROL_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x28 | impl | PLP
-fn PLP_impl(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn PLP_impl(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     stack::pop_psr(cpu, mem);
 
     None
 }
 
-fn ROL_A(cpu: &mut MOS6502) {
+fn ROL_A(cpu: &mut NMOS6502) {
     let old_v = cpu.a();
     let new_v = ROL_core(cpu, old_v);
     cpu.set_a(new_v);
 }
 
 /// 0x2C | abs | BIT oper
-fn BIT_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn BIT_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let v2 = am::absolute::load(mem, pc);
 
@@ -208,7 +208,7 @@ fn BIT_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x2D | abs | AND oper
-fn AND_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn AND_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let v2 = am::absolute::load(mem, pc);
 
@@ -218,7 +218,7 @@ fn AND_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x2E | abs | ROL oper
-fn ROL_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn ROL_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let old_v = am::absolute::load(mem, pc);
 
@@ -230,7 +230,7 @@ fn ROL_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x35 | zpg,X | AND oper,X
-fn AND_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn AND_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let v2 = am::indexed_zero_page::load(mem, pc, cpu.x());
 
@@ -240,7 +240,7 @@ fn AND_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x36 | zpg,X | ROL oper,X
-fn ROL_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn ROL_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let old_v = am::indexed_zero_page::load(mem, pc, cpu.x());
 
@@ -251,11 +251,11 @@ fn ROL_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
-fn SEC_core(cpu: &mut MOS6502) {
+fn SEC_core(cpu: &mut NMOS6502) {
     cpu.set_psr_bit(PSR::C);
 }
 
-fn ROL_core(cpu: &mut MOS6502, old_v: u8) -> u8 {
+fn ROL_core(cpu: &mut NMOS6502, old_v: u8) -> u8 {
     let new_v = adder::rol_core(cpu, old_v);
     pcr::sync_pcr_n(cpu, new_v);
     pcr::sync_pcr_z(cpu, new_v);
@@ -265,14 +265,14 @@ fn ROL_core(cpu: &mut MOS6502, old_v: u8) -> u8 {
 }
 
 /// 0x40 | impl | RTI
-fn RTI_impl(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn RTI_impl(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let ret_addr = stack::pop_interrupt_call_stack(cpu, mem);
 
     Some(ret_addr)
 }
 
 /// 0x41 | (ind,X) | EOR (oper,X)
-fn EOR_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn EOR_idx_ind_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let v2 = am::pre_indexed_indirect::load(mem, pc, cpu.x());
 
@@ -282,7 +282,7 @@ fn EOR_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x45 | zpg | EOR oper
-fn EOR_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn EOR_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let v2 = am::zero_page::load(mem, pc);
 
@@ -292,7 +292,7 @@ fn EOR_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x46 | zpg | LSR oper
-fn LSR_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn LSR_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let old_v = am::zero_page::load(mem, pc);
 
@@ -304,21 +304,21 @@ fn LSR_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x48 | impl | PHA
-fn PHA_impl(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn PHA_impl(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let a = cpu.a();
     stack::push(cpu, mem, a);
 
     None
 }
 
-fn LSR_A(cpu: &mut MOS6502) {
+fn LSR_A(cpu: &mut NMOS6502) {
     let old_v = cpu.a();
     let new_v = LSR_core(cpu, old_v);
     cpu.set_a(new_v);
 }
 
 /// 0x4C | abs | JMP oper
-fn JMP_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn JMP_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let pc = am::absolute::load_lohi(mem, pc);
 
@@ -326,7 +326,7 @@ fn JMP_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x4D | abs | EOR oper
-fn EOR_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn EOR_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let v2 = am::absolute::load(mem, pc);
 
@@ -336,7 +336,7 @@ fn EOR_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x4E | abs | LSR oper
-fn LSR_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn LSR_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let old_v = am::absolute::load(mem, pc);
 
@@ -348,7 +348,7 @@ fn LSR_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x55 | zpg,X | EOR oper,X
-fn EOR_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn EOR_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let v2 = am::indexed_zero_page::load(mem, pc, cpu.x());
 
@@ -358,7 +358,7 @@ fn EOR_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x56 | zpg,X | LSR oper,X
-fn LSR_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn LSR_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let old_v = am::indexed_zero_page::load(mem, pc, cpu.x());
 
@@ -369,11 +369,11 @@ fn LSR_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
-fn CLI_core(cpu: &mut MOS6502) {
+fn CLI_core(cpu: &mut NMOS6502) {
     cpu.clr_psr_bit(PSR::I);
 }
 
-fn LSR_core(cpu: &mut MOS6502, old_v: u8) -> u8 {
+fn LSR_core(cpu: &mut NMOS6502, old_v: u8) -> u8 {
     let new_v = old_v >> 1;
     cpu.clr_psr_bit(PSR::N);
     pcr::sync_pcr_z(cpu, new_v);
@@ -383,7 +383,7 @@ fn LSR_core(cpu: &mut MOS6502, old_v: u8) -> u8 {
 }
 
 /// 0x60 | impl | RTS
-fn RTS_impl(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn RTS_impl(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc_lo = stack::pop(cpu, mem);
     let pc_hi = stack::pop(cpu, mem);
 
@@ -393,7 +393,7 @@ fn RTS_impl(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x61 | (ind,X) | ADC (oper,X)
-fn ADC_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn ADC_idx_ind_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let n2 = am::pre_indexed_indirect::load(mem, pc, cpu.x());
 
@@ -403,7 +403,7 @@ fn ADC_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x65 | zpg | ADC oper
-fn ADC_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn ADC_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let n2 = am::zero_page::load(mem, pc);
 
@@ -413,7 +413,7 @@ fn ADC_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x66 | zpg | ROR oper
-fn ROR_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn ROR_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let old_v = am::zero_page::load(mem, pc);
 
@@ -425,7 +425,7 @@ fn ROR_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x68 | impl | PLA
-fn PLA_impl(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn PLA_impl(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let val = stack::pop(cpu, mem);
     cpu.set_a(val);
 
@@ -435,14 +435,14 @@ fn PLA_impl(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
-fn ROR_A(cpu: &mut MOS6502) {
+fn ROR_A(cpu: &mut NMOS6502) {
     let old_v = cpu.a();
     let new_v = ROR_core(cpu, old_v);
     cpu.set_a(new_v);
 }
 
 /// 0x6C | ind | JMP (oper)
-fn JMP_ind(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn JMP_ind(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let addr = am::indirect::load(mem, pc);
 
@@ -450,7 +450,7 @@ fn JMP_ind(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x6D | abs | ADC oper
-fn ADC_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn ADC_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let n2 = am::absolute::load(mem, pc);
 
@@ -460,7 +460,7 @@ fn ADC_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x6E | abs | ROR oper
-fn ROR_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn ROR_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let old_v = am::absolute::load(mem, pc);
 
@@ -472,7 +472,7 @@ fn ROR_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x75 | zpg,X | ADC oper,X
-fn ADC_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn ADC_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let n2 = am::indexed_zero_page::load(mem, pc, cpu.x());
 
@@ -482,7 +482,7 @@ fn ADC_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x76 | zpg,X | ROR oper,X
-fn ROR_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn ROR_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let old_v = am::indexed_zero_page::load(mem, pc, cpu.x());
 
@@ -493,11 +493,11 @@ fn ROR_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
-fn SEI_core(cpu: &mut MOS6502) {
+fn SEI_core(cpu: &mut NMOS6502) {
     cpu.set_psr_bit(PSR::I);
 }
 
-fn ROR_core(cpu: &mut MOS6502, old_v: u8) -> u8 {
+fn ROR_core(cpu: &mut NMOS6502, old_v: u8) -> u8 {
     let new_v = adder::ror_core(cpu, old_v);
     pcr::sync_pcr_n(cpu, new_v);
     pcr::sync_pcr_z(cpu, new_v);
@@ -507,7 +507,7 @@ fn ROR_core(cpu: &mut MOS6502, old_v: u8) -> u8 {
 }
 
 /// 0x81 | (ind,X) | STA (oper,X)
-fn STA_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn STA_idx_ind_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     am::pre_indexed_indirect::store(mem, pc, cpu.x(), cpu.a());
 
@@ -515,7 +515,7 @@ fn STA_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x84 | zpg | STY oper
-fn STY_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn STY_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     am::zero_page::store(mem, pc, cpu.y());
 
@@ -523,7 +523,7 @@ fn STY_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x85 | zpg | STA oper
-fn STA_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn STA_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     am::zero_page::store(mem, pc, cpu.a());
 
@@ -531,19 +531,19 @@ fn STA_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x86 | zpg | STX oper
-fn STX_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn STX_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     am::zero_page::store(mem, pc, cpu.x());
 
     None
 }
 
-fn DEY_core(cpu: &mut MOS6502) {
+fn DEY_core(cpu: &mut NMOS6502) {
     let val = DEC_core(cpu, cpu.y());
     cpu.set_y(val);
 }
 
-fn TXA_core(cpu: &mut MOS6502) {
+fn TXA_core(cpu: &mut NMOS6502) {
     let x = cpu.x();
     cpu.set_a(x);
 
@@ -552,7 +552,7 @@ fn TXA_core(cpu: &mut MOS6502) {
 }
 
 /// 0x8C | abs | STY oper
-fn STY_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn STY_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     am::absolute::store(mem, pc, cpu.y());
 
@@ -560,7 +560,7 @@ fn STY_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x8D | abs | STA oper
-fn STA_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn STA_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     am::absolute::store(mem, pc, cpu.a());
 
@@ -568,7 +568,7 @@ fn STA_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x8E | abs | STX oper
-fn STX_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn STX_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     am::absolute::store(mem, pc, cpu.x());
 
@@ -576,7 +576,7 @@ fn STX_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x94 | zpg,X | STY oper,X
-fn STY_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn STY_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     am::indexed_zero_page::store(mem, pc, cpu.x(), cpu.y());
 
@@ -584,7 +584,7 @@ fn STY_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x95 | zpg,X | STA oper,X
-fn STA_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn STA_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     am::indexed_zero_page::store(mem, pc, cpu.x(), cpu.a());
 
@@ -592,14 +592,14 @@ fn STA_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0x96 | zpg,Y | STX oper,Y
-fn STX_zpg_Y(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn STX_zpg_Y(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     am::indexed_zero_page::store(mem, pc, cpu.y(), cpu.x());
 
     None
 }
 
-fn TYA_core(cpu: &mut MOS6502) {
+fn TYA_core(cpu: &mut NMOS6502) {
     let y = cpu.y();
     cpu.set_a(y);
 
@@ -607,13 +607,13 @@ fn TYA_core(cpu: &mut MOS6502) {
     pcr::sync_pcr_z(cpu, y);
 }
 
-fn TXS_core(cpu: &mut MOS6502) {
+fn TXS_core(cpu: &mut NMOS6502) {
     let x = cpu.x();
     cpu.set_s(x);
 }
 
 /// 0xA1 | (ind,X) | LDA (oper,X)
-fn LDA_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn LDA_idx_ind_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let val = am::pre_indexed_indirect::load(mem, pc, cpu.x());
     cpu.set_a(val);
@@ -625,7 +625,7 @@ fn LDA_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0xA4 | zpg | LDY oper
-fn LDY_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn LDY_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let val = am::zero_page::load(mem, pc);
 
@@ -635,7 +635,7 @@ fn LDY_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0xA5 | zpg | LDA oper
-fn LDA_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn LDA_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let val = am::zero_page::load(mem, pc);
     cpu.set_a(val);
@@ -647,7 +647,7 @@ fn LDA_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0xA6 | zpg | LDX oper
-fn LDX_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn LDX_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let val = am::zero_page::load(mem, pc);
 
@@ -656,7 +656,7 @@ fn LDX_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
-fn TAY_core(cpu: &mut MOS6502) {
+fn TAY_core(cpu: &mut NMOS6502) {
     let a = cpu.a();
     cpu.set_y(a);
 
@@ -664,7 +664,7 @@ fn TAY_core(cpu: &mut MOS6502) {
     pcr::sync_pcr_z(cpu, a);
 }
 
-fn TAX_core(cpu: &mut MOS6502) {
+fn TAX_core(cpu: &mut NMOS6502) {
     let a = cpu.a();
     cpu.set_x(a);
 
@@ -673,7 +673,7 @@ fn TAX_core(cpu: &mut MOS6502) {
 }
 
 /// 0xAC | abs | LDY oper
-fn LDY_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn LDY_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let val = am::absolute::load(mem, pc);
 
@@ -683,7 +683,7 @@ fn LDY_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0xAD | abs | LDA oper
-fn LDA_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn LDA_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let val = am::absolute::load(mem, pc);
 
@@ -696,7 +696,7 @@ fn LDA_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0xAE | abs | LDX oper
-fn LDX_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn LDX_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let val = am::absolute::load(mem, pc);
 
@@ -706,7 +706,7 @@ fn LDX_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0xB4 | zpg,X | LDY oper,X
-fn LDY_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn LDY_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let val = am::indexed_zero_page::load(mem, pc, cpu.x());
 
@@ -716,7 +716,7 @@ fn LDY_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0xB5 | zpg,X | LDA oper,X
-fn LDA_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn LDA_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let val = am::indexed_zero_page::load(mem, pc, cpu.x());
     cpu.set_a(val);
@@ -728,7 +728,7 @@ fn LDA_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0xB6 | zpg,Y | LDX oper,Y
-fn LDX_zpg_Y(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn LDX_zpg_Y(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let val = am::indexed_zero_page::load(mem, pc, cpu.y());
 
@@ -737,11 +737,11 @@ fn LDX_zpg_Y(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
-fn CLV_core(cpu: &mut MOS6502) {
+fn CLV_core(cpu: &mut NMOS6502) {
     cpu.clr_psr_bit(PSR::V);
 }
 
-fn TSX_core(cpu: &mut MOS6502) {
+fn TSX_core(cpu: &mut NMOS6502) {
     let s = cpu.s();
     cpu.set_x(s);
 
@@ -750,7 +750,7 @@ fn TSX_core(cpu: &mut MOS6502) {
 }
 
 #[inline]
-fn LDY_core(cpu: &mut MOS6502, val: u8) {
+fn LDY_core(cpu: &mut NMOS6502, val: u8) {
     cpu.set_y(val);
 
     pcr::sync_pcr_n(cpu, val);
@@ -758,7 +758,7 @@ fn LDY_core(cpu: &mut MOS6502, val: u8) {
 }
 
 #[inline]
-fn LDX_core(cpu: &mut MOS6502, val: u8) {
+fn LDX_core(cpu: &mut NMOS6502, val: u8) {
     cpu.set_x(val);
 
     pcr::sync_pcr_n(cpu, val);
@@ -766,7 +766,7 @@ fn LDX_core(cpu: &mut MOS6502, val: u8) {
 }
 
 /// 0xC1 | (ind,X) | CMP (oper,X)
-fn CMP_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn CMP_idx_ind_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let n2 = am::pre_indexed_indirect::load(mem, pc, cpu.x());
 
@@ -776,7 +776,7 @@ fn CMP_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0xC4 | zpg | CPY oper
-fn CPY_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn CPY_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let n1 = cpu.y();
     let n2 = am::zero_page::load(mem, pc);
@@ -787,7 +787,7 @@ fn CPY_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0xC5 | zpg | CMP oper
-fn CMP_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn CMP_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let n2 = am::zero_page::load(mem, pc);
 
@@ -797,7 +797,7 @@ fn CMP_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0xC6 | zpg | DEC oper
-fn DEC_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn DEC_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let val = am::zero_page::load(mem, pc);
 
@@ -808,19 +808,19 @@ fn DEC_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
-fn INY_core(cpu: &mut MOS6502) {
+fn INY_core(cpu: &mut NMOS6502) {
     let val = INC_core(cpu, cpu.y());
     cpu.set_y(val);
 }
 
 #[inline]
-fn DEX_core(cpu: &mut MOS6502) {
+fn DEX_core(cpu: &mut NMOS6502) {
     let val = DEC_core(cpu, cpu.x());
     cpu.set_x(val);
 }
 
 /// 0xCC | abs | CPY oper
-fn CPY_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn CPY_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let n1 = cpu.y();
     let n2 = am::absolute::load(mem, pc);
@@ -831,7 +831,7 @@ fn CPY_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0xCD | abs | CMP oper
-fn CMP_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn CMP_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let n2 = am::absolute::load(mem, pc);
 
@@ -841,7 +841,7 @@ fn CMP_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0xCE | abs | DEC oper
-fn DEC_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn DEC_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let val = am::absolute::load(mem, pc);
 
@@ -853,7 +853,7 @@ fn DEC_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0xD5 | zpg,X | CMP oper,X
-fn CMP_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn CMP_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let n2 = am::indexed_zero_page::load(mem, pc, cpu.x());
 
@@ -863,7 +863,7 @@ fn CMP_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0xD6 | zpg,X | DEC oper,X
-fn DEC_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn DEC_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let val = am::indexed_zero_page::load(mem, pc, cpu.x());
 
@@ -875,12 +875,12 @@ fn DEC_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 #[inline]
-fn CLD_core(cpu: &mut MOS6502) {
+fn CLD_core(cpu: &mut NMOS6502) {
     cpu.clr_psr_bit(PSR::D);
 }
 
 #[inline]
-fn DEC_core(cpu: &mut MOS6502, val: u8) -> u8 {
+fn DEC_core(cpu: &mut NMOS6502, val: u8) -> u8 {
     let val = val.wrapping_sub(1);
 
     pcr::sync_pcr_n(cpu, val);
@@ -890,7 +890,7 @@ fn DEC_core(cpu: &mut MOS6502, val: u8) -> u8 {
 }
 
 /// 0xE1 | (ind,X) | SBC (oper,X)
-fn SBC_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn SBC_idx_ind_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let n2 = am::pre_indexed_indirect::load(mem, pc, cpu.x());
 
@@ -900,7 +900,7 @@ fn SBC_idx_ind_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0xE4 | zpg | CPX oper
-fn CPX_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn CPX_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let n1 = cpu.x();
     let n2 = am::zero_page::load(mem, pc);
@@ -911,7 +911,7 @@ fn CPX_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0xE5 | zpg | SBC oper
-fn SBC_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn SBC_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let n2 = am::zero_page::load(mem, pc);
 
@@ -921,7 +921,7 @@ fn SBC_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0xE6 | zpg | INC oper
-fn INC_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn INC_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let val = am::zero_page::load(mem, pc);
 
@@ -932,13 +932,13 @@ fn INC_zpg(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
-fn INX_core(cpu: &mut MOS6502) {
+fn INX_core(cpu: &mut NMOS6502) {
     let val = INC_core(cpu, cpu.x());
     cpu.set_x(val);
 }
 
 /// 0xEC | abs | CPX oper
-fn CPX_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn CPX_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let n1 = cpu.x();
     let n2 = am::absolute::load(mem, pc);
@@ -949,7 +949,7 @@ fn CPX_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0xED | abs | SBC oper
-fn SBC_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn SBC_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let n2 = am::absolute::load(mem, pc);
 
@@ -959,7 +959,7 @@ fn SBC_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0xEE | abs | INC oper
-fn INC_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn INC_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let val = am::absolute::load(mem, pc);
 
@@ -971,7 +971,7 @@ fn INC_abs(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0xF5 | zpg,X | SBC oper,X
-fn SBC_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn SBC_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let n2 = am::indexed_zero_page::load(mem, pc, cpu.x());
 
@@ -981,7 +981,7 @@ fn SBC_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
 }
 
 /// 0xF6 | zpg,X | INC oper,X
-fn INC_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
+fn INC_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
     let val = am::indexed_zero_page::load(mem, pc, cpu.x());
 
@@ -992,12 +992,12 @@ fn INC_zpg_X(cpu: &mut MOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
-fn SED_core(cpu: &mut MOS6502) {
+fn SED_core(cpu: &mut NMOS6502) {
     cpu.set_psr_bit(PSR::D);
 }
 
 #[inline]
-fn INC_core(cpu: &mut MOS6502, val: u8) -> u8 {
+fn INC_core(cpu: &mut NMOS6502, val: u8) -> u8 {
     let val = val.wrapping_add(1);
 
     pcr::sync_pcr_n(cpu, val);
@@ -1016,7 +1016,7 @@ To regenerate the function stubs run
 <run the above>
 $opc_fns2 =  $opc_fns | ? { !$_.Contains("&illegal,") } | % { ,@($_.SubString(7, 4), $_.SubString(16).Substring(0, 16).Trim().Replace(",", ""), $_.SubString(35)) }
 $opc_fns2 | % { "/* /// {0} | {1} */
- fn {2}(_: &mut MOS6502, _: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {{`n`n" -f ($_[0],$_[2],$_[1]) }
+ fn {2}(_: &mut NMOS6502, _: &mut Memory, opc: u8, pc: LoHi) -> Option<LoHi> {{`n`n" -f ($_[0],$_[2],$_[1]) }
 */
 /// NOTE: See opcodes.json
 #[rustfmt::skip]
@@ -1283,7 +1283,7 @@ mod pcr {
     use super::*;
 
     #[inline]
-    fn shift_ops_sync_pcr_c(cpu: &mut MOS6502, val: u8, bit_selector: u8) {
+    fn shift_ops_sync_pcr_c(cpu: &mut NMOS6502, val: u8, bit_selector: u8) {
         if bits::tst_bits(val, bit_selector) {
             cpu.set_psr_bit(PSR::C)
         } else {
@@ -1292,17 +1292,17 @@ mod pcr {
     }
 
     #[inline]
-    pub fn shift_ops_sync_pcr_c_lsb(cpu: &mut MOS6502, val: u8) {
+    pub fn shift_ops_sync_pcr_c_lsb(cpu: &mut NMOS6502, val: u8) {
         shift_ops_sync_pcr_c(cpu, val, 0b0000_0001);
     }
 
     #[inline]
-    pub fn shift_ops_sync_pcr_c_msb(cpu: &mut MOS6502, val: u8) {
+    pub fn shift_ops_sync_pcr_c_msb(cpu: &mut NMOS6502, val: u8) {
         shift_ops_sync_pcr_c(cpu, val, 0b1000_0000);
     }
 
     #[inline]
-    pub fn sync_pcr_z(cpu: &mut MOS6502, val: u8) {
+    pub fn sync_pcr_z(cpu: &mut NMOS6502, val: u8) {
         if val == 0 {
             cpu.set_psr_bit(PSR::Z)
         } else {
@@ -1311,7 +1311,7 @@ mod pcr {
     }
 
     #[inline]
-    pub fn sync_pcr_n(cpu: &mut MOS6502, val: u8) {
+    pub fn sync_pcr_n(cpu: &mut NMOS6502, val: u8) {
         if bits::tst_bits(val, 0b1000_0000) {
             cpu.set_psr_bit(PSR::N)
         } else {
@@ -1326,7 +1326,7 @@ mod stack {
     pub const STACK_POINTER_HI: u8 = 0x01;
 
     #[inline]
-    pub fn push(cpu: &mut MOS6502, mem: &mut Memory, val: u8) {
+    pub fn push(cpu: &mut NMOS6502, mem: &mut Memory, val: u8) {
         mem.set(LoHi(cpu.s(), STACK_POINTER_HI), 0, val);
 
         let s = cpu.s().wrapping_sub(1);
@@ -1334,7 +1334,7 @@ mod stack {
     }
 
     #[inline]
-    pub fn pop(cpu: &mut MOS6502, mem: &mut Memory) -> u8 {
+    pub fn pop(cpu: &mut NMOS6502, mem: &mut Memory) -> u8 {
         let s = cpu.s().wrapping_add(1);
         cpu.set_s(s);
 
@@ -1343,27 +1343,27 @@ mod stack {
 
     /// NOTE: Flags B & __ will be inserted when PSR is transferred to the stack by software (BRK or PHP).
     #[inline]
-    pub fn push_psr(cpu: &mut MOS6502, mem: &mut Memory) {
+    pub fn push_psr(cpu: &mut NMOS6502, mem: &mut Memory) {
         let psr = cpu.psr() | 0x30;
         stack::push(cpu, mem, psr | 0x30);
     }
 
     /// NOTE: Flags B & __ are ignored when retrieved by software (PLP or RTI).
     #[inline]
-    pub fn pop_psr(cpu: &mut MOS6502, mem: &mut Memory) {
+    pub fn pop_psr(cpu: &mut NMOS6502, mem: &mut Memory) {
         let val = stack::pop(cpu, mem) & !0x30;
         cpu.set_psr(val);
     }
 
     #[inline]
-    pub fn push_interrupt_call_stack(cpu: &mut MOS6502, mem: &mut Memory, ret_addr: LoHi) {
+    pub fn push_interrupt_call_stack(cpu: &mut NMOS6502, mem: &mut Memory, ret_addr: LoHi) {
         stack::push(cpu, mem, ret_addr.1);
         stack::push(cpu, mem, ret_addr.0);
         stack::push_psr(cpu, mem);
     }
 
     #[inline]
-    pub fn pop_interrupt_call_stack(cpu: &mut MOS6502, mem: &mut Memory) -> LoHi {
+    pub fn pop_interrupt_call_stack(cpu: &mut NMOS6502, mem: &mut Memory) -> LoHi {
         stack::pop_psr(cpu, mem);
         let lo = stack::pop(cpu, mem);
         let hi = stack::pop(cpu, mem);
@@ -1378,7 +1378,7 @@ mod stack {
 
         #[test]
         fn test_push_pop() {
-            let mut cpu = MOS6502::default();
+            let mut cpu = NMOS6502::default();
             let mut mem = Memory::new(true);
 
             const SP: u8 = 0xff;
@@ -1399,7 +1399,7 @@ mod stack {
         #[test_case(0b0101_1001)]
         #[test_case(0b1111_1111)]
         fn push_psr_always_keeps_bits_4_and_5_on(psr: u8) {
-            let mut cpu = MOS6502::default();
+            let mut cpu = NMOS6502::default();
             let mut mem = Memory::new(true);
 
             cpu.set_s(0xFF);
@@ -1424,7 +1424,7 @@ mod stack {
         #[test_case(0b1101_0100)]
         #[test_case(0b0100_0011)]
         fn pop_psr_always_keep_bits_4_and_5_off(psr: u8) {
-            let mut cpu = MOS6502::default();
+            let mut cpu = NMOS6502::default();
             let mut mem = Memory::new(true);
 
             cpu.set_s(0xFF);
@@ -1448,7 +1448,7 @@ pub mod adder {
     use super::*;
 
     #[inline]
-    pub fn ror_core(cpu: &MOS6502, val: u8) -> u8 {
+    pub fn ror_core(cpu: &NMOS6502, val: u8) -> u8 {
         (val >> 1)
             | if cpu.tst_psr_bit(PSR::C) {
                 0b10000000
@@ -1458,7 +1458,7 @@ pub mod adder {
     }
 
     #[inline]
-    pub fn rol_core(cpu: &MOS6502, val: u8) -> u8 {
+    pub fn rol_core(cpu: &NMOS6502, val: u8) -> u8 {
         (val << 1)
             | if cpu.tst_psr_bit(PSR::C) {
                 0b00000001
@@ -1468,7 +1468,7 @@ pub mod adder {
     }
 
     #[inline]
-    pub fn CMP_core(cpu: &mut MOS6502, n1: u8, n2: u8) {
+    pub fn CMP_core(cpu: &mut NMOS6502, n1: u8, n2: u8) {
         let res = adder::safe_sub_checked(n1, n2);
         pcr::sync_pcr_n(cpu, res.0);
         pcr::sync_pcr_z(cpu, res.0);
@@ -1489,7 +1489,7 @@ pub mod adder {
     }
 
     #[inline]
-    pub fn bit_core(cpu: &mut MOS6502, v2: u8) {
+    pub fn bit_core(cpu: &mut NMOS6502, v2: u8) {
         let v1 = cpu.a();
         let res = v1 & v2;
 
@@ -1507,7 +1507,7 @@ pub mod adder {
     /// - https://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
     /// - http://www.6502.org/tutorials/decimal_mode.html
     #[inline]
-    pub fn ADC_core(cpu: &mut MOS6502, n2: u8) {
+    pub fn ADC_core(cpu: &mut NMOS6502, n2: u8) {
         if cpu.tst_psr_bit(PSR::D) {
             ADC_core_bcd(cpu, n2)
         } else {
@@ -1515,7 +1515,7 @@ pub mod adder {
         }
     }
 
-    fn ADC_core_bin(cpu: &mut MOS6502, n2: u8) {
+    fn ADC_core_bin(cpu: &mut NMOS6502, n2: u8) {
         let n1 = cpu.a();
         let res = n1 as u16 + n2 as u16 + if cpu.tst_psr_bit(PSR::C) { 0x01 } else { 0x00 };
         let res_u8 = res as u8;
@@ -1539,14 +1539,14 @@ pub mod adder {
         }
     }
 
-    fn ADC_core_bcd(_cpu: &mut MOS6502, _n2: u8) {
+    fn ADC_core_bcd(_cpu: &mut NMOS6502, _n2: u8) {
         todo!("ADC in decimal mode is not yet implemented.")
     }
 
     /// Refer:
     /// - http://forum.6502.org/viewtopic.php?f=2&t=2944#p57780
     #[inline]
-    pub fn SBC_core(cpu: &mut MOS6502, n2: u8) {
+    pub fn SBC_core(cpu: &mut NMOS6502, n2: u8) {
         if cpu.tst_psr_bit(PSR::D) {
             sbc_core_bcd(cpu, n2)
         } else {
@@ -1554,11 +1554,11 @@ pub mod adder {
         }
     }
 
-    fn sbc_core_bin(cpu: &mut MOS6502, n2: u8) {
+    fn sbc_core_bin(cpu: &mut NMOS6502, n2: u8) {
         ADC_core(cpu, !n2);
     }
 
-    fn sbc_core_bcd(_cpu: &mut MOS6502, _n2: u8) {
+    fn sbc_core_bcd(_cpu: &mut NMOS6502, _n2: u8) {
         todo!("SBC in decimal mode is not yet implemented.")
     }
 
@@ -1602,7 +1602,7 @@ pub mod adder {
             exp_z: bool,
             exp_c: bool,
         ) {
-            let mut cpu = MOS6502::default();
+            let mut cpu = NMOS6502::default();
             cpu.clr_psr_bit(PSR::D);
             if carry {
                 cpu.set_psr_bit(PSR::C)
@@ -1642,7 +1642,7 @@ pub mod adder {
             exp_z: bool,
             exp_c: bool,
         ) {
-            let mut cpu = MOS6502::default();
+            let mut cpu = NMOS6502::default();
             cpu.clr_psr_bit(PSR::D);
             if carry {
                 cpu.set_psr_bit(PSR::C)
@@ -1923,17 +1923,17 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
 ];
 
 #[inline]
-fn index_X(cpu: &MOS6502) -> u8 {
+fn index_X(cpu: &NMOS6502) -> u8 {
     cpu.x()
 }
 
 #[inline]
-fn index_Y(cpu: &MOS6502) -> u8 {
+fn index_Y(cpu: &NMOS6502) -> u8 {
     cpu.y()
 }
 
 #[inline]
-fn LDA_core(cpu: &mut MOS6502, val: u8) {
+fn LDA_core(cpu: &mut NMOS6502, val: u8) {
     cpu.set_a(val);
 
     pcr::sync_pcr_n(cpu, val);
@@ -1941,52 +1941,52 @@ fn LDA_core(cpu: &mut MOS6502, val: u8) {
 }
 
 #[inline]
-fn STA_core(cpu: &MOS6502) -> u8 {
+fn STA_core(cpu: &NMOS6502) -> u8 {
     cpu.a()
 }
 
 #[inline]
-fn relative_BPL_core(cpu: &MOS6502) -> bool {
+fn relative_BPL_core(cpu: &NMOS6502) -> bool {
     !cpu.tst_psr_bit(PSR::N)
 }
 
 #[inline]
-fn relative_BMI_core(cpu: &MOS6502) -> bool {
+fn relative_BMI_core(cpu: &NMOS6502) -> bool {
     cpu.tst_psr_bit(PSR::N)
 }
 
 #[inline]
-fn relative_BVC_core(cpu: &MOS6502) -> bool {
+fn relative_BVC_core(cpu: &NMOS6502) -> bool {
     !cpu.tst_psr_bit(PSR::V)
 }
 
 #[inline]
-fn relative_BVS_core(cpu: &MOS6502) -> bool {
+fn relative_BVS_core(cpu: &NMOS6502) -> bool {
     cpu.tst_psr_bit(PSR::V)
 }
 
 #[inline]
-fn relative_BCC_core(cpu: &MOS6502) -> bool {
+fn relative_BCC_core(cpu: &NMOS6502) -> bool {
     !cpu.tst_psr_bit(PSR::C)
 }
 
 #[inline]
-fn relative_BCS_core(cpu: &MOS6502) -> bool {
+fn relative_BCS_core(cpu: &NMOS6502) -> bool {
     cpu.tst_psr_bit(PSR::C)
 }
 
 #[inline]
-fn relative_BNE_core(cpu: &MOS6502) -> bool {
+fn relative_BNE_core(cpu: &NMOS6502) -> bool {
     !cpu.tst_psr_bit(PSR::Z)
 }
 
 #[inline]
-fn relative_BEQ_core(cpu: &MOS6502) -> bool {
+fn relative_BEQ_core(cpu: &NMOS6502) -> bool {
     cpu.tst_psr_bit(PSR::Z)
 }
 
 #[inline]
-fn AND_core(cpu: &mut MOS6502, val: u8) {
+fn AND_core(cpu: &mut NMOS6502, val: u8) {
     let res = cpu.a() & val;
     cpu.set_a(res);
 
@@ -1994,21 +1994,21 @@ fn AND_core(cpu: &mut MOS6502, val: u8) {
     pcr::sync_pcr_z(cpu, res);
 }
 
-fn CPY_core(cpu: &mut MOS6502, val: u8) {
+fn CPY_core(cpu: &mut NMOS6502, val: u8) {
     adder::CMP_core(cpu, cpu.y(), val);
 }
 
-fn CPX_core(cpu: &mut MOS6502, val: u8) {
+fn CPX_core(cpu: &mut NMOS6502, val: u8) {
     adder::CMP_core(cpu, cpu.x(), val);
 }
 
 #[inline]
-fn CMP_A_core(cpu: &mut MOS6502, val: u8) {
+fn CMP_A_core(cpu: &mut NMOS6502, val: u8) {
     adder::CMP_core(cpu, cpu.a(), val);
 }
 
 #[inline]
-fn EOR_core(cpu: &mut MOS6502, val: u8) {
+fn EOR_core(cpu: &mut NMOS6502, val: u8) {
     let res = cpu.a() ^ val;
     cpu.set_a(res);
 
@@ -2017,7 +2017,7 @@ fn EOR_core(cpu: &mut MOS6502, val: u8) {
 }
 
 #[inline]
-fn ORA_core(cpu: &mut MOS6502, val: u8) {
+fn ORA_core(cpu: &mut NMOS6502, val: u8) {
     let res = cpu.a() | val;
     cpu.set_a(res);
 

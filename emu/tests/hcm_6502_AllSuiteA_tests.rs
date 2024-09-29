@@ -17,7 +17,7 @@ fn hcm_6502_allsuitea_tests_main() {
     let mut mem =
         riot::Memory::new_with_rom(&buffer, 0x4000.into(), riot::mm_6502, None, None, true);
     let rdy = Rc::new(Cell::new(cmn::LineState::High));
-    let mut cpu = MOS6502::new(rdy.clone(), &mem);
+    let mut cpu = NMOS6502::new(rdy.clone(), &mem);
 
     loop {
         cpu.tick(&mut mem);

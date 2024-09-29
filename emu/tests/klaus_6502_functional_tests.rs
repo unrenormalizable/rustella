@@ -19,7 +19,7 @@ fn klaus_6502_65c02_functional_tests_main() {
     let mut mem =
         riot::Memory::new_with_rom(&buffer, 0x0000.into(), riot::mm_6502, None, None, true);
     let rdy = Rc::new(Cell::new(cmn::LineState::High));
-    let mut cpu = cpu::MOS6502::new(rdy.clone(), &mem);
+    let mut cpu = cpu::NMOS6502::new(rdy.clone(), &mem);
     cpu.set_pc(cmn::LoHi(0x00, 0x04));
 
     loop {

@@ -3,7 +3,7 @@ use alloc::rc::Rc;
 use core::cell::{Cell, RefCell};
 
 pub struct NtscAtari {
-    cpu: Rc<RefCell<cpu::MOS6502>>,
+    cpu: Rc<RefCell<cpu::NMOS6502>>,
     mem: riot::Memory,
     tia: Rc<RefCell<dyn tia::TIA>>,
     pia: Rc<RefCell<dyn riot::PIA6532>>,
@@ -24,7 +24,7 @@ impl NtscAtari {
             Some(pia.clone()),
             true,
         );
-        let cpu = Rc::new(RefCell::new(cpu::MOS6502::new(rdy.clone(), &mem)));
+        let cpu = Rc::new(RefCell::new(cpu::NMOS6502::new(rdy.clone(), &mem)));
 
         Self { cpu, mem, tia, pia }
     }
@@ -43,7 +43,7 @@ impl NtscAtari {
         }
     }
 
-    pub fn cpu_state(&self) -> cpu::MOS6502 {
+    pub fn cpu_state(&self) -> cpu::NMOS6502 {
         self.cpu.borrow().clone()
     }
 }

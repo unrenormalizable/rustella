@@ -28,7 +28,7 @@ fn main() {
     );
     //let buffer = fs::read("D:/bin/Stella-6.7.1/roms/air_raid.bin").unwrap();
     //let mut mem = mem::Memory::new_with_rom(&buffer, cmn::ROM_START_6507, mem::mm_6507, true);
-    let mut cpu = cpu::MOS6502::new(rdy.clone(), &mem);
+    let mut cpu = cpu::NMOS6502::new(rdy.clone(), &mem);
     cpu.set_pc(cmn::LoHi(0x00, 0x04));
 
     let mut break_points = HashSet::new();

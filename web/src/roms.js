@@ -25,7 +25,7 @@ const TEST_ROMS = [
   },
   {
     name: 'asymmetric',
-    url: '/asymmetric.bin',
+    url: '/roms/asymmetric.bin',
     start_addr: 0xf000,
     info_url:
       'https://www.vbforums.com/showthread.php?834149-Atari-2600-Programming-Tutorial-4-Asymmetric-Graphics!-(Demo-Included)',
