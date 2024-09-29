@@ -408,10 +408,127 @@ pub mod absolute {
 
     pub(crate) use opcode_steps_JMP;
 
-    #[inline]
-    pub fn load(mem: &Memory, pc: LoHi) -> u8 {
-        indexed_absolute::load(mem, pc, 0)
+    macro_rules! opcode_steps_read {
+        ($main:expr, $illegal:expr) => {
+            &[
+                // Read instructions (LDA, LDX, LDY, EOR, AND, ORA, ADC, SBC, CMP, BIT,
+                //                    LAX, NOP)
+                //
+                //    #  address R/W description
+                //   --- ------- --- ------------------------------------------
+                //    1    PC     R  fetch opcode, increment PC
+                $illegal,
+                //    2    PC     R  fetch low byte of address, increment PC
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[0] = mem.get(cpu.pc(), 0);
+                    cpu.pc_incr(1);
+                    false
+                },
+                //    3    PC     R  fetch high byte of address, increment PC
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[1] = mem.get(cpu.pc(), 0);
+                    cpu.pc_incr(1);
+                    false
+                },
+                //    4  address  R  read from effective address
+                //
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    let val = mem.get(LoHi(s.regs_u8()[0], s.regs_u8()[1]), 0);
+                    $main(cpu, val);
+                    true
+                },
+                $illegal,
+                $illegal,
+                $illegal,
+                $illegal,
+            ]
+        };
     }
+
+    pub(crate) use opcode_steps_read;
+
+    macro_rules! opcode_steps_read_modify_write {
+        ($main:expr, $illegal:expr) => {
+            &[
+                // Read-Modify-Write instructions (ASL, LSR, ROL, ROR, INC, DEC,
+                //                                 SLO, SRE, RLA, RRA, ISB, DCP)
+                //
+                //    #  address R/W description
+                //   --- ------- --- ------------------------------------------
+                //    1    PC     R  fetch opcode, increment PC
+                $illegal,
+                //    2    PC     R  fetch low byte of address, increment PC
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[0] = mem.get(cpu.pc(), 0);
+                    cpu.pc_incr(1);
+                    false
+                },
+                //    3    PC     R  fetch high byte of address, increment PC
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[1] = mem.get(cpu.pc(), 0);
+                    cpu.pc_incr(1);
+                    false
+                },
+                //    4  address  R  read from effective address
+                |s: &mut OpcExecutionState, _: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[2] = mem.get(LoHi(s.regs_u8()[0], s.regs_u8()[1]), 0);
+                    false
+                },
+                //    5  address  W  write the value back to effective address,
+                //                   and do the operation on it
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    mem.set(LoHi(s.regs_u8()[0], s.regs_u8()[1]), 0, s.regs_u8()[2]);
+                    s.regs_u8()[2] = $main(cpu, s.regs_u8()[2]);
+                    false
+                },
+                //    6  address  W  write the new value to effective address
+                |s: &mut OpcExecutionState, _: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    mem.set(LoHi(s.regs_u8()[0], s.regs_u8()[1]), 0, s.regs_u8()[2]);
+                    true
+                },
+                $illegal,
+                $illegal,
+            ]
+        };
+    }
+
+    pub(crate) use opcode_steps_read_modify_write;
+
+    macro_rules! opcode_steps_write {
+        ($main:expr, $illegal:expr) => {
+            &[
+                // Write instructions (STA, STX, STY, SAX)
+                //
+                //    #  address R/W description
+                //   --- ------- --- ------------------------------------------
+                //    1    PC     R  fetch opcode, increment PC
+                $illegal,
+                //    2    PC     R  fetch low byte of address, increment PC
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[0] = mem.get(cpu.pc(), 0);
+                    cpu.pc_incr(1);
+                    false
+                },
+                //    3    PC     R  fetch high byte of address, increment PC
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[1] = mem.get(cpu.pc(), 0);
+                    cpu.pc_incr(1);
+                    false
+                },
+                //    4  address  W  write register to effective address
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    mem.set(LoHi(s.regs_u8()[0], s.regs_u8()[1]), 0, $main(cpu));
+                    true
+                },
+                $illegal,
+                $illegal,
+                $illegal,
+                $illegal,
+            ]
+        };
+    }
+
+    pub(crate) use opcode_steps_write;
 
     /// Used by JMP & JSR
     #[inline]
@@ -419,64 +536,65 @@ pub mod absolute {
         LoHi(mem.get(pc, 1), mem.get(pc, 2))
     }
 
-    #[inline]
-    pub fn store(mem: &mut Memory, pc: LoHi, val: u8) {
-        indexed_absolute::store(mem, pc, 0, val)
-    }
-
     #[cfg(test)]
     mod tests {
-        use crate::riot;
+        use super::*;
+        use crate::{
+            cpu::am::opc_step_illegal,
+            cpu::core::{execute_opc_step, OpcExecutionState, MAX_OPCODE_STEPS, NMOS6502},
+            riot::Memory,
+        };
         use test_case::test_case;
 
         #[test_case((0x10, 0x30), 0x34; "Example from https://www.masswerk.at/6502/6502_instruction_set.htm")]
         fn test_load(op_args: (u8, u8), exp: u8) {
-            let mut mem = riot::Memory::new(true);
-            let pc = 0x0000u16.into();
+            let mut mem = Memory::new(true);
+            let mut cpu = NMOS6502::new(LineState::High.rc_cell(), &mem);
+            cpu.set_pc(0x0000u16.into());
 
             // Setup OpCode.
-            mem.set(pc, 0, 0xAD);
-            mem.set(pc, 1, op_args.0);
-            mem.set(pc, 2, op_args.1);
+            mem.set(cpu.pc(), 0, 0xAD);
+            mem.set(cpu.pc(), 1, op_args.0);
+            mem.set(cpu.pc(), 2, op_args.1);
 
             // Setup lookup.
             mem.set(op_args.into(), 0, exp);
 
-            let obt = super::load(&mem, pc);
+            cpu.pc_incr(1);
+            let steps = opcode_steps_read!(
+                |cpu: &mut NMOS6502, val: u8| cpu.set_a(val),
+                opc_step_illegal
+            );
+            for &step in steps.iter().take(MAX_OPCODE_STEPS).skip(1) {
+                if execute_opc_step(step, &mut cpu, &mut mem) {
+                    break;
+                }
+            }
 
-            assert_eq!(obt, exp);
+            assert_eq!(cpu.a(), exp);
         }
 
         #[test_case((0x10, 0x30), 0x34; "Example from https://www.masswerk.at/6502/6502_instruction_set.htm")]
         fn test_store(op_args: (u8, u8), exp: u8) {
-            let mut mem = riot::Memory::new(true);
-            let pc = 0x0000u16.into();
+            let mut mem = Memory::new(true);
+            let mut cpu = NMOS6502::new(LineState::High.rc_cell(), &mem);
+            cpu.set_pc(0x0000u16.into());
 
             // Setup OpCode.
-            mem.set(pc, 0, 0xAD);
-            mem.set(pc, 1, op_args.0);
-            mem.set(pc, 2, op_args.1);
+            mem.set(cpu.pc(), 0, 0xAD);
+            mem.set(cpu.pc(), 1, op_args.0);
+            mem.set(cpu.pc(), 2, op_args.1);
 
-            super::store(&mut mem, pc, exp);
+            cpu.set_a(exp);
+            cpu.pc_incr(1);
+            let steps = opcode_steps_write!(|cpu: &NMOS6502| cpu.a(), opc_step_illegal);
+            for &step in steps.iter().take(MAX_OPCODE_STEPS).skip(1) {
+                if execute_opc_step(step, &mut cpu, &mut mem) {
+                    break;
+                }
+            }
 
-            let obt = mem.get(op_args.into(), 0);
-
-            assert_eq!(obt, exp);
-        }
-
-        #[test_case((0x10, 0x30); "Example from https://www.masswerk.at/6502/6502_instruction_set.htm")]
-        fn test_load_lohi(op_args: (u8, u8)) {
-            let mut mem = riot::Memory::new(true);
-            let pc = 0x0000u16.into();
-
-            // Setup OpCode.
-            mem.set(pc, 0, 0xAD);
-            mem.set(pc, 1, op_args.0);
-            mem.set(pc, 2, op_args.1);
-
-            let obt = super::load_lohi(&mem, pc);
-
-            assert_eq!(obt, op_args.into());
+            assert_eq!(mem.get(op_args.into(), 0), exp);
         }
     }
 }
@@ -545,8 +663,6 @@ pub mod zero_page {
 /// LDX $8240,Y - load the contents of address "$8240 + Y" into X
 /// INC $1400,X - increment the contents of address "$1400 + X"
 pub mod indexed_absolute {
-    use super::*;
-
     macro_rules! opcode_steps_read {
         ($main:expr, $index: expr, $illegal: expr) => {
             &[
@@ -739,30 +855,11 @@ pub mod indexed_absolute {
 
     pub(crate) use opcode_steps_write;
 
-    #[inline]
-    fn ea(mem: &Memory, pc: LoHi, index: u8) -> LoHi {
-        let abs_args = absolute::load_lohi(mem, pc);
-
-        abs_args + index
-    }
-
-    // Example: LDA $3120,X - load the contents of address "$3120 + X" into A
-    pub fn load(mem: &Memory, pc: LoHi, index: u8) -> u8 {
-        let addr = ea(mem, pc, index);
-
-        mem.get(addr, 0)
-    }
-
-    pub fn store(mem: &mut Memory, pc: LoHi, index: u8, val: u8) {
-        let addr = ea(mem, pc, index);
-
-        mem.set(addr, 0, val);
-    }
-
     #[cfg(test)]
     mod tests {
         use super::*;
         use crate::{
+            cmn::{LineState, LoHi, RefExtensions},
             cpu::am::opc_step_illegal,
             cpu::core::{execute_opc_step, OpcExecutionState, MAX_OPCODE_STEPS, NMOS6502},
             riot::Memory,
