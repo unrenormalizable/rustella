@@ -1,7 +1,9 @@
 use crate::{
     cmn::*,
-    cpu::core::{OpcExecutionState, NMOS6502},
-    cpu::opc_info,
+    cpu::{
+        core::{OpcExecutionState, NMOS6502},
+        opc_info,
+    },
     riot::Memory,
 };
 
@@ -11,8 +13,268 @@ use crate::{
     - OpCode steps: https://www.nesdev.org/6502_cpu.txt
     - Also refer https://www.pagetable.com/c64ref/6502/?tab=3
 
-    - TODO: Combine load store tests.
+    - TODO: There is a whole lot of duplication in this file. Not quiet sure how to remove them using macros.
 */
+
+/// Instructions accessing the stack
+pub mod stack {
+    /// The break instruction (BRK) behaves like a NMI, but will push the value of PC+2 onto the stack to be used as the return address.
+    /// It will also set the I flag. See http://6502.org/tutorials/interrupts.html#2.2.
+    /// 0x00 | impl | BRK
+    macro_rules! opcode_steps_BRK {
+        ($reg_PSR:expr, $illegal:expr) => {
+            &[
+                // BRK
+                //
+                //    #  address R/W description
+                //   --- ------- --- -----------------------------------------------
+                //    1    PC     R  fetch opcode, increment PC
+                $illegal,
+                //    2    PC     R  read next instruction byte (and throw it away),
+                //                   increment PC
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[0] = mem.get(cpu.pc(), 0);
+                    cpu.pc_incr(1);
+                    false
+                },
+                //    3  $0100,S  W  push PCH on stack (with B flag set), decrement S
+                |_: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    mem.set(LoHi(cpu.s(), STACK_POINTER_HI), 0, cpu.pc().1);
+                    cpu.set_s(cpu.s().wrapping_sub(1));
+                    false
+                },
+                //    4  $0100,S  W  push PCL on stack, decrement S
+                |_: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    mem.set(LoHi(cpu.s(), STACK_POINTER_HI), 0, cpu.pc().0);
+                    cpu.set_s(cpu.s().wrapping_sub(1));
+                    false
+                },
+                //    5  $0100,S  W  push P on stack, decrement S
+                |_: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    mem.set(LoHi(cpu.s(), STACK_POINTER_HI), 0, $reg_PSR(cpu));
+                    cpu.set_psr_bit(PSR::I);
+                    cpu.set_s(cpu.s().wrapping_sub(1));
+                    false
+                },
+                //    6   $FFFE   R  fetch PCL
+                |_: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    cpu.set_pc(LoHi(mem.get(IRQ_VECTOR, 0), cpu.pc().1));
+
+                    false
+                },
+                //    7   $FFFF   R  fetch PCH
+                |_: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    cpu.set_pc(LoHi(cpu.pc().0, mem.get(IRQ_VECTOR, 1)));
+                    true
+                },
+                $illegal,
+            ]
+        };
+    }
+
+    pub(crate) use opcode_steps_BRK;
+
+    macro_rules! opcode_steps_RTI {
+        ($set_reg_PSR:expr, $illegal:expr) => {
+            &[
+                // RTI
+                //
+                //    #  address R/W description
+                //   --- ------- --- -----------------------------------------------
+                //    1    PC     R  fetch opcode, increment PC
+                $illegal,
+                //    2    PC     R  read next instruction byte (and throw it away)
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[0] = mem.get(cpu.pc(), 0);
+                    false
+                },
+                //    3  $0100,S  R  increment S
+                |_: &mut OpcExecutionState, cpu: &mut NMOS6502, _: &mut Memory| -> bool {
+                    cpu.set_s(cpu.s().wrapping_add(1));
+                    false
+                },
+                //    4  $0100,S  R  pull P from stack, increment S
+                |_: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    let psr = mem.get(LoHi(cpu.s(), STACK_POINTER_HI), 0);
+                    $set_reg_PSR(cpu, psr);
+                    cpu.set_s(cpu.s().wrapping_add(1));
+                    false
+                },
+                //    5  $0100,S  R  pull PCL from stack, increment S
+                |_: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    let pc_lo = mem.get(LoHi(cpu.s(), STACK_POINTER_HI), 0);
+                    cpu.set_pc(LoHi(pc_lo, cpu.pc().1));
+                    cpu.set_s(cpu.s().wrapping_add(1));
+                    false
+                },
+                //    6  $0100,S  R  pull PCH from stack
+                |_: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    let pc_hi = mem.get(LoHi(cpu.s(), STACK_POINTER_HI), 0);
+                    cpu.set_pc(LoHi(cpu.pc().0, pc_hi));
+                    true
+                },
+                $illegal,
+                $illegal,
+            ]
+        };
+    }
+
+    pub(crate) use opcode_steps_RTI;
+
+    macro_rules! opcode_steps_RTS {
+        ($illegal:expr) => {
+            &[
+                // RTS
+                //
+                //    #  address R/W description
+                //   --- ------- --- -----------------------------------------------
+                //    1    PC     R  fetch opcode, increment PC
+                $illegal,
+                //    2    PC     R  read next instruction byte (and throw it away)
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[0] = mem.get(cpu.pc(), 0);
+                    false
+                },
+                //    3  $0100,S  R  increment S
+                |_: &mut OpcExecutionState, cpu: &mut NMOS6502, _: &mut Memory| -> bool {
+                    cpu.set_s(cpu.s().wrapping_add(1));
+                    false
+                },
+                //    4  $0100,S  R  pull PCL from stack, increment S
+                |_: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    let pc_lo = mem.get(LoHi(cpu.s(), STACK_POINTER_HI), 0);
+                    cpu.set_pc(LoHi(pc_lo, cpu.pc().1));
+                    cpu.set_s(cpu.s().wrapping_add(1));
+                    false
+                },
+                //    5  $0100,S  R  pull PCH from stack
+                |_: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    let pc_hi = mem.get(LoHi(cpu.s(), STACK_POINTER_HI), 0);
+                    cpu.set_pc(LoHi(cpu.pc().0, pc_hi));
+                    false
+                },
+                //    6    PC     R  increment PC
+                |_: &mut OpcExecutionState, cpu: &mut NMOS6502, _: &mut Memory| -> bool {
+                    cpu.pc_incr(1);
+                    true
+                },
+                $illegal,
+                $illegal,
+            ]
+        };
+    }
+
+    pub(crate) use opcode_steps_RTS;
+
+    macro_rules! opcode_steps_PHX {
+        ($main:expr, $illegal:expr) => {
+            &[
+                // PHA, PHP
+                //
+                //    #  address R/W description
+                //   --- ------- --- -----------------------------------------------
+                //    1    PC     R  fetch opcode, increment PC
+                $illegal,
+                //    2    PC     R  read next instruction byte (and throw it away)
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[0] = mem.get(cpu.pc(), 0);
+                    false
+                },
+                //    3  $0100,S  W  push register on stack, decrement S
+                |_: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    mem.set(LoHi(cpu.s(), STACK_POINTER_HI), 0, $main(cpu));
+                    cpu.set_s(cpu.s().wrapping_sub(1));
+                    true
+                },
+                $illegal,
+                $illegal,
+                $illegal,
+                $illegal,
+                $illegal,
+            ]
+        };
+    }
+
+    pub(crate) use opcode_steps_PHX;
+
+    macro_rules! opcode_steps_PLX {
+        ($main:expr, $illegal:expr) => {
+            &[
+                // PLA, PLP
+                //
+                //    #  address R/W description
+                //   --- ------- --- -----------------------------------------------
+                //    1    PC     R  fetch opcode, increment PC
+                $illegal,
+                //    2    PC     R  read next instruction byte (and throw it away)
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[0] = mem.get(cpu.pc(), 0);
+                    false
+                },
+                //    3  $0100,S  R  increment S
+                |_: &mut OpcExecutionState, cpu: &mut NMOS6502, _: &mut Memory| -> bool {
+                    cpu.set_s(cpu.s().wrapping_add(1));
+                    false
+                },
+                //    4  $0100,S  R  pull register from stack
+                |_: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    let reg = mem.get(LoHi(cpu.s(), STACK_POINTER_HI), 0);
+                    $main(cpu, reg);
+                    true
+                },
+                $illegal,
+                $illegal,
+                $illegal,
+                $illegal,
+            ]
+        };
+    }
+
+    pub(crate) use opcode_steps_PLX;
+
+    macro_rules! opcode_steps_JSR {
+        ($illegal:expr) => {
+            &[
+                // JSR
+                //
+                //    #  address R/W description
+                //   --- ------- --- -------------------------------------------------
+                //    1    PC     R  fetch opcode, increment PC
+                $illegal,
+                //    2    PC     R  fetch low address byte, increment PC
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[0] = mem.get(cpu.pc(), 0);
+                    cpu.pc_incr(1);
+                    false
+                },
+                //    3  $0100,S  R  internal operation (predecrement S?)
+                |_: &mut OpcExecutionState, _: &mut NMOS6502, _: &mut Memory| -> bool { false },
+                //    4  $0100,S  W  push PCH on stack, decrement S
+                |_: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    mem.set(LoHi(cpu.s(), STACK_POINTER_HI), 0, cpu.pc().1);
+                    cpu.set_s(cpu.s().wrapping_sub(1));
+                    false
+                },
+                //    5  $0100,S  W  push PCL on stack, decrement S
+                |_: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    mem.set(LoHi(cpu.s(), STACK_POINTER_HI), 0, cpu.pc().0);
+                    cpu.set_s(cpu.s().wrapping_sub(1));
+                    false
+                },
+                //    6    PC     R  copy low address byte to PCL, fetch high address
+                //                   byte to PCH
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    cpu.set_pc(LoHi(s.regs_u8()[0], mem.get(cpu.pc(), 0)));
+                    true
+                },
+                $illegal,
+                $illegal,
+            ]
+        };
+    }
+
+    pub(crate) use opcode_steps_JSR;
+}
 
 pub mod implied {
     macro_rules! opcode_steps {
@@ -113,6 +375,38 @@ pub mod immediate {
 /// JMP $4000 - jump to (continue with) location "$4000"
 pub mod absolute {
     use super::*;
+
+    macro_rules! opcode_steps_JMP {
+        ($illegal:expr) => {
+            &[
+                // JMP
+                //
+                //    #  address R/W description
+                //   --- ------- --- -------------------------------------------------
+                //    1    PC     R  fetch opcode, increment PC
+                $illegal,
+                //    2    PC     R  fetch low address byte, increment PC
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[0] = mem.get(cpu.pc(), 0);
+                    cpu.pc_incr(1);
+                    false
+                },
+                //    3    PC     R  copy low address byte to PCL, fetch high address
+                //                   byte to PCH
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    cpu.set_pc(LoHi(s.regs_u8()[0], mem.get(cpu.pc(), 0)));
+                    true
+                },
+                $illegal,
+                $illegal,
+                $illegal,
+                $illegal,
+                $illegal,
+            ]
+        };
+    }
+
+    pub(crate) use opcode_steps_JMP;
 
     #[inline]
     pub fn load(mem: &Memory, pc: LoHi) -> u8 {

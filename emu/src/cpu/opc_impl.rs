@@ -2,7 +2,12 @@
 
 use crate::bits;
 use crate::cmn::LoHi;
-use crate::cpu::{am, cmn::IRQ_VECTOR, core::*, opc_info};
+use crate::cpu::{
+    am,
+    cmn::{IRQ_VECTOR, STACK_POINTER_HI},
+    core::*,
+    opc_info,
+};
 use crate::riot::Memory;
 
 fn illegal(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
@@ -12,19 +17,6 @@ fn illegal(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
         "Illegal opcode {opc:02X} ({}). CPU state: {cpu:?}",
         opc_info.assembler
     )
-}
-
-/// The break instruction (BRK) behaves like a NMI, but will push the value of PC+2 onto the stack to be used as the return address.
-/// It will also set the I flag. See http://6502.org/tutorials/interrupts.html#2.2.
-/// 0x00 | impl | BRK
-fn BRK_impl(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    stack::push_interrupt_call_stack(cpu, mem, cpu.pc() + 2);
-    cpu.set_psr_bit(PSR::I);
-
-    let pc_lo = mem.get(IRQ_VECTOR, 0);
-    let pc_hi = mem.get(IRQ_VECTOR, 1);
-
-    Some(LoHi(pc_lo, pc_hi))
 }
 
 /// 0x01 | (ind,X) | ORA (oper,X)
@@ -59,13 +51,7 @@ fn ASL_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
-/// 0x08 | impl | PHP
-fn PHP_impl(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    stack::push_psr(cpu, mem);
-
-    None
-}
-
+#[inline]
 fn ASL_A(cpu: &mut NMOS6502) {
     let old_v = cpu.a();
 
@@ -118,6 +104,7 @@ fn ASL_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
+#[inline]
 fn CLC_core(cpu: &mut NMOS6502) {
     cpu.clr_psr_bit(PSR::C);
 }
@@ -130,16 +117,6 @@ fn ASL_core(cpu: &mut NMOS6502, old_v: u8) -> u8 {
     pcr::shift_ops_sync_pcr_c_msb(cpu, old_v);
 
     new_v
-}
-
-/// 0x20 | abs | JSR oper
-fn JSR_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let ret_addr = pc + 2;
-    stack::push(cpu, mem, ret_addr.1);
-    stack::push(cpu, mem, ret_addr.0);
-
-    Some(am::absolute::load_lohi(mem, pc))
 }
 
 /// 0x21 | (ind,X) | AND (oper,X)
@@ -184,13 +161,7 @@ fn ROL_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
-/// 0x28 | impl | PLP
-fn PLP_impl(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    stack::pop_psr(cpu, mem);
-
-    None
-}
-
+#[inline]
 fn ROL_A(cpu: &mut NMOS6502) {
     let old_v = cpu.a();
     let new_v = ROL_core(cpu, old_v);
@@ -251,10 +222,12 @@ fn ROL_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
+#[inline]
 fn SEC_core(cpu: &mut NMOS6502) {
     cpu.set_psr_bit(PSR::C);
 }
 
+#[inline]
 fn ROL_core(cpu: &mut NMOS6502, old_v: u8) -> u8 {
     let new_v = adder::rol_core(cpu, old_v);
     pcr::sync_pcr_n(cpu, new_v);
@@ -262,13 +235,6 @@ fn ROL_core(cpu: &mut NMOS6502, old_v: u8) -> u8 {
     pcr::shift_ops_sync_pcr_c_msb(cpu, old_v);
 
     new_v
-}
-
-/// 0x40 | impl | RTI
-fn RTI_impl(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let ret_addr = stack::pop_interrupt_call_stack(cpu, mem);
-
-    Some(ret_addr)
 }
 
 /// 0x41 | (ind,X) | EOR (oper,X)
@@ -303,26 +269,10 @@ fn LSR_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
-/// 0x48 | impl | PHA
-fn PHA_impl(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let a = cpu.a();
-    stack::push(cpu, mem, a);
-
-    None
-}
-
 fn LSR_A(cpu: &mut NMOS6502) {
     let old_v = cpu.a();
     let new_v = LSR_core(cpu, old_v);
     cpu.set_a(new_v);
-}
-
-/// 0x4C | abs | JMP oper
-fn JMP_abs(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc = cpu.pc();
-    let pc = am::absolute::load_lohi(mem, pc);
-
-    Some(pc)
 }
 
 /// 0x4D | abs | EOR oper
@@ -369,10 +319,12 @@ fn LSR_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
+#[inline]
 fn CLI_core(cpu: &mut NMOS6502) {
     cpu.clr_psr_bit(PSR::I);
 }
 
+#[inline]
 fn LSR_core(cpu: &mut NMOS6502, old_v: u8) -> u8 {
     let new_v = old_v >> 1;
     cpu.clr_psr_bit(PSR::N);
@@ -380,16 +332,6 @@ fn LSR_core(cpu: &mut NMOS6502, old_v: u8) -> u8 {
     pcr::shift_ops_sync_pcr_c_lsb(cpu, old_v);
 
     new_v
-}
-
-/// 0x60 | impl | RTS
-fn RTS_impl(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let pc_lo = stack::pop(cpu, mem);
-    let pc_hi = stack::pop(cpu, mem);
-
-    let pc = LoHi::from((pc_lo, pc_hi)) + 1;
-
-    Some(pc)
 }
 
 /// 0x61 | (ind,X) | ADC (oper,X)
@@ -420,17 +362,6 @@ fn ROR_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let new_v = ROR_core(cpu, old_v);
 
     am::zero_page::store(mem, pc, new_v);
-
-    None
-}
-
-/// 0x68 | impl | PLA
-fn PLA_impl(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
-    let val = stack::pop(cpu, mem);
-    cpu.set_a(val);
-
-    pcr::sync_pcr_n(cpu, val);
-    pcr::sync_pcr_z(cpu, val);
 
     None
 }
@@ -493,10 +424,12 @@ fn ROR_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
+#[inline]
 fn SEI_core(cpu: &mut NMOS6502) {
     cpu.set_psr_bit(PSR::I);
 }
 
+#[inline]
 fn ROR_core(cpu: &mut NMOS6502, old_v: u8) -> u8 {
     let new_v = adder::ror_core(cpu, old_v);
     pcr::sync_pcr_n(cpu, new_v);
@@ -504,6 +437,125 @@ fn ROR_core(cpu: &mut NMOS6502, old_v: u8) -> u8 {
     pcr::shift_ops_sync_pcr_c_lsb(cpu, old_v);
 
     new_v
+}
+
+#[inline]
+fn DEY_core(cpu: &mut NMOS6502) {
+    let val = DEC_core(cpu, cpu.y());
+    cpu.set_y(val);
+}
+
+#[inline]
+fn TXA_core(cpu: &mut NMOS6502) {
+    let x = cpu.x();
+    cpu.set_a(x);
+
+    pcr::sync_pcr_n(cpu, x);
+    pcr::sync_pcr_z(cpu, x);
+}
+
+#[inline]
+fn TYA_core(cpu: &mut NMOS6502) {
+    let y = cpu.y();
+    cpu.set_a(y);
+
+    pcr::sync_pcr_n(cpu, y);
+    pcr::sync_pcr_z(cpu, y);
+}
+
+#[inline]
+fn TXS_core(cpu: &mut NMOS6502) {
+    let x = cpu.x();
+    cpu.set_s(x);
+}
+
+#[inline]
+fn TAY_core(cpu: &mut NMOS6502) {
+    let a = cpu.a();
+    cpu.set_y(a);
+
+    pcr::sync_pcr_n(cpu, a);
+    pcr::sync_pcr_z(cpu, a);
+}
+
+#[inline]
+fn TAX_core(cpu: &mut NMOS6502) {
+    let a = cpu.a();
+    cpu.set_x(a);
+
+    pcr::sync_pcr_n(cpu, a);
+    pcr::sync_pcr_z(cpu, a);
+}
+
+#[inline]
+fn CLV_core(cpu: &mut NMOS6502) {
+    cpu.clr_psr_bit(PSR::V);
+}
+
+#[inline]
+fn TSX_core(cpu: &mut NMOS6502) {
+    let s = cpu.s();
+    cpu.set_x(s);
+
+    pcr::sync_pcr_n(cpu, s);
+    pcr::sync_pcr_z(cpu, s);
+}
+
+#[inline]
+fn LDY_core(cpu: &mut NMOS6502, val: u8) {
+    cpu.set_y(val);
+
+    pcr::sync_pcr_n(cpu, val);
+    pcr::sync_pcr_z(cpu, val);
+}
+
+#[inline]
+fn LDX_core(cpu: &mut NMOS6502, val: u8) {
+    cpu.set_x(val);
+
+    pcr::sync_pcr_n(cpu, val);
+    pcr::sync_pcr_z(cpu, val);
+}
+
+#[inline]
+fn INY_core(cpu: &mut NMOS6502) {
+    let val = INC_core(cpu, cpu.y());
+    cpu.set_y(val);
+}
+
+#[inline]
+fn DEX_core(cpu: &mut NMOS6502) {
+    let val = DEC_core(cpu, cpu.x());
+    cpu.set_x(val);
+}
+#[inline]
+fn CLD_core(cpu: &mut NMOS6502) {
+    cpu.clr_psr_bit(PSR::D);
+}
+
+#[inline]
+fn DEC_core(cpu: &mut NMOS6502, val: u8) -> u8 {
+    let val = val.wrapping_sub(1);
+
+    pcr::sync_pcr_n(cpu, val);
+    pcr::sync_pcr_z(cpu, val);
+
+    val
+}
+
+#[inline]
+fn SED_core(cpu: &mut NMOS6502) {
+    cpu.set_psr_bit(PSR::D);
+}
+
+#[inline]
+fn INC_core(cpu: &mut NMOS6502, val: u8) -> u8 {
+    let val = val.wrapping_add(1);
+
+    pcr::sync_pcr_n(cpu, val);
+    pcr::sync_pcr_z(cpu, val);
+
+    val
 }
 
 /// 0x81 | (ind,X) | STA (oper,X)
@@ -536,19 +588,6 @@ fn STX_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     am::zero_page::store(mem, pc, cpu.x());
 
     None
-}
-
-fn DEY_core(cpu: &mut NMOS6502) {
-    let val = DEC_core(cpu, cpu.y());
-    cpu.set_y(val);
-}
-
-fn TXA_core(cpu: &mut NMOS6502) {
-    let x = cpu.x();
-    cpu.set_a(x);
-
-    pcr::sync_pcr_n(cpu, x);
-    pcr::sync_pcr_z(cpu, x);
 }
 
 /// 0x8C | abs | STY oper
@@ -599,19 +638,6 @@ fn STX_zpg_Y(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
-fn TYA_core(cpu: &mut NMOS6502) {
-    let y = cpu.y();
-    cpu.set_a(y);
-
-    pcr::sync_pcr_n(cpu, y);
-    pcr::sync_pcr_z(cpu, y);
-}
-
-fn TXS_core(cpu: &mut NMOS6502) {
-    let x = cpu.x();
-    cpu.set_s(x);
-}
-
 /// 0xA1 | (ind,X) | LDA (oper,X)
 fn LDA_idx_ind_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
@@ -654,22 +680,6 @@ fn LDX_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     LDX_core(cpu, val);
 
     None
-}
-
-fn TAY_core(cpu: &mut NMOS6502) {
-    let a = cpu.a();
-    cpu.set_y(a);
-
-    pcr::sync_pcr_n(cpu, a);
-    pcr::sync_pcr_z(cpu, a);
-}
-
-fn TAX_core(cpu: &mut NMOS6502) {
-    let a = cpu.a();
-    cpu.set_x(a);
-
-    pcr::sync_pcr_n(cpu, a);
-    pcr::sync_pcr_z(cpu, a);
 }
 
 /// 0xAC | abs | LDY oper
@@ -737,34 +747,6 @@ fn LDX_zpg_Y(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
-fn CLV_core(cpu: &mut NMOS6502) {
-    cpu.clr_psr_bit(PSR::V);
-}
-
-fn TSX_core(cpu: &mut NMOS6502) {
-    let s = cpu.s();
-    cpu.set_x(s);
-
-    pcr::sync_pcr_n(cpu, s);
-    pcr::sync_pcr_z(cpu, s);
-}
-
-#[inline]
-fn LDY_core(cpu: &mut NMOS6502, val: u8) {
-    cpu.set_y(val);
-
-    pcr::sync_pcr_n(cpu, val);
-    pcr::sync_pcr_z(cpu, val);
-}
-
-#[inline]
-fn LDX_core(cpu: &mut NMOS6502, val: u8) {
-    cpu.set_x(val);
-
-    pcr::sync_pcr_n(cpu, val);
-    pcr::sync_pcr_z(cpu, val);
-}
-
 /// 0xC1 | (ind,X) | CMP (oper,X)
 fn CMP_idx_ind_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     let pc = cpu.pc();
@@ -806,17 +788,6 @@ fn DEC_zpg(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     am::zero_page::store(mem, pc, val);
 
     None
-}
-
-fn INY_core(cpu: &mut NMOS6502) {
-    let val = INC_core(cpu, cpu.y());
-    cpu.set_y(val);
-}
-
-#[inline]
-fn DEX_core(cpu: &mut NMOS6502) {
-    let val = DEC_core(cpu, cpu.x());
-    cpu.set_x(val);
 }
 
 /// 0xCC | abs | CPY oper
@@ -872,21 +843,6 @@ fn DEC_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     am::indexed_zero_page::store(mem, pc, cpu.x(), val);
 
     None
-}
-
-#[inline]
-fn CLD_core(cpu: &mut NMOS6502) {
-    cpu.clr_psr_bit(PSR::D);
-}
-
-#[inline]
-fn DEC_core(cpu: &mut NMOS6502, val: u8) -> u8 {
-    let val = val.wrapping_sub(1);
-
-    pcr::sync_pcr_n(cpu, val);
-    pcr::sync_pcr_z(cpu, val);
-
-    val
 }
 
 /// 0xE1 | (ind,X) | SBC (oper,X)
@@ -992,20 +948,6 @@ fn INC_zpg_X(cpu: &mut NMOS6502, mem: &mut Memory) -> Option<LoHi> {
     None
 }
 
-fn SED_core(cpu: &mut NMOS6502) {
-    cpu.set_psr_bit(PSR::D);
-}
-
-#[inline]
-fn INC_core(cpu: &mut NMOS6502, val: u8) -> u8 {
-    let val = val.wrapping_add(1);
-
-    pcr::sync_pcr_n(cpu, val);
-    pcr::sync_pcr_z(cpu, val);
-
-    val
-}
-
 /*
 To regenerated this run
 $map = @{}; gc -Raw "D:\src\u\s\lib\src\opcodes.json" | ConvertFrom-Json | sort -Property opc | % { $map[$_.opc] = '/* 0x{0:x2} */ &{1}_{2} // {3} | {4}' -f ($_.opc, $_.assembler.split(" ")[0], ((@($_) | % { $_.addressing.replace(",", "_").replace("#", "imme")} | % { if ($_.StartsWith("(") -and $_.EndsWith(")")) { "idx_{0}" -f $_ } elseif ($_.StartsWith("(")) { "{0}_idx" -f $_ } else { $_ } } | % { $_.Replace("(", "").Replace(")", "") }) + ",").PadRight(11, " "), $_.addressing, $_.assembler) }
@@ -1021,7 +963,7 @@ $opc_fns2 | % { "/* /// {0} | {1} */
 /// NOTE: See opcodes.json
 #[rustfmt::skip]
 pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
-    /* 0x00 */ &BRK_impl,       // impl | BRK
+    /* 0x00 */ &illegal,        // impl | BRK
     /* 0x01 */ &ORA_idx_ind_X,  // (ind,X) | ORA (oper,X)
     /* 0x02 */ &illegal,        //
     /* 0x03 */ &illegal,        //
@@ -1029,7 +971,7 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0x05 */ &ORA_zpg,        // zpg | ORA oper
     /* 0x06 */ &ASL_zpg,        // zpg | ASL oper
     /* 0x07 */ &illegal,        //
-    /* 0x08 */ &PHP_impl,       // impl | PHP
+    /* 0x08 */ &illegal,        // impl | PHP
     /* 0x09 */ &illegal,        // # | ORA #oper
     /* 0x0A */ &illegal,        // A | ASL A
     /* 0x0B */ &illegal,        //
@@ -1053,7 +995,7 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0x1D */ &illegal,        // abs,X | ORA oper,X
     /* 0x1E */ &illegal,        // abs,X | ASL oper,X
     /* 0x1F */ &illegal,        //
-    /* 0x20 */ &JSR_abs,        // abs | JSR oper
+    /* 0x20 */ &illegal,        // abs | JSR oper
     /* 0x21 */ &AND_idx_ind_X,  // (ind,X) | AND (oper,X)
     /* 0x22 */ &illegal,        //
     /* 0x23 */ &illegal,        //
@@ -1061,7 +1003,7 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0x25 */ &AND_zpg,        // zpg | AND oper
     /* 0x26 */ &ROL_zpg,        // zpg | ROL oper
     /* 0x27 */ &illegal,        //
-    /* 0x28 */ &PLP_impl,       // impl | PLP
+    /* 0x28 */ &illegal,        // impl | PLP
     /* 0x29 */ &illegal,        // # | AND #oper
     /* 0x2A */ &illegal,        // A | ROL A
     /* 0x2B */ &illegal,        //
@@ -1085,7 +1027,7 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0x3D */ &illegal,        // abs,X | AND oper,X
     /* 0x3E */ &illegal,        // abs,X | ROL oper,X
     /* 0x3F */ &illegal,        //
-    /* 0x40 */ &RTI_impl,       // impl | RTI
+    /* 0x40 */ &illegal,        // impl | RTI
     /* 0x41 */ &EOR_idx_ind_X,  // (ind,X) | EOR (oper,X)
     /* 0x42 */ &illegal,        //
     /* 0x43 */ &illegal,        //
@@ -1093,11 +1035,11 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0x45 */ &EOR_zpg,        // zpg | EOR oper
     /* 0x46 */ &LSR_zpg,        // zpg | LSR oper
     /* 0x47 */ &illegal,        //
-    /* 0x48 */ &PHA_impl,       // impl | PHA
+    /* 0x48 */ &illegal,        // impl | PHA
     /* 0x49 */ &illegal,        // # | EOR #oper
     /* 0x4A */ &illegal,        // A | LSR A
     /* 0x4B */ &illegal,        //
-    /* 0x4C */ &JMP_abs,        // abs | JMP oper
+    /* 0x4C */ &illegal,        // abs | JMP oper
     /* 0x4D */ &EOR_abs,        // abs | EOR oper
     /* 0x4E */ &LSR_abs,        // abs | LSR oper
     /* 0x4F */ &illegal,        //
@@ -1117,7 +1059,7 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0x5D */ &illegal,        // abs,X | EOR oper,X
     /* 0x5E */ &illegal,        // abs,X | LSR oper,X
     /* 0x5F */ &illegal,        //
-    /* 0x60 */ &RTS_impl,       // impl | RTS
+    /* 0x60 */ &illegal,        // impl | RTS
     /* 0x61 */ &ADC_idx_ind_X,  // (ind,X) | ADC (oper,X)
     /* 0x62 */ &illegal,        //
     /* 0x63 */ &illegal,        //
@@ -1125,7 +1067,7 @@ pub const ALL_OPCODE_ROUTINES: &[&OpCodeFn; 0x1_00] = &[
     /* 0x65 */ &ADC_zpg,        // zpg | ADC oper
     /* 0x66 */ &ROR_zpg,        // zpg | ROR oper
     /* 0x67 */ &illegal,        //
-    /* 0x68 */ &PLA_impl,       // impl | PLA
+    /* 0x68 */ &illegal,        // impl | PLA
     /* 0x69 */ &illegal,        // # | ADC #oper
     /* 0x6A */ &illegal,        // A | ROR A
     /* 0x6B */ &illegal,        //
@@ -1316,130 +1258,6 @@ mod pcr {
             cpu.set_psr_bit(PSR::N)
         } else {
             cpu.clr_psr_bit(PSR::N)
-        }
-    }
-}
-
-mod stack {
-    use super::*;
-
-    pub const STACK_POINTER_HI: u8 = 0x01;
-
-    #[inline]
-    pub fn push(cpu: &mut NMOS6502, mem: &mut Memory, val: u8) {
-        mem.set(LoHi(cpu.s(), STACK_POINTER_HI), 0, val);
-
-        let s = cpu.s().wrapping_sub(1);
-        cpu.set_s(s);
-    }
-
-    #[inline]
-    pub fn pop(cpu: &mut NMOS6502, mem: &mut Memory) -> u8 {
-        let s = cpu.s().wrapping_add(1);
-        cpu.set_s(s);
-
-        mem.get(LoHi(s, STACK_POINTER_HI), 0)
-    }
-
-    /// NOTE: Flags B & __ will be inserted when PSR is transferred to the stack by software (BRK or PHP).
-    #[inline]
-    pub fn push_psr(cpu: &mut NMOS6502, mem: &mut Memory) {
-        let psr = cpu.psr() | 0x30;
-        stack::push(cpu, mem, psr | 0x30);
-    }
-
-    /// NOTE: Flags B & __ are ignored when retrieved by software (PLP or RTI).
-    #[inline]
-    pub fn pop_psr(cpu: &mut NMOS6502, mem: &mut Memory) {
-        let val = stack::pop(cpu, mem) & !0x30;
-        cpu.set_psr(val);
-    }
-
-    #[inline]
-    pub fn push_interrupt_call_stack(cpu: &mut NMOS6502, mem: &mut Memory, ret_addr: LoHi) {
-        stack::push(cpu, mem, ret_addr.1);
-        stack::push(cpu, mem, ret_addr.0);
-        stack::push_psr(cpu, mem);
-    }
-
-    #[inline]
-    pub fn pop_interrupt_call_stack(cpu: &mut NMOS6502, mem: &mut Memory) -> LoHi {
-        stack::pop_psr(cpu, mem);
-        let lo = stack::pop(cpu, mem);
-        let hi = stack::pop(cpu, mem);
-
-        LoHi(lo, hi)
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-        use test_case::test_case;
-
-        #[test]
-        fn test_push_pop() {
-            let mut cpu = NMOS6502::default();
-            let mut mem = Memory::new(true);
-
-            const SP: u8 = 0xff;
-            cpu.set_s(SP);
-            let val = mem.get(LoHi(cpu.s(), STACK_POINTER_HI), 0);
-            assert_eq!(val, 0x0d);
-
-            push(&mut cpu, &mut mem, 0x55);
-            assert_eq!(cpu.s(), SP - 1);
-            assert_eq!(mem.get(LoHi(SP, STACK_POINTER_HI), 0), 0x55);
-            let val = pop(&mut cpu, &mut mem);
-            assert_eq!(val, 0x55);
-            assert_eq!(cpu.s(), SP);
-        }
-
-        #[test_case(0b0000_0000)]
-        #[test_case(0b1010_0010)]
-        #[test_case(0b0101_1001)]
-        #[test_case(0b1111_1111)]
-        fn push_psr_always_keeps_bits_4_and_5_on(psr: u8) {
-            let mut cpu = NMOS6502::default();
-            let mut mem = Memory::new(true);
-
-            cpu.set_s(0xFF);
-            cpu.set_psr(psr);
-
-            push_psr(&mut cpu, &mut mem);
-            let stack_psr = pop(&mut cpu, &mut mem);
-
-            assert_eq!(
-                stack_psr & 0b1100_1111,
-                psr & 0b1100_1111,
-                "all bits other 4 & 5 should be on stack."
-            );
-            assert!(
-                bits::tst_bits(stack_psr, 0x30),
-                "bits 4 & 5 should always be on stack."
-            );
-        }
-
-        #[test_case(0b1111_1111)]
-        #[test_case(0b1110_0000)]
-        #[test_case(0b1101_0100)]
-        #[test_case(0b0100_0011)]
-        fn pop_psr_always_keep_bits_4_and_5_off(psr: u8) {
-            let mut cpu = NMOS6502::default();
-            let mut mem = Memory::new(true);
-
-            cpu.set_s(0xFF);
-            push(&mut cpu, &mut mem, psr);
-
-            pop_psr(&mut cpu, &mut mem);
-
-            assert!(
-                bits::tst_bits(cpu.psr() & 0b0011_0000, 0b0000_0000),
-                "bits 4 & 5 should always be 0."
-            );
-            assert!(
-                bits::tst_bits(cpu.psr(), psr & 0b1100_1111),
-                "except bits 4 & 5 psr after pop should match."
-            );
         }
     }
 }
@@ -1664,7 +1482,7 @@ pub mod adder {
 
 #[rustfmt::skip]
 pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
-    /* 0x00 */ false,   // impl | BRK
+    /* 0x00 */ true,    // impl | BRK
     /* 0x01 */ false,   // (ind,X) | ORA (oper,X)
     /* 0x02 */ false,   //
     /* 0x03 */ false,   //
@@ -1672,7 +1490,7 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0x05 */ false,   // zpg | ORA oper
     /* 0x06 */ false,   // zpg | ASL oper
     /* 0x07 */ false,   //
-    /* 0x08 */ false,   // impl | PHP
+    /* 0x08 */ true,    // impl | PHP
     /* 0x09 */ true,    // # | ORA #oper
     /* 0x0A */ true,    // A | ASL A
     /* 0x0B */ false,   //
@@ -1696,7 +1514,7 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0x1D */ true,    // abs,X | ORA oper,X
     /* 0x1E */ true,    // abs,X | ASL oper,X
     /* 0x1F */ false,   //
-    /* 0x20 */ false,   // abs | JSR oper
+    /* 0x20 */ true,    // abs | JSR oper
     /* 0x21 */ false,   // (ind,X) | AND (oper,X)
     /* 0x22 */ false,   //
     /* 0x23 */ false,   //
@@ -1704,7 +1522,7 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0x25 */ false,   // zpg | AND oper
     /* 0x26 */ false,   // zpg | ROL oper
     /* 0x27 */ false,   //
-    /* 0x28 */ false,   // impl | PLP
+    /* 0x28 */ true,    // impl | PLP
     /* 0x29 */ true,    // # | AND #oper
     /* 0x2A */ true,    // A | ROL A
     /* 0x2B */ false,   //
@@ -1728,7 +1546,7 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0x3D */ true,    // abs,X | AND oper,X
     /* 0x3E */ true,    // abs,X | ROL oper,X
     /* 0x3F */ false,   //
-    /* 0x40 */ false,   // impl | RTI
+    /* 0x40 */ true,    // impl | RTI
     /* 0x41 */ false,   // (ind,X) | EOR (oper,X)
     /* 0x42 */ false,   //
     /* 0x43 */ false,   //
@@ -1736,11 +1554,11 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0x45 */ false,   // zpg | EOR oper
     /* 0x46 */ false,   // zpg | LSR oper
     /* 0x47 */ false,   //
-    /* 0x48 */ false,   // impl | PHA
+    /* 0x48 */ true,    // impl | PHA
     /* 0x49 */ true,    // # | EOR #oper
     /* 0x4A */ true,    // A | LSR A
     /* 0x4B */ false,   //
-    /* 0x4C */ false,   // abs | JMP oper
+    /* 0x4C */ true,    // abs | JMP oper
     /* 0x4D */ false,   // abs | EOR oper
     /* 0x4E */ false,   // abs | LSR oper
     /* 0x4F */ false,   //
@@ -1760,7 +1578,7 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0x5D */ true,    // abs,X | EOR oper,X
     /* 0x5E */ true,    // abs,X | LSR oper,X
     /* 0x5F */ false,   //
-    /* 0x60 */ false,   // impl | RTS
+    /* 0x60 */ true,    // impl | RTS
     /* 0x61 */ false,   // (ind,X) | ADC (oper,X)
     /* 0x62 */ false,   //
     /* 0x63 */ false,   //
@@ -1768,7 +1586,7 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
     /* 0x65 */ false,   // zpg | ADC oper
     /* 0x66 */ false,   // zpg | ROR oper
     /* 0x67 */ false,   //
-    /* 0x68 */ false,   // impl | PLA
+    /* 0x68 */ true,    // impl | PLA
     /* 0x69 */ true,    // # | ADC #oper
     /* 0x6A */ true,    // A | ROR A
     /* 0x6B */ false,   //
@@ -1923,26 +1741,38 @@ pub const NEW_CODE_PATH: &[bool; 0x1_00] = &[
 ];
 
 #[inline]
-fn index_X(cpu: &NMOS6502) -> u8 {
+fn reg_X(cpu: &NMOS6502) -> u8 {
     cpu.x()
 }
 
 #[inline]
-fn index_Y(cpu: &NMOS6502) -> u8 {
+fn reg_Y(cpu: &NMOS6502) -> u8 {
     cpu.y()
 }
 
+/// NOTE: Flags B & __ will be inserted when PSR is transferred to the stack by software (BRK or PHP).
 #[inline]
-fn LDA_core(cpu: &mut NMOS6502, val: u8) {
+fn reg_PSR(cpu: &NMOS6502) -> u8 {
+    cpu.psr() | 0x30
+}
+
+/// NOTE: Flags B & __ are ignored when retrieved by software (PLP or RTI).
+#[inline]
+fn set_reg_PSR(cpu: &mut NMOS6502, val: u8) {
+    cpu.set_psr(val & !0x30);
+}
+
+#[inline]
+fn reg_A(cpu: &NMOS6502) -> u8 {
+    cpu.a()
+}
+
+#[inline]
+fn set_reg_A(cpu: &mut NMOS6502, val: u8) {
     cpu.set_a(val);
 
     pcr::sync_pcr_n(cpu, val);
     pcr::sync_pcr_z(cpu, val);
-}
-
-#[inline]
-fn STA_core(cpu: &NMOS6502) -> u8 {
-    cpu.a()
 }
 
 #[inline]
@@ -2028,7 +1858,7 @@ fn ORA_core(cpu: &mut NMOS6502, val: u8) {
 /// Refer: https://www.nesdev.org/6502_cpu.txt
 #[rustfmt::skip]
 pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
-    /* 0x00 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | BRK
+    /* 0x00 */ am::stack::opcode_steps_BRK!(reg_PSR, am::opc_step_illegal),   // impl | BRK
     /* 0x01 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind,X) | ORA (oper,X)
     /* 0x02 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x03 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
@@ -2036,7 +1866,7 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x05 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | ORA oper
     /* 0x06 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | ASL oper
     /* 0x07 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x08 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | PHP
+    /* 0x08 */ am::stack::opcode_steps_PHX!(reg_PSR, am::opc_step_illegal),   // impl | PHP
     /* 0x09 */ am::immediate::opcode_steps!(ORA_core, am::opc_step_illegal),   // # | ORA #oper
     /* 0x0A */ am::implied::opcode_steps!(ASL_A, am::opc_step_illegal),   // A | ASL A
     /* 0x0B */ am::stub_opcode_steps!(am::opc_step_illegal),   //
@@ -2045,7 +1875,7 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x0E */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | ASL oper
     /* 0x0F */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x10 */ am::relative::opcode_steps!(relative_BPL_core, am::opc_step_illegal),   // rel | BPL oper
-    /* 0x11 */ am::post_indexed_indirect::opcode_steps_read!(ORA_core, index_Y, am::opc_step_illegal),   // (ind),Y | ORA (oper),Y
+    /* 0x11 */ am::post_indexed_indirect::opcode_steps_read!(ORA_core, reg_Y, am::opc_step_illegal),   // (ind),Y | ORA (oper),Y
     /* 0x12 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x13 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x14 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
@@ -2053,14 +1883,14 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x16 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | ASL oper,X
     /* 0x17 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x18 */ am::implied::opcode_steps!(CLC_core, am::opc_step_illegal),  // impl | CLC
-    /* 0x19 */ am::indexed_absolute::opcode_steps_read!(ORA_core, index_Y, am::opc_step_illegal),   // abs,Y | ORA oper,Y
+    /* 0x19 */ am::indexed_absolute::opcode_steps_read!(ORA_core, reg_Y, am::opc_step_illegal),   // abs,Y | ORA oper,Y
     /* 0x1A */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x1B */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x1C */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x1D */ am::indexed_absolute::opcode_steps_read!(ORA_core, index_X, am::opc_step_illegal),   // abs,X | ORA oper,X
-    /* 0x1E */ am::indexed_absolute::opcode_steps_read_modify_write!(ASL_core, index_X, am::opc_step_illegal),   // abs,X | ASL oper,X
+    /* 0x1D */ am::indexed_absolute::opcode_steps_read!(ORA_core, reg_X, am::opc_step_illegal),   // abs,X | ORA oper,X
+    /* 0x1E */ am::indexed_absolute::opcode_steps_read_modify_write!(ASL_core, reg_X, am::opc_step_illegal),   // abs,X | ASL oper,X
     /* 0x1F */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x20 */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | JSR oper
+    /* 0x20 */ am::stack::opcode_steps_JSR!(am::opc_step_illegal),   // abs | JSR oper
     /* 0x21 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind,X) | AND (oper,X)
     /* 0x22 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x23 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
@@ -2068,7 +1898,7 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x25 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | AND oper
     /* 0x26 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | ROL oper
     /* 0x27 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x28 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | PLP
+    /* 0x28 */ am::stack::opcode_steps_PLX!(set_reg_PSR, am::opc_step_illegal),   // impl | PLP
     /* 0x29 */ am::immediate::opcode_steps!(AND_core, am::opc_step_illegal),   // # | AND #oper
     /* 0x2A */ am::implied::opcode_steps!(ROL_A, am::opc_step_illegal),   // A | ROL A
     /* 0x2B */ am::stub_opcode_steps!(am::opc_step_illegal),   //
@@ -2077,7 +1907,7 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x2E */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | ROL oper
     /* 0x2F */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x30 */ am::relative::opcode_steps!(relative_BMI_core, am::opc_step_illegal),   // rel | BMI oper
-    /* 0x31 */ am::post_indexed_indirect::opcode_steps_read!(AND_core, index_Y, am::opc_step_illegal),   // (ind),Y | AND (oper),Y
+    /* 0x31 */ am::post_indexed_indirect::opcode_steps_read!(AND_core, reg_Y, am::opc_step_illegal),   // (ind),Y | AND (oper),Y
     /* 0x32 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x33 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x34 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
@@ -2085,14 +1915,14 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x36 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | ROL oper,X
     /* 0x37 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x38 */ am::implied::opcode_steps!(SEC_core, am::opc_step_illegal),   // impl | SEC
-    /* 0x39 */ am::indexed_absolute::opcode_steps_read!(AND_core, index_Y, am::opc_step_illegal),   // abs,Y | AND oper,Y
+    /* 0x39 */ am::indexed_absolute::opcode_steps_read!(AND_core, reg_Y, am::opc_step_illegal),   // abs,Y | AND oper,Y
     /* 0x3A */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x3B */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x3C */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x3D */ am::indexed_absolute::opcode_steps_read!(AND_core, index_X, am::opc_step_illegal),   // abs,X | AND oper,X
-    /* 0x3E */ am::indexed_absolute::opcode_steps_read_modify_write!(ROL_core, index_X, am::opc_step_illegal),   // abs,X | ROL oper,X
+    /* 0x3D */ am::indexed_absolute::opcode_steps_read!(AND_core, reg_X, am::opc_step_illegal),   // abs,X | AND oper,X
+    /* 0x3E */ am::indexed_absolute::opcode_steps_read_modify_write!(ROL_core, reg_X, am::opc_step_illegal),   // abs,X | ROL oper,X
     /* 0x3F */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x40 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | RTI
+    /* 0x40 */ am::stack::opcode_steps_RTI!(set_reg_PSR, am::opc_step_illegal),   // impl | RTI
     /* 0x41 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind,X) | EOR (oper,X)
     /* 0x42 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x43 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
@@ -2100,16 +1930,16 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x45 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | EOR oper
     /* 0x46 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | LSR oper
     /* 0x47 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x48 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | PHA
+    /* 0x48 */ am::stack::opcode_steps_PHX!(reg_A, am::opc_step_illegal),   // impl | PHA
     /* 0x49 */ am::immediate::opcode_steps!(EOR_core, am::opc_step_illegal),   // # | EOR #oper
     /* 0x4A */ am::implied::opcode_steps!(LSR_A, am::opc_step_illegal),   // A | LSR A
     /* 0x4B */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x4C */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | JMP oper
+    /* 0x4C */ am::absolute::opcode_steps_JMP!(am::opc_step_illegal),   // abs | JMP oper
     /* 0x4D */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | EOR oper
     /* 0x4E */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | LSR oper
     /* 0x4F */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x50 */ am::relative::opcode_steps!(relative_BVC_core, am::opc_step_illegal),   // rel | BVC oper
-    /* 0x51 */ am::post_indexed_indirect::opcode_steps_read!(EOR_core, index_Y, am::opc_step_illegal),   // (ind),Y | EOR (oper),Y
+    /* 0x51 */ am::post_indexed_indirect::opcode_steps_read!(EOR_core, reg_Y, am::opc_step_illegal),   // (ind),Y | EOR (oper),Y
     /* 0x52 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x53 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x54 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
@@ -2117,14 +1947,14 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x56 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | LSR oper,X
     /* 0x57 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x58 */ am::implied::opcode_steps!(CLI_core, am::opc_step_illegal),   // impl | CLI
-    /* 0x59 */ am::indexed_absolute::opcode_steps_read!(EOR_core, index_Y, am::opc_step_illegal),   // abs,Y | EOR oper,Y
+    /* 0x59 */ am::indexed_absolute::opcode_steps_read!(EOR_core, reg_Y, am::opc_step_illegal),   // abs,Y | EOR oper,Y
     /* 0x5A */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x5B */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x5C */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x5D */ am::indexed_absolute::opcode_steps_read!(EOR_core, index_X, am::opc_step_illegal),   // abs,X | EOR oper,X
-    /* 0x5E */ am::indexed_absolute::opcode_steps_read_modify_write!(LSR_core, index_X, am::opc_step_illegal),   // abs,X | LSR oper,X
+    /* 0x5D */ am::indexed_absolute::opcode_steps_read!(EOR_core, reg_X, am::opc_step_illegal),   // abs,X | EOR oper,X
+    /* 0x5E */ am::indexed_absolute::opcode_steps_read_modify_write!(LSR_core, reg_X, am::opc_step_illegal),   // abs,X | LSR oper,X
     /* 0x5F */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x60 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | RTS
+    /* 0x60 */ am::stack::opcode_steps_RTS!(am::opc_step_illegal),   // impl | RTS
     /* 0x61 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind,X) | ADC (oper,X)
     /* 0x62 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x63 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
@@ -2132,7 +1962,7 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x65 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | ADC oper
     /* 0x66 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | ROR oper
     /* 0x67 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x68 */ am::stub_opcode_steps!(am::opc_step_illegal),   // impl | PLA
+    /* 0x68 */ am::stack::opcode_steps_PLX!(set_reg_A, am::opc_step_illegal),   // impl | PLA
     /* 0x69 */ am::immediate::opcode_steps!(adder::ADC_core, am::opc_step_illegal),   // # | ADC #oper
     /* 0x6A */ am::implied::opcode_steps!(ROR_A, am::opc_step_illegal),   // A | ROR A
     /* 0x6B */ am::stub_opcode_steps!(am::opc_step_illegal),   //
@@ -2141,7 +1971,7 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x6E */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | ROR oper
     /* 0x6F */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x70 */ am::relative::opcode_steps!(relative_BVS_core, am::opc_step_illegal),   // rel | BVS oper
-    /* 0x71 */ am::post_indexed_indirect::opcode_steps_read!(adder::ADC_core, index_Y, am::opc_step_illegal),   // (ind),Y | ADC (oper),Y
+    /* 0x71 */ am::post_indexed_indirect::opcode_steps_read!(adder::ADC_core, reg_Y, am::opc_step_illegal),   // (ind),Y | ADC (oper),Y
     /* 0x72 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x73 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x74 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
@@ -2149,12 +1979,12 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x76 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | ROR oper,X
     /* 0x77 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x78 */ am::implied::opcode_steps!(SEI_core, am::opc_step_illegal),   // impl | SEI
-    /* 0x79 */ am::indexed_absolute::opcode_steps_read!(adder::ADC_core, index_Y, am::opc_step_illegal),   // abs,Y | ADC oper,Y
+    /* 0x79 */ am::indexed_absolute::opcode_steps_read!(adder::ADC_core, reg_Y, am::opc_step_illegal),   // abs,Y | ADC oper,Y
     /* 0x7A */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x7B */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x7C */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x7D */ am::indexed_absolute::opcode_steps_read!(adder::ADC_core, index_X, am::opc_step_illegal),   // abs,X | ADC oper,X
-    /* 0x7E */ am::indexed_absolute::opcode_steps_read_modify_write!(ROR_core, index_X, am::opc_step_illegal),   // abs,X | ROR oper,X
+    /* 0x7D */ am::indexed_absolute::opcode_steps_read!(adder::ADC_core, reg_X, am::opc_step_illegal),   // abs,X | ADC oper,X
+    /* 0x7E */ am::indexed_absolute::opcode_steps_read_modify_write!(ROR_core, reg_X, am::opc_step_illegal),   // abs,X | ROR oper,X
     /* 0x7F */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x80 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x81 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind,X) | STA (oper,X)
@@ -2173,7 +2003,7 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x8E */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | STX oper
     /* 0x8F */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x90 */ am::relative::opcode_steps!(relative_BCC_core, am::opc_step_illegal),   // rel | BCC oper
-    /* 0x91 */ am::post_indexed_indirect::opcode_steps_write!(STA_core, index_Y, am::opc_step_illegal),   // (ind),Y | STA (oper),Y
+    /* 0x91 */ am::post_indexed_indirect::opcode_steps_write!(reg_A, reg_Y, am::opc_step_illegal),   // (ind),Y | STA (oper),Y
     /* 0x92 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x93 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x94 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | STY oper,X
@@ -2181,11 +2011,11 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x96 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,Y | STX oper,Y
     /* 0x97 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x98 */ am::implied::opcode_steps!(TYA_core, am::opc_step_illegal),   // impl | TYA
-    /* 0x99 */ am::indexed_absolute::opcode_steps_write!(STA_core, index_Y, am::opc_step_illegal),   // abs,Y | STA oper,Y
+    /* 0x99 */ am::indexed_absolute::opcode_steps_write!(reg_A, reg_Y, am::opc_step_illegal),   // abs,Y | STA oper,Y
     /* 0x9A */ am::implied::opcode_steps!(TXS_core, am::opc_step_illegal),   // impl | TXS
     /* 0x9B */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x9C */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0x9D */ am::indexed_absolute::opcode_steps_write!(STA_core, index_X, am::opc_step_illegal),   // abs,X | STA oper,X
+    /* 0x9D */ am::indexed_absolute::opcode_steps_write!(reg_A, reg_X, am::opc_step_illegal),   // abs,X | STA oper,X
     /* 0x9E */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0x9F */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xA0 */ am::immediate::opcode_steps!(LDY_core, am::opc_step_illegal),   // # | LDY #oper
@@ -2197,7 +2027,7 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0xA6 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg | LDX oper
     /* 0xA7 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xA8 */ am::implied::opcode_steps!(TAY_core, am::opc_step_illegal),   // impl | TAY
-    /* 0xA9 */ am::immediate::opcode_steps!(LDA_core, am::opc_step_illegal),   // # | LDA #oper
+    /* 0xA9 */ am::immediate::opcode_steps!(set_reg_A, am::opc_step_illegal),   // # | LDA #oper
     /* 0xAA */ am::implied::opcode_steps!(TAX_core, am::opc_step_illegal),   // impl | TAX
     /* 0xAB */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xAC */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | LDY oper
@@ -2205,7 +2035,7 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0xAE */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | LDX oper
     /* 0xAF */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xB0 */ am::relative::opcode_steps!(relative_BCS_core, am::opc_step_illegal),   // rel | BCS oper
-    /* 0xB1 */ am::post_indexed_indirect::opcode_steps_read!(LDA_core, index_Y, am::opc_step_illegal),   // (ind),Y | LDA (oper),Y
+    /* 0xB1 */ am::post_indexed_indirect::opcode_steps_read!(set_reg_A, reg_Y, am::opc_step_illegal),   // (ind),Y | LDA (oper),Y
     /* 0xB2 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xB3 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xB4 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | LDY oper,X
@@ -2213,12 +2043,12 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0xB6 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,Y | LDX oper,Y
     /* 0xB7 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xB8 */ am::implied::opcode_steps!(CLV_core, am::opc_step_illegal),   // impl | CLV
-    /* 0xB9 */ am::indexed_absolute::opcode_steps_read!(LDA_core, index_Y, am::opc_step_illegal),   // abs,Y | LDA oper,Y
+    /* 0xB9 */ am::indexed_absolute::opcode_steps_read!(set_reg_A, reg_Y, am::opc_step_illegal),   // abs,Y | LDA oper,Y
     /* 0xBA */ am::implied::opcode_steps!(TSX_core, am::opc_step_illegal),   // impl | TSX
     /* 0xBB */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0xBC */ am::indexed_absolute::opcode_steps_read!(LDY_core, index_X, am::opc_step_illegal),   // abs,X | LDY oper,X
-    /* 0xBD */ am::indexed_absolute::opcode_steps_read!(LDA_core, index_X, am::opc_step_illegal),   // abs,X | LDA oper,X
-    /* 0xBE */ am::indexed_absolute::opcode_steps_read!(LDX_core, index_Y, am::opc_step_illegal),   // abs,Y | LDX oper,Y
+    /* 0xBC */ am::indexed_absolute::opcode_steps_read!(LDY_core, reg_X, am::opc_step_illegal),   // abs,X | LDY oper,X
+    /* 0xBD */ am::indexed_absolute::opcode_steps_read!(set_reg_A, reg_X, am::opc_step_illegal),   // abs,X | LDA oper,X
+    /* 0xBE */ am::indexed_absolute::opcode_steps_read!(LDX_core, reg_Y, am::opc_step_illegal),   // abs,Y | LDX oper,Y
     /* 0xBF */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xC0 */ am::immediate::opcode_steps!(CPY_core, am::opc_step_illegal),   // # | CPY #oper
     /* 0xC1 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind,X) | CMP (oper,X)
@@ -2237,7 +2067,7 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0xCE */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | DEC oper
     /* 0xCF */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xD0 */ am::relative::opcode_steps!(relative_BNE_core, am::opc_step_illegal),   // rel | BNE oper
-    /* 0xD1 */ am::post_indexed_indirect::opcode_steps_read!(CMP_A_core, index_Y, am::opc_step_illegal),   // (ind),Y | CMP (oper),Y
+    /* 0xD1 */ am::post_indexed_indirect::opcode_steps_read!(CMP_A_core, reg_Y, am::opc_step_illegal),   // (ind),Y | CMP (oper),Y
     /* 0xD2 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xD3 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xD4 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
@@ -2245,12 +2075,12 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0xD6 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | DEC oper,X
     /* 0xD7 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xD8 */ am::implied::opcode_steps!(CLD_core, am::opc_step_illegal),   // impl | CLD
-    /* 0xD9 */ am::indexed_absolute::opcode_steps_read!(CMP_A_core, index_Y, am::opc_step_illegal),   // abs,Y | CMP oper,Y
+    /* 0xD9 */ am::indexed_absolute::opcode_steps_read!(CMP_A_core, reg_Y, am::opc_step_illegal),   // abs,Y | CMP oper,Y
     /* 0xDA */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xDB */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xDC */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0xDD */ am::indexed_absolute::opcode_steps_read!(CMP_A_core, index_X, am::opc_step_illegal),   // abs,X | CMP oper,X
-    /* 0xDE */ am::indexed_absolute::opcode_steps_read_modify_write!(DEC_core, index_X, am::opc_step_illegal),   // abs,X | DEC oper,X
+    /* 0xDD */ am::indexed_absolute::opcode_steps_read!(CMP_A_core, reg_X, am::opc_step_illegal),   // abs,X | CMP oper,X
+    /* 0xDE */ am::indexed_absolute::opcode_steps_read_modify_write!(DEC_core, reg_X, am::opc_step_illegal),   // abs,X | DEC oper,X
     /* 0xDF */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xE0 */ am::immediate::opcode_steps!(CPX_core, am::opc_step_illegal),   // # | CPX #oper
     /* 0xE1 */ am::stub_opcode_steps!(am::opc_step_illegal),   // (ind,X) | SBC (oper,X)
@@ -2269,7 +2099,7 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0xEE */ am::stub_opcode_steps!(am::opc_step_illegal),   // abs | INC oper
     /* 0xEF */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xF0 */ am::relative::opcode_steps!(relative_BEQ_core, am::opc_step_illegal),   // rel | BEQ oper
-    /* 0xF1 */ am::post_indexed_indirect::opcode_steps_read!(adder::SBC_core, index_Y, am::opc_step_illegal),   // (ind),Y | SBC (oper),Y
+    /* 0xF1 */ am::post_indexed_indirect::opcode_steps_read!(adder::SBC_core, reg_Y, am::opc_step_illegal),   // (ind),Y | SBC (oper),Y
     /* 0xF2 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xF3 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xF4 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
@@ -2277,11 +2107,58 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0xF6 */ am::stub_opcode_steps!(am::opc_step_illegal),   // zpg,X | INC oper,X
     /* 0xF7 */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xF8 */ am::implied::opcode_steps!(SED_core, am::opc_step_illegal),   // impl | SED
-    /* 0xF9 */ am::indexed_absolute::opcode_steps_read!(adder::SBC_core, index_Y, am::opc_step_illegal),   // abs,Y | SBC oper,Y
+    /* 0xF9 */ am::indexed_absolute::opcode_steps_read!(adder::SBC_core, reg_Y, am::opc_step_illegal),   // abs,Y | SBC oper,Y
     /* 0xFA */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xFB */ am::stub_opcode_steps!(am::opc_step_illegal),   //
     /* 0xFC */ am::stub_opcode_steps!(am::opc_step_illegal),   //
-    /* 0xFD */ am::indexed_absolute::opcode_steps_read!(adder::SBC_core, index_X, am::opc_step_illegal),   // abs,X | SBC oper,X
-    /* 0xFE */ am::indexed_absolute::opcode_steps_read_modify_write!(INC_core, index_X, am::opc_step_illegal),   // abs,X | INC oper,X
+    /* 0xFD */ am::indexed_absolute::opcode_steps_read!(adder::SBC_core, reg_X, am::opc_step_illegal),   // abs,X | SBC oper,X
+    /* 0xFE */ am::indexed_absolute::opcode_steps_read_modify_write!(INC_core, reg_X, am::opc_step_illegal),   // abs,X | INC oper,X
     /* 0xFF */ am::stub_opcode_steps!(am::opc_step_illegal),   //
 ];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use test_case::test_case;
+
+    #[test_case(0b0000_0000)]
+    #[test_case(0b1010_0010)]
+    #[test_case(0b0101_1001)]
+    #[test_case(0b1111_1111)]
+    fn push_psr_always_keeps_bits_4_and_5_on(psr: u8) {
+        let mut cpu = NMOS6502::default();
+
+        cpu.set_psr(psr);
+
+        let stack_psr = reg_PSR(&cpu);
+
+        assert_eq!(
+            stack_psr & 0b1100_1111,
+            psr & 0b1100_1111,
+            "all bits other 4 & 5 should be on stack."
+        );
+        assert!(
+            bits::tst_bits(stack_psr, 0x30),
+            "bits 4 & 5 should always be on stack."
+        );
+    }
+
+    #[test_case(0b1111_1111)]
+    #[test_case(0b1110_0000)]
+    #[test_case(0b1101_0100)]
+    #[test_case(0b0100_0011)]
+    fn pop_psr_always_keep_bits_4_and_5_off(psr: u8) {
+        let mut cpu = NMOS6502::default();
+
+        set_reg_PSR(&mut cpu, psr);
+
+        assert!(
+            bits::tst_bits(cpu.psr() & 0b0011_0000, 0b0000_0000),
+            "bits 4 & 5 should always be 0."
+        );
+        assert!(
+            bits::tst_bits(cpu.psr(), psr & 0b1100_1111),
+            "except bits 4 & 5 psr after pop should match."
+        );
+    }
+}
