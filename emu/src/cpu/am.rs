@@ -312,8 +312,6 @@ pub mod implied {
 /// ADC #$A0 - add the literal hexidecimal value "$A0" to the accumulator
 /// CPX #$32 - compare the X-register to the literal hexidecimal value "$32"
 pub mod immediate {
-    use super::*;
-
     macro_rules! opcode_steps {
         ($main:expr, $illegal:expr) => {
             &[
@@ -343,27 +341,39 @@ pub mod immediate {
 
     pub(crate) use opcode_steps;
 
-    #[inline]
-    pub fn load(mem: &Memory, pc: LoHi) -> u8 {
-        mem.get(pc, 1)
-    }
-
     #[cfg(test)]
     mod tests {
-        use crate::riot;
+        use super::*;
+        use crate::{
+            cmn::{LineState, RefExtensions},
+            cpu::am::opc_step_illegal,
+            cpu::core::{execute_opc_step, OpcExecutionState, MAX_OPCODE_STEPS, NMOS6502},
+            riot::Memory,
+        };
         use test_case::test_case;
 
         #[test_case((0x07,); "Example from https://www.masswerk.at/6502/6502_instruction_set.htm")]
         fn test_load(op_arg: (u8,)) {
-            let mut mem = riot::Memory::new(true);
-            let pc = 0x0000u16.into();
+            let mut mem = Memory::new(true);
+            let mut cpu = NMOS6502::new(LineState::High.rc_cell(), &mem);
+            cpu.set_pc(0x0000u16.into());
 
             // Setup Opcode.
-            mem.set(pc, 0, 0xA9);
-            mem.set(pc, 1, op_arg.0);
+            mem.set(cpu.pc(), 0, 0xA9);
+            mem.set(cpu.pc(), 1, op_arg.0);
 
-            let obt = super::load(&mem, pc);
-            assert_eq!(obt, op_arg.0);
+            cpu.pc_incr(1);
+            let steps = opcode_steps!(
+                |cpu: &mut NMOS6502, val: u8| cpu.set_a(val),
+                opc_step_illegal
+            );
+            for &step in steps.iter().take(MAX_OPCODE_STEPS).skip(1) {
+                if execute_opc_step(step, &mut cpu, &mut mem) {
+                    break;
+                }
+            }
+
+            assert_eq!(cpu.a(), op_arg.0);
         }
     }
 }
@@ -374,8 +384,6 @@ pub mod immediate {
 /// ROL $08A0 - rotate the contents of address "$08A0" left by one position
 /// JMP $4000 - jump to (continue with) location "$4000"
 pub mod absolute {
-    use super::*;
-
     macro_rules! opcode_steps_JMP {
         ($illegal:expr) => {
             &[
@@ -530,16 +538,11 @@ pub mod absolute {
 
     pub(crate) use opcode_steps_write;
 
-    /// Used by JMP & JSR
-    #[inline]
-    pub fn load_lohi(mem: &Memory, pc: LoHi) -> LoHi {
-        LoHi(mem.get(pc, 1), mem.get(pc, 2))
-    }
-
     #[cfg(test)]
     mod tests {
         use super::*;
         use crate::{
+            cmn::{LineState, LoHi, RefExtensions},
             cpu::am::opc_step_illegal,
             cpu::core::{execute_opc_step, OpcExecutionState, MAX_OPCODE_STEPS, NMOS6502},
             riot::Memory,
@@ -1054,8 +1057,6 @@ pub mod indexed_absolute {
 /// LSR $82,X - shift the contents of address "$0082 + X" left
 /// LDX $60,Y - load the contents of address "$0060 + Y" into X
 pub mod indexed_zero_page {
-    use super::*;
-
     macro_rules! opcode_steps_read {
         ($main:expr, $index: expr, $illegal: expr) => {
             &[
@@ -1199,19 +1200,6 @@ pub mod indexed_zero_page {
 
     pub(crate) use opcode_steps_write;
 
-    #[inline]
-    fn ea(mem: &Memory, pc: LoHi, index: u8) -> LoHi {
-        let abs_args = immediate::load(mem, pc);
-        LoHi(abs_args.wrapping_add(index), 0x00)
-    }
-
-    // Example: LDA $80,X - load the contents of address "$0080 + X" into A
-    pub fn load(mem: &Memory, pc: LoHi, index: u8) -> u8 {
-        let addr = ea(mem, pc, index);
-
-        mem.get(addr, 0x00)
-    }
-
     #[cfg(test)]
     mod tests {
         use super::*;
@@ -1289,42 +1277,93 @@ pub mod indexed_zero_page {
 ///
 /// JMP ($xxFF) - jump to address given in addresses $xxFF and $xx00"
 pub mod indirect {
-    use super::*;
-
-    // Example: JMP ($xxFF) - jump to address given in addresses "$xxFF" and "$xx00"
-    pub fn load(mem: &Memory, pc: LoHi) -> LoHi {
-        let op_args = absolute::load_lohi(mem, pc);
-        let lo = mem.get(LoHi(op_args.0, op_args.1), 0);
-        let hi = mem.get(LoHi(op_args.0.wrapping_add(1), op_args.1), 0);
-
-        LoHi(lo, hi)
+    macro_rules! opcode_steps {
+        ($illegal:expr) => {
+            &[
+                // Absolute indirect addressing (JMP)
+                //
+                //       #   address  R/W description
+                //      --- --------- --- ------------------------------------------
+                //       1     PC      R  fetch opcode, increment PC
+                $illegal,
+                //       2     PC      R  fetch pointer address low, increment PC
+                #[inline]
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[0] = mem.get(cpu.pc(), 0);
+                    cpu.pc_incr(1);
+                    false
+                },
+                //       3     PC      R  fetch pointer address high, increment PC
+                #[inline]
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[1] = mem.get(cpu.pc(), 0);
+                    cpu.pc_incr(1);
+                    false
+                },
+                //       4   pointer   R  fetch low address to latch
+                #[inline]
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    let pc_lo = mem.get(LoHi(s.regs_u8()[0], s.regs_u8()[1]), 0);
+                    let new_pc = LoHi(pc_lo, cpu.pc().1);
+                    cpu.set_pc(new_pc);
+                    false
+                },
+                //       5  pointer+1* R  fetch PCH, copy latch to PCL
+                #[inline]
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    let pc_hi = mem.get(LoHi(s.regs_u8()[0].wrapping_add(1), s.regs_u8()[1]), 0);
+                    let new_pc = LoHi(cpu.pc().0, pc_hi);
+                    cpu.set_pc(new_pc);
+                    true
+                },
+                $illegal,
+                $illegal,
+                $illegal,
+                //
+                //      Note: * The PCH will always be fetched from the same page
+                //              than PCL, i.e. page boundary crossing is not handled.
+            ]
+        };
     }
+
+    pub(crate) use opcode_steps;
 
     #[cfg(test)]
     mod tests {
-        use super::*;
-        use crate::riot;
+        use crate::{
+            cmn::*,
+            cpu::am::opc_step_illegal,
+            cpu::core::{execute_opc_step, OpcExecutionState, MAX_OPCODE_STEPS, NMOS6502},
+            riot::Memory,
+        };
         use test_case::test_case;
 
         //            Op Args   ->              Lookup             ->     Eff. Addr
         #[test_case((0x82, 0xFF), LoHi(0x82, 0xFF), LoHi(0x83, 0xFF), LoHi(0xC4, 0x80); "Example from https://www.masswerk.at/6502/6502_instruction_set.htm")]
         #[test_case((0xFF, 0xFF), LoHi(0xFF, 0xFF), LoHi(0x00, 0xFF), LoHi(0xC4, 0x80); "No page wrap around for lookup address")]
         fn test_load(op_args: (u8, u8), lookup_lo: LoHi, lookup_hi: LoHi, exp: LoHi) {
-            let mut mem = riot::Memory::new(true);
-            let pc = 0x0000u16.into();
+            let mut mem = Memory::new(true);
+            let mut cpu = NMOS6502::new(LineState::High.rc_cell(), &mem);
+            cpu.set_pc(0x0000u16.into());
 
             // Set up opcode: JMP ($xxFF)
-            mem.set(pc, 0, 0x6C);
-            mem.set(pc, 1, op_args.0);
-            mem.set(pc, 2, op_args.1);
+            mem.set(cpu.pc(), 0, 0x6C);
+            mem.set(cpu.pc(), 1, op_args.0);
+            mem.set(cpu.pc(), 2, op_args.1);
 
             // Set up ($xxFF) & ($xx00) pointing to effective addr.
             mem.set(lookup_lo, 0, exp.0);
             mem.set(lookup_hi, 0, exp.1);
 
-            let obt = super::load(&mem, pc);
+            cpu.pc_incr(1);
+            let steps = opcode_steps!(opc_step_illegal);
+            for &step in steps.iter().take(MAX_OPCODE_STEPS).skip(1) {
+                if execute_opc_step(step, &mut cpu, &mut mem) {
+                    break;
+                }
+            }
 
-            assert_eq!(obt, exp);
+            assert_eq!(cpu.pc(), exp);
         }
     }
 }
@@ -1338,42 +1377,128 @@ pub mod pre_indexed_indirect {
     use super::*;
 
     #[inline]
-    fn ea(mem: &Memory, pc: LoHi, index: u8) -> LoHi {
-        let lo = indexed_zero_page::load(mem, pc, index);
-        let hi = indexed_zero_page::load(mem, pc, index.wrapping_add(1));
-
-        LoHi(lo, hi)
+    pub fn __step2(s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory) -> bool {
+        s.regs_u8()[0] = mem.get(cpu.pc(), 0);
+        cpu.pc_incr(1);
+        false
     }
 
-    /// Example: LDA ($70,X): load the contents of the location given in addresses "$0070+X" and "$0070+1+X" into A
-    pub fn load(mem: &Memory, pc: LoHi, index: u8) -> u8 {
-        let addr = ea(mem, pc, index);
-
-        mem.get(addr, 0)
+    macro_rules! opcode_steps_read {
+        ($main:expr, $index: expr, $illegal: expr) => {
+            &[
+                // Read instructions (LDA, ORA, EOR, AND, ADC, CMP, SBC, LAX)
+                //
+                //    #    address   R/W description
+                //   --- ----------- --- ------------------------------------------
+                //    1      PC       R  fetch opcode, increment PC
+                $illegal,
+                //    2      PC       R  fetch pointer address, increment PC
+                crate::cpu::am::post_indexed_indirect::__step2,
+                //    3    pointer    R  read from the address, add X to it
+                #[inline]
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[2] = mem.get(LoHi(s.regs_u8()[0], 0x00), 0);
+                    s.regs_u8()[1] = s.regs_u8()[0].wrapping_add($index(cpu));
+                    false
+                },
+                //    4   pointer+X   R  fetch effective address low
+                #[inline]
+                |s: &mut OpcExecutionState, _: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[2] = mem.get(LoHi(s.regs_u8()[1], 0x00), 0);
+                    false
+                },
+                //    5  pointer+X+1  R  fetch effective address high
+                #[inline]
+                |s: &mut OpcExecutionState, _: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[3] = mem.get(LoHi(s.regs_u8()[1], 0x00), 1);
+                    false
+                },
+                //    6    address    R  read from effective address
+                #[inline]
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    let val = mem.get(LoHi(s.regs_u8()[2], s.regs_u8()[3]), 0);
+                    $main(cpu, val);
+                    true
+                },
+                $illegal,
+                $illegal,
+                //
+                //   Note: The effective address is always fetched from zero page,
+                //         i.e. the zero page boundary crossing is not handled.
+            ]
+        };
     }
 
-    /// Example: STA ($A2,X): store the contents of A in the location given in addresses "$00A2+X" and "$00A3+X"
-    pub fn store(mem: &mut Memory, pc: LoHi, index: u8, val: u8) {
-        let addr = ea(mem, pc, index);
+    pub(crate) use opcode_steps_read;
 
-        mem.set(addr, 0, val)
+    macro_rules! opcode_steps_write {
+        ($main:expr, $index: expr, $illegal: expr) => {
+            &[
+                // Write instructions (STA, SAX)
+                //
+                //    #    address   R/W description
+                //   --- ----------- --- ------------------------------------------
+                //    1      PC       R  fetch opcode, increment PC
+                $illegal,
+                //    2      PC       R  fetch pointer address, increment PC
+                crate::cpu::am::post_indexed_indirect::__step2,
+                //    3    pointer    R  read from the address, add X to it
+                #[inline]
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[2] = mem.get(LoHi(s.regs_u8()[0], 0x00), 0);
+                    s.regs_u8()[1] = s.regs_u8()[0].wrapping_add($index(cpu));
+                    false
+                },
+                //    4   pointer+X   R  fetch effective address low
+                #[inline]
+                |s: &mut OpcExecutionState, _: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[2] = mem.get(LoHi(s.regs_u8()[1], 0x00), 0);
+                    false
+                },
+                //    5  pointer+X+1  R  fetch effective address high
+                #[inline]
+                |s: &mut OpcExecutionState, _: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    s.regs_u8()[3] = mem.get(LoHi(s.regs_u8()[1], 0x00), 1);
+                    false
+                },
+                //    6    address    W  write to effective address
+                #[inline]
+                |s: &mut OpcExecutionState, cpu: &mut NMOS6502, mem: &mut Memory| -> bool {
+                    let val = $main(cpu);
+                    mem.set(LoHi(s.regs_u8()[2], s.regs_u8()[3]), 0, val);
+                    true
+                },
+                $illegal,
+                $illegal,
+                //
+                //   Note: The effective address is always fetched from zero page,
+                //         i.e. the zero page boundary crossing is not handled.
+            ]
+        };
     }
+
+    pub(crate) use opcode_steps_write;
 
     #[cfg(test)]
     mod tests {
         use super::*;
-        use crate::riot;
+        use crate::{
+            cpu::am::opc_step_illegal,
+            cpu::core::{execute_opc_step, OpcExecutionState, MAX_OPCODE_STEPS, NMOS6502},
+            riot::Memory,
+        };
         use test_case::test_case;
 
         #[test_case((0x70,), 0x05, LoHi(0x75, 0x00), LoHi(0x23, 0x30), 0xA5; "Example from https://www.masswerk.at/6502/6502_instruction_set.htm")]
         #[test_case((0xFE,), 0x02, LoHi(0x00, 0x00), LoHi(0x23, 0x30), 0xA5; "Page wrap around")]
         fn test_load(op_args: (u8,), index: u8, lookup: LoHi, ea: LoHi, exp: u8) {
-            let mut mem = riot::Memory::new(true);
-            let pc = 0x0400u16.into();
+            let mut mem = Memory::new(true);
+            let mut cpu = NMOS6502::new(LineState::High.rc_cell(), &mem);
+            cpu.set_pc(0x0400u16.into());
 
             // Setup OpCode
-            mem.set(pc, 0, 0xA1);
-            mem.set(pc, 1, op_args.0);
+            mem.set(cpu.pc(), 0, 0xA1);
+            mem.set(cpu.pc(), 1, op_args.0);
 
             // Setup lookup.
             mem.set(lookup, 0, ea.0);
@@ -1382,29 +1507,52 @@ pub mod pre_indexed_indirect {
             // Setup effective address.
             mem.set(ea, 0, exp);
 
-            let obt = super::load(&mem, pc, index);
+            cpu.set_x(index);
+            cpu.pc_incr(1);
+            let steps = opcode_steps_read!(
+                |cpu: &mut NMOS6502, val: u8| cpu.set_a(val),
+                |cpu: &NMOS6502| cpu.x(),
+                opc_step_illegal
+            );
+            for &step in steps.iter().take(MAX_OPCODE_STEPS).skip(1) {
+                if execute_opc_step(step, &mut cpu, &mut mem) {
+                    break;
+                }
+            }
 
-            assert_eq!(obt, exp);
+            assert_eq!(cpu.a(), exp);
         }
 
         #[test_case((0x70,), 0x05, LoHi(0x75, 0x00), LoHi(0x23, 0x30), 0xA5; "Example from https://www.masswerk.at/6502/6502_instruction_set.htm")]
         #[test_case((0xFE,), 0x02, LoHi(0x00, 0x00), LoHi(0x23, 0x30), 0xA5; "Page wrap around")]
         fn test_store(op_args: (u8,), index: u8, lookup: LoHi, ea: LoHi, exp: u8) {
-            let mut mem = riot::Memory::new(true);
-            let pc = 0x0400u16.into();
+            let mut mem = Memory::new(true);
+            let mut cpu = NMOS6502::new(LineState::High.rc_cell(), &mem);
+            cpu.set_pc(0x0400u16.into());
 
             // Setup OpCode
-            mem.set(pc, 0, 0xA1);
-            mem.set(pc, 1, op_args.0);
+            mem.set(cpu.pc(), 0, 0xA1);
+            mem.set(cpu.pc(), 1, op_args.0);
 
             // Setup lookup.
             mem.set(lookup, 0, ea.0);
             mem.set(lookup, 1, ea.1);
 
-            super::store(&mut mem, pc, index, 0xA5);
+            cpu.set_x(index);
+            cpu.set_a(exp);
+            cpu.pc_incr(1);
+            let steps = opcode_steps_write!(
+                |cpu: &mut NMOS6502| cpu.a(),
+                |cpu: &NMOS6502| cpu.x(),
+                opc_step_illegal
+            );
+            for &step in steps.iter().take(MAX_OPCODE_STEPS).skip(1) {
+                if execute_opc_step(step, &mut cpu, &mut mem) {
+                    break;
+                }
+            }
 
-            let obt = mem.get(ea, 0);
-            assert_eq!(obt, exp);
+            assert_eq!(mem.get(ea, 0), exp);
         }
     }
 }
@@ -1715,10 +1863,9 @@ pub mod relative {
             let mut cpu = NMOS6502::new(LineState::High.rc_cell(), &mem);
             cpu.set_pc(pc);
             mem.set(pc, 1, op_arg);
+
             cpu.pc_incr(1);
-
             let steps = opcode_steps!(|_| true, opc_step_illegal);
-
             for &step in steps.iter().take(MAX_OPCODE_STEPS).skip(1) {
                 if execute_opc_step(step, &mut cpu, &mut mem) {
                     break;
