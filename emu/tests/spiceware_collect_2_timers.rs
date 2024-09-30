@@ -33,7 +33,7 @@ fn spiceware_collect_2_timers() {
     }
 
     assert_debug_snapshot!(common::serialize_tv_buffer(&tv.borrow().buffer()));
-    assert_eq!(tv.borrow().frame_counter(), 54);
-    assert_eq!(atari.cpu_state().cycles(), 156176);
-    assert_eq!(atari.cpu_state().pc(), cmn::LoHi(0x3E, 0xF8));
+    assert_eq!(tv.borrow().frame_counter(), 62);
+    assert_eq!(atari.cpu_state().cycles(), 152355);
+    assert_eq!(atari.cpu_state().pc(), cmn::LoHi(0x4F, 0xF8));
 }

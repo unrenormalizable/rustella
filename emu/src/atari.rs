@@ -35,11 +35,12 @@ impl NtscAtari {
     }
 
     pub fn tick(&mut self, cycles: usize) {
-        for _ in 0..cycles {
-            let cycles = self.cpu.borrow_mut().tick(&mut self.mem);
-            let cycles = if cycles == 0 { 1 } else { cycles };
-            self.tia.borrow_mut().tick(cycles * 3);
-            self.pia.borrow_mut().tick(cycles);
+        for i in 0..cycles {
+            if i % 3 == 0 {
+                self.pia.borrow_mut().tick(1);
+                self.cpu.borrow_mut().tick(&mut self.mem);
+            }
+            self.tia.borrow_mut().tick(1);
         }
     }
 
