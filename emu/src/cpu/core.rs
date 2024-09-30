@@ -1,7 +1,7 @@
 use crate::{bits, timer};
 use crate::{
     cmn::*,
-    cpu::{cmn, opc_impl::*, opc_info},
+    cpu::{cmn, opc_impl::*},
     riot::Memory,
 };
 use bitflags::bitflags;
@@ -75,11 +75,6 @@ impl core::fmt::Debug for NMOS6502 {
     }
 }
 
-/// References (use multiple to cross check implementation):
-/// - https://www.masswerk.at/6502/6502_instruction_set.html
-/// - https://www.pagetable.com/c64ref/6502/
-pub type OpCodeFn = dyn Fn(&mut NMOS6502, &mut Memory) -> Option<LoHi>;
-
 pub type OpCodeStepFn = fn(&mut OpcExecutionState, &mut NMOS6502, &mut Memory) -> bool;
 
 pub fn execute_opc_step(step: OpCodeStepFn, cpu: &mut NMOS6502, mem: &mut Memory) -> bool {
@@ -124,24 +119,6 @@ impl NMOS6502 {
         }
 
         let start_time = timer::get_nanoseconds();
-        let opc = mem.get(self.PC, 0) as usize;
-        // Clock cycle inaccurate code path.
-        if self.execution_state.done && !NEW_CODE_PATH[opc] {
-            let res = ALL_OPCODE_ROUTINES[opc](self, mem);
-            if let Some(lohi) = res {
-                self.PC = lohi;
-            } else {
-                self.pc_incr(opc_info::ALL[opc].bytes);
-            }
-
-            let cycles = opc_info::ALL[opc].cycles;
-            self.instructions += 1;
-            self.cycles += cycles;
-            self.duration += timer::measure_elapsed(start_time);
-
-            return cycles;
-        }
-
         // Clock cycle accurate code path.
         self.execution_state.done = if self.execution_state.done {
             // This is the same Step 0 for all opcodes.

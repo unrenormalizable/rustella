@@ -148,7 +148,7 @@ fn disassemble_one_instruction(
     mem: &riot::Memory,
     bps: &HashSet<LoHi>,
     pc: LoHi,
-) -> (u8, String, String, &'static str, usize) {
+) -> (u8, String, String, &'static str, &'static str) {
     let opc = mem.get(pc, 0);
     let opc_info = &cpu::opc_info::ALL[opc as usize];
     let instr_b1_str = if opc_info.bytes > 1 {

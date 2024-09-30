@@ -10,6 +10,5 @@ pub struct OpCodeInfo<'a> {
     pub addressing: &'a str,
     pub assembler: &'a str,
     pub bytes: u8,
-    pub cycles: usize,
-    pub cycles_str: &'a str,
+    pub cycles: &'a str,
 }

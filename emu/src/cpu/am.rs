@@ -1888,9 +1888,16 @@ pub fn opc_step_illegal(s: &mut OpcExecutionState, cpu: &mut NMOS6502, _: &mut M
 }
 
 macro_rules! stub_opcode_steps {
-    ($illegal:expr) => {
+    () => {
         &[
-            $illegal, $illegal, $illegal, $illegal, $illegal, $illegal, $illegal, $illegal,
+            am::opc_step_illegal,
+            am::opc_step_illegal,
+            am::opc_step_illegal,
+            am::opc_step_illegal,
+            am::opc_step_illegal,
+            am::opc_step_illegal,
+            am::opc_step_illegal,
+            am::opc_step_illegal,
         ]
     };
 }
