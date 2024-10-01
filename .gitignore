@@ -44,6 +44,7 @@ Generated\ Files/
 # Rust
 *.snap.new
 target/
+enc_temp_folder/
 
 # MSTest test Results
 [Tt]est[Rr]esult*/
