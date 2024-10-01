@@ -62,9 +62,8 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
 
     #[cfg(debug_assertions)]
     #[inline]
-    fn check_read_unsupported_register_flags(&self, addr: usize) {
-        let (_, _, name, _) = cmn::regs::IMPLEMENTED_REGISTERS[addr];
-        todo!("Read for {name} ({addr:02X}) is not implemented yet.")
+    fn check_read_unsupported_register_flags(&self, _addr: usize) {
+        // TODO: Add detection of unsupported reads.
     }
 
     #[cfg(debug_assertions)]

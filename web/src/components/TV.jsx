@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import useSWR from 'swr'
+import humanizeString from 'humanize-string'
 import init, { ntscColorMap, Atari } from 'rustella-wasm'
 import { fetcher, getStartAddress } from '../utils'
 import ROMS from '../roms'
@@ -113,9 +114,10 @@ const TV = () => {
   const stockRomDropDownItems = (type, startValue) =>
     ROMS.filter((x) => x.type === type).map((r, i) => {
       const suffix = r.size ? ` (${r.size}K)` : ''
+      const index = i + startValue
       return (
-        <option key={r.name} value={i + startValue}>
-          {`${r.name}${suffix}`}
+        <option key={r.name} value={index}>
+          {`[${index}] ${r.name}${suffix}`}
         </option>
       )
     })
@@ -155,7 +157,9 @@ const TV = () => {
         height={TV_HEIGHT}
         ref={canvasRef}
       />
-      <figcaption className="mb-2 text-xs">{romName}</figcaption>
+      <figcaption className="mb-2 text-xs">
+        {humanizeString(romName)}
+      </figcaption>
       <div>{`${String(Math.trunc((totalFrames * 1000) / totalTime)).padStart(3, '0')} fps`}</div>
     </div>
   )

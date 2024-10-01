@@ -1,0 +1,1570 @@
+------- FILE D:\src\u\s\emu\tests\bins\collect\collect-08-SelectAndResetSupport.asm LEVEL 1 PASS 2
+      1  10000 ????						;===============================================================================
+      2  10000 ????						; Program Information
+      3  10000 ????						;===============================================================================
+      4  10000 ????
+      5  10000 ????						; Program:	 Collect
+      6  10000 ????						; Program by:	 Darrell Spice, Jr
+      7  10000 ????						; Last Update:  July 7, 2014
+      8  10000 ????						;
+      9  10000 ????						; Super simple game of "collect the boxes" used for presentation on
+     10  10000 ????						; developing Atari 2600 homebrew games.
+     11  10000 ????						;
+     12  10000 ????						; See readme.txt for compile instructions
+     13  10000 ????
+     14  10000 ????
+     15  10000 ????						;===============================================================================
+     16  10000 ????						; Change Log
+     17  10000 ????						;===============================================================================
+     18  10000 ????
+     19  10000 ????						; 2014.06.24 - generate a stable display
+     20  10000 ????						; 2014.06.25 - add Score+1s
+     21  10000 ????						; 2014.06.28 - add score display and check for TV Type
+     22  10000 ????						; 2014.07.03 - add 2LK (2 line kernel)
+     23  10000 ????						; 2014.07.04 - 2LK update, set VDELP0 and VDELP1 based on Y positions
+     24  10000 ????						; 2014.07.04a- swapped GRP0 and GRP1 lines in the 2LK.  That gives us a
+     25  10000 ????						;		possiblity of adding the BALL object
+     26  10000 ????						;	      - changed Score+1 to be a bar across the screen so we can have
+     27  10000 ????						;		a 2 player option
+     28  10000 ????						; 2014.07.06 - Draw the Arena, playfield collision logic
+     29  10000 ????						; 2014.07.07 - Select/Reset Switches, game active/inactive logic
+     30  10000 ????
+     31  10000 ????						;===============================================================================
+     32  10000 ????						; Initialize dasm
+     33  10000 ????						;===============================================================================
+     34  10000 ????
+     35  10000 ????						; Dasm supports a number of processors, this line tells dasm the code
+     36  10000 ????						; is for the 6502 CPU.  The Atari has a 6507, which is 6502 that's been
+     37  10000 ????						; put into a "reduced package".  This package limits the 6507 to an 8K
+     38  10000 ????						; address space and also removes support for external interrupts.
+     39  10000 ????				       PROCESSOR	6502
+     40  10000 ????
+     41  10000 ????						; vcs.h contains the standard definitions for TIA and RIOT registers
+------- FILE vcs.h LEVEL 2 PASS 2
+      0  10000 ????				       include	vcs.h
+      1  10000 ????						; VCS.H
+      2  10000 ????						; Version 1.06, 06/SEP/2020
+      3  10000 ????
+      4  10000 ????		00 6a	    VERSION_VCS =	106
+      5  10000 ????
+      6  10000 ????						; THIS IS *THE* "STANDARD" VCS.H
+      7  10000 ????						; THIS FILE IS EXPLICITLY SUPPORTED AS A DASM-PREFERRED COMPANION FILE
+      8  10000 ????						; The latest version can be found at https://dasm-assembler.github.io/
+      9  10000 ????						;
+     10  10000 ????						; This file defines hardware registers and memory mapping for the
+     11  10000 ????						; Atari 2600. It is distributed as a companion machine-specific support package
+     12  10000 ????						; for the DASM compiler. Updates to this file, DASM, and associated tools are
+     13  10000 ????						; available at at https://dasm-assembler.github.io/
+     14  10000 ????						;
+     15  10000 ????						; Many thanks to the people who have contributed. If you find an issue with the
+     16  10000 ????						; contents, or would like ot add something, please report as an issue at...
+     17  10000 ????						; https://github.com/dasm-assembler/dasm/issues
+     18  10000 ????
+     19  10000 ????						;
+     20  10000 ????						; Latest Revisions...
+     21  10000 ????						; 1.06  05/SEP/2020	 Modified header/license and links to new versions
+     22  10000 ????						; 1.05  13/NOV/2003	  - Correction to 1.04 - now functions as requested by MR.
+     23  10000 ????						;			  - Added VERSION_VCS equate (which will reflect 100x version #)
+     24  10000 ????						;			    This will allow conditional code to verify VCS.H being
+     25  10000 ????						;			    used for code assembly.
+     26  10000 ????						; 1.04  12/NOV/2003	 Added TIA_BASE_WRITE_ADDRESS and TIA_BASE_READ_ADDRESS for
+     27  10000 ????						;			 convenient disassembly/reassembly compatibility for hardware
+     28  10000 ????						;			 mirrored reading/writing differences.	This is more a 
+     29  10000 ????						;			 readability issue, and binary compatibility with disassembled
+     30  10000 ????						;			 and reassembled sources.  Per Manuel Rotschkar's suggestion.
+     31  10000 ????						; 1.03  12/MAY/2003	 Added SEG segment at end of file to fix old-code compatibility
+     32  10000 ????						;			 which was broken by the use of segments in this file, as
+     33  10000 ????						;			 reported by Manuel Polik on [stella] 11/MAY/2003
+     34  10000 ????						; 1.02  22/MAR/2003	 Added TIMINT($285)
+     35  10000 ????						; 1.01				Constant offset added to allow use for 3F-style bankswitching
+     36  10000 ????						;						 - define TIA_BASE_ADDRESS as $40 for Tigervision carts, otherwise
+     37  10000 ????						;						   it is safe to leave it undefined, and the base address will
+     38  10000 ????						;						   be set to 0.  Thanks to Eckhard Stolberg for the suggestion.
+     39  10000 ????						;			    Note, may use -DLABEL=EXPRESSION to define TIA_BASE_ADDRESS
+     40  10000 ????						;			  - register definitions are now generated through assignment
+     41  10000 ????						;			    in uninitialised segments.	This allows a changeable base
+     42  10000 ????						;			    address architecture.
+     43  10000 ????						; 1.0	22/MAR/2003		Initial release
+     44  10000 ????
+     45  10000 ????
+     46  10000 ????						;-------------------------------------------------------------------------------
+     47  10000 ????
+     48  10000 ????						; TIA_BASE_ADDRESS
+     49  10000 ????						; The TIA_BASE_ADDRESS defines the base address of access to TIA registers.
+     50  10000 ????						; Normally 0, the base address should (externally, before including this file)
+     51  10000 ????						; be set to $40 when creating 3F-bankswitched (and other?) cartridges.
+     52  10000 ????						; The reason is that this bankswitching scheme treats any access to locations
+     53  10000 ????						; < $40 as a bankswitch.
+     54  10000 ????
+     55  10000 ????			   -	       IFNCONST	TIA_BASE_ADDRESS
+     56  10000 ????			   -TIA_BASE_ADDRESS =	0
+     57  10000 ????				       ENDIF
+     58  10000 ????
+     59  10000 ????						; Note: The address may be defined on the command-line using the -D switch, eg:
+     60  10000 ????						; dasm.exe code.asm -DTIA_BASE_ADDRESS=$40 -f3 -v5 -ocode.bin
+     61  10000 ????						; *OR* by declaring the label before including this file, eg:
+     62  10000 ????						; TIA_BASE_ADDRESS = $40
+     63  10000 ????						;   include "vcs.h"
+     64  10000 ????
+     65  10000 ????						; Alternate read/write address capability - allows for some disassembly compatibility
+     66  10000 ????						; usage ; to allow reassembly to binary perfect copies).  This is essentially catering
+     67  10000 ????						; for the mirrored ROM hardware registers.
+     68  10000 ????
+     69  10000 ????						; Usage: As per above, define the TIA_BASE_READ_ADDRESS and/or TIA_BASE_WRITE_ADDRESS
+     70  10000 ????						; using the -D command-line switch, as required.  If the addresses are not defined, 
+     71  10000 ????						; they defaut to the TIA_BASE_ADDRESS.
+     72  10000 ????
+     73  10000 ????			   -	       IFNCONST	TIA_BASE_READ_ADDRESS
+     74  10000 ????			   -TIA_BASE_READ_ADDRESS =	TIA_BASE_ADDRESS
+     75  10000 ????				       ENDIF
+     76  10000 ????
+     77  10000 ????			   -	       IFNCONST	TIA_BASE_WRITE_ADDRESS
+     78  10000 ????			   -TIA_BASE_WRITE_ADDRESS =	TIA_BASE_ADDRESS
+     79  10000 ????				       ENDIF
+     80  10000 ????
+     81  10000 ????						;-------------------------------------------------------------------------------
+     82  10000 ????
+     83 U002d ????				      SEG.U	TIA_REGISTERS_WRITE
+     84 U0000					      ORG	TIA_BASE_WRITE_ADDRESS
+     85 U0000
+     86 U0000							; DO NOT CHANGE THE RELATIVE ORDERING OF REGISTERS!
+     87 U0000
+     88 U0000		       00	   VSYNC      ds	1	; $00	 0000 00x0   Vertical Sync Set-Clear
+     89 U0001		       00	   VBLANK     ds	1	; $01	 xx00 00x0   Vertical Blank Set-Clear
+     90 U0002		       00	   WSYNC      ds	1	; $02	 ---- ----   Wait for Horizontal Blank
+     91 U0003		       00	   RSYNC      ds	1	; $03	 ---- ----   Reset Horizontal Sync Counter
+     92 U0004		       00	   NUSIZ0     ds	1	; $04	 00xx 0xxx   Number-Size player/missle 0
+     93 U0005		       00	   NUSIZ1     ds	1	; $05	 00xx 0xxx   Number-Size player/missle 1
+     94 U0006		       00	   COLUP0     ds	1	; $06	 xxxx xxx0   Color-Luminance Player 0
+     95 U0007		       00	   COLUP1     ds	1	; $07	 xxxx xxx0   Color-Luminance Player 1
+     96 U0008		       00	   COLUPF     ds	1	; $08	 xxxx xxx0   Color-Luminance Playfield
+     97 U0009		       00	   COLUBK     ds	1	; $09	 xxxx xxx0   Color-Luminance Background
+     98 U000a		       00	   CTRLPF     ds	1	; $0A	 00xx 0xxx   Control Playfield, Ball, Collisions
+     99 U000b		       00	   REFP0      ds	1	; $0B	 0000 x000   Reflection Player 0
+    100 U000c		       00	   REFP1      ds	1	; $0C	 0000 x000   Reflection Player 1
+    101 U000d		       00	   PF0	      ds	1	; $0D	 xxxx 0000   Playfield Register Byte 0
+    102 U000e		       00	   PF1	      ds	1	; $0E	 xxxx xxxx   Playfield Register Byte 1
+    103 U000f		       00	   PF2	      ds	1	; $0F	 xxxx xxxx   Playfield Register Byte 2
+    104 U0010		       00	   RESP0      ds	1	; $10	 ---- ----   Reset Player 0
+    105 U0011		       00	   RESP1      ds	1	; $11	 ---- ----   Reset Player 1
+    106 U0012		       00	   RESM0      ds	1	; $12	 ---- ----   Reset Missle 0
+    107 U0013		       00	   RESM1      ds	1	; $13	 ---- ----   Reset Missle 1
+    108 U0014		       00	   RESBL      ds	1	; $14	 ---- ----   Reset Ball
+    109 U0015		       00	   AUDC0      ds	1	; $15	 0000 xxxx   Audio Control 0
+    110 U0016		       00	   AUDC1      ds	1	; $16	 0000 xxxx   Audio Control 1
+    111 U0017		       00	   AUDF0      ds	1	; $17	 000x xxxx   Audio Frequency 0
+    112 U0018		       00	   AUDF1      ds	1	; $18	 000x xxxx   Audio Frequency 1
+    113 U0019		       00	   AUDV0      ds	1	; $19	 0000 xxxx   Audio Volume 0
+    114 U001a		       00	   AUDV1      ds	1	; $1A	 0000 xxxx   Audio Volume 1
+    115 U001b		       00	   GRP0       ds	1	; $1B	 xxxx xxxx   Graphics Register Player 0
+    116 U001c		       00	   GRP1       ds	1	; $1C	 xxxx xxxx   Graphics Register Player 1
+    117 U001d		       00	   ENAM0      ds	1	; $1D	 0000 00x0   Graphics Enable Missle 0
+    118 U001e		       00	   ENAM1      ds	1	; $1E	 0000 00x0   Graphics Enable Missle 1
+    119 U001f		       00	   ENABL      ds	1	; $1F	 0000 00x0   Graphics Enable Ball
+    120 U0020		       00	   HMP0       ds	1	; $20	 xxxx 0000   Horizontal Motion Player 0
+    121 U0021		       00	   HMP1       ds	1	; $21	 xxxx 0000   Horizontal Motion Player 1
+    122 U0022		       00	   HMM0       ds	1	; $22	 xxxx 0000   Horizontal Motion Missle 0
+    123 U0023		       00	   HMM1       ds	1	; $23	 xxxx 0000   Horizontal Motion Missle 1
+    124 U0024		       00	   HMBL       ds	1	; $24	 xxxx 0000   Horizontal Motion Ball
+    125 U0025		       00	   VDELP0     ds	1	; $25	 0000 000x   Vertical Delay Player 0
+    126 U0026		       00	   VDELP1     ds	1	; $26	 0000 000x   Vertical Delay Player 1
+    127 U0027		       00	   VDELBL     ds	1	; $27	 0000 000x   Vertical Delay Ball
+    128 U0028		       00	   RESMP0     ds	1	; $28	 0000 00x0   Reset Missle 0 to Player 0
+    129 U0029		       00	   RESMP1     ds	1	; $29	 0000 00x0   Reset Missle 1 to Player 1
+    130 U002a		       00	   HMOVE      ds	1	; $2A	 ---- ----   Apply Horizontal Motion
+    131 U002b		       00	   HMCLR      ds	1	; $2B	 ---- ----   Clear Horizontal Move Registers
+    132 U002c		       00	   CXCLR      ds	1	; $2C	 ---- ----   Clear Collision Latches
+    133 U002d
+    134 U002d							;-------------------------------------------------------------------------------
+    135 U002d
+    136 U000e ????				      SEG.U	TIA_REGISTERS_READ
+    137 U0000					      ORG	TIA_BASE_READ_ADDRESS
+    138 U0000
+    139 U0000							;											bit 7	 bit 6
+    140 U0000		       00	   CXM0P      ds	1	; $00	     xx00 0000	     Read Collision  M0-P1   M0-P0
+    141 U0001		       00	   CXM1P      ds	1	; $01	     xx00 0000			     M1-P0   M1-P1
+    142 U0002		       00	   CXP0FB     ds	1	; $02	     xx00 0000			     P0-PF   P0-BL
+    143 U0003		       00	   CXP1FB     ds	1	; $03	     xx00 0000			     P1-PF   P1-BL
+    144 U0004		       00	   CXM0FB     ds	1	; $04	     xx00 0000			     M0-PF   M0-BL
+    145 U0005		       00	   CXM1FB     ds	1	; $05	     xx00 0000			     M1-PF   M1-BL
+    146 U0006		       00	   CXBLPF     ds	1	; $06	     x000 0000			     BL-PF   -----
+    147 U0007		       00	   CXPPMM     ds	1	; $07	     xx00 0000			     P0-P1   M0-M1
+    148 U0008		       00	   INPT0      ds	1	; $08	     x000 0000	     Read Pot Port 0
+    149 U0009		       00	   INPT1      ds	1	; $09	     x000 0000	     Read Pot Port 1
+    150 U000a		       00	   INPT2      ds	1	; $0A	     x000 0000	     Read Pot Port 2
+    151 U000b		       00	   INPT3      ds	1	; $0B	     x000 0000	     Read Pot Port 3
+    152 U000c		       00	   INPT4      ds	1	; $0C		x000 0000	 Read Input (Trigger) 0
+    153 U000d		       00	   INPT5      ds	1	; $0D		x000 0000	 Read Input (Trigger) 1
+    154 U000e
+    155 U000e							;-------------------------------------------------------------------------------
+    156 U000e
+    157 U0298 ????				      SEG.U	RIOT
+    158 U0280					      ORG	$280
+    159 U0280
+    160 U0280							; RIOT MEMORY MAP
+    161 U0280
+    162 U0280		       00	   SWCHA      ds	1	; $280      Port A data register for joysticks:
+    163 U0281							;			Bits 4-7 for player 1.  Bits 0-3 for player 2.
+    164 U0281
+    165 U0281		       00	   SWACNT     ds	1	; $281      Port A data direction register (DDR)
+    166 U0282		       00	   SWCHB      ds	1	; $282		Port B data (console switches)
+    167 U0283		       00	   SWBCNT     ds	1	; $283      Port B DDR
+    168 U0284		       00	   INTIM      ds	1	; $284		Timer output
+    169 U0285
+    170 U0285		       00	   TIMINT     ds	1	; $285
+    171 U0286
+    172 U0286							; Unused/undefined registers ($285-$294)
+    173 U0286
+    174 U0286		       00		      ds	1	; $286
+    175 U0287		       00		      ds	1	; $287
+    176 U0288		       00		      ds	1	; $288
+    177 U0289		       00		      ds	1	; $289
+    178 U028a		       00		      ds	1	; $28A
+    179 U028b		       00		      ds	1	; $28B
+    180 U028c		       00		      ds	1	; $28C
+    181 U028d		       00		      ds	1	; $28D
+    182 U028e		       00		      ds	1	; $28E
+    183 U028f		       00		      ds	1	; $28F
+    184 U0290		       00		      ds	1	; $290
+    185 U0291		       00		      ds	1	; $291
+    186 U0292		       00		      ds	1	; $292
+    187 U0293		       00		      ds	1	; $293
+    188 U0294
+    189 U0294		       00	   TIM1T      ds	1	; $294		set 1 clock interval
+    190 U0295		       00	   TIM8T      ds	1	; $295      set 8 clock interval
+    191 U0296		       00	   TIM64T     ds	1	; $296      set 64 clock interval
+    192 U0297		       00	   T1024T     ds	1	; $297      set 1024 clock interval
+    193 U0298
+    194 U0298							;-------------------------------------------------------------------------------
+    195 U0298							; The following required for back-compatibility with code which does not use
+    196 U0298							; segments.
+    197 U0298
+    198  0000 ????				      SEG
+    199  0000 ????
+    200  0000 ????						; EOF
+------- FILE D:\src\u\s\emu\tests\bins\collect\collect-08-SelectAndResetSupport.asm
+     43  0000 ????
+     44  0000 ????						; macro.h contains commonly used routines which aid in coding
+------- FILE macro.h LEVEL 2 PASS 2
+      0  0000 ????				      include	macro.h
+      1  0000 ????						; MACRO.H
+      2  0000 ????						; Version 1.09, 05/SEP/2020
+      3  0000 ????
+      4  0000 ????	       00 6d	   VERSION_MACRO =	109
+      5  0000 ????
+      6  0000 ????						;
+      7  0000 ????						; THIS FILE IS EXPLICITLY SUPPORTED AS A DASM-PREFERRED COMPANION FILE
+      8  0000 ????						; The latest version can be found at https://dasm-assembler.github.io/
+      9  0000 ????						;
+     10  0000 ????						; This file defines DASM macros useful for development for the Atari 2600.
+     11  0000 ????						; It is distributed as a companion machine-specific support package
+     12  0000 ????						; for the DASM compiler.
+     13  0000 ????						;
+     14  0000 ????						; Many thanks to the people who have contributed. If you find an issue with the
+     15  0000 ????						; contents, or would like ot add something, please report as an issue at...
+     16  0000 ????						; https://github.com/dasm-assembler/dasm/issues
+     17  0000 ????
+     18  0000 ????
+     19  0000 ????						; Latest Revisions...
+     20  0000 ????						; 1.09  05/SEP/2020	 - updated license/links
+     21  0000 ????
+     22  0000 ????						; 1.08  13/JUL/2020	 - added use of LXA to CLEAN_START
+     23  0000 ????						; 1.07  19/JAN/2020	 - correction to comment VERTICAL_SYNC
+     24  0000 ????						; 1.06  03/SEP/2004	 - nice revision of VERTICAL_SYNC (Edwin Blink)
+     25  0000 ????						; 1.05  14/NOV/2003	 - Added VERSION_MACRO equate (which will reflect 100x version #)
+     26  0000 ????						;			   This will allow conditional code to verify MACRO.H being
+     27  0000 ????						;			   used for code assembly.
+     28  0000 ????						; 1.04  13/NOV/2003	 - SET_POINTER macro added (16-bit address load)
+     29  0000 ????						;
+     30  0000 ????						; 1.03  23/JUN/2003	 - CLEAN_START macro added - clears TIA, RAM, registers
+     31  0000 ????						;
+     32  0000 ????						; 1.02  14/JUN/2003	 - VERTICAL_SYNC macro added
+     33  0000 ????						;			   (standardised macro for vertical synch code)
+     34  0000 ????						; 1.01  22/MAR/2003	 - SLEEP macro added. 
+     35  0000 ????						;			 - NO_ILLEGAL_OPCODES switch implemented
+     36  0000 ????						; 1.0	22/MAR/2003		Initial release
+     37  0000 ????
+     38  0000 ????						; Note: These macros use illegal opcodes.  To disable illegal opcode usage, 
+     39  0000 ????						;   define the symbol NO_ILLEGAL_OPCODES (-DNO_ILLEGAL_OPCODES=1 on command-line).
+     40  0000 ????						;   If you do not allow illegal opcode usage, you must include this file 
+     41  0000 ????						;   *after* including VCS.H (as the non-illegal opcodes access hardware
+     42  0000 ????						;   registers and require them to be defined first).
+     43  0000 ????
+     44  0000 ????						; Available macros...
+     45  0000 ????						;   SLEEP n		 - sleep for n cycles
+     46  0000 ????						;   VERTICAL_SYNC	 - correct 3 scanline vertical synch code
+     47  0000 ????						;   CLEAN_START	 - set machine to known state on startup
+     48  0000 ????						;   SET_POINTER	 - load a 16-bit absolute to a 16-bit variable
+     49  0000 ????
+     50  0000 ????						;-------------------------------------------------------------------------------
+     51  0000 ????						; SLEEP duration
+     52  0000 ????						; Original author: Thomas Jentzsch
+     53  0000 ????						; Inserts code which takes the specified number of cycles to execute.	This is
+     54  0000 ????						; useful for code where precise timing is required.
+     55  0000 ????						; ILLEGAL-OPCODE VERSION DOES NOT AFFECT FLAGS OR REGISTERS.
+     56  0000 ????						; LEGAL OPCODE VERSION MAY AFFECT FLAGS
+     57  0000 ????						; Uses illegal opcode (DASM 2.20.01 onwards).
+     58  0000 ????
+     59  0000 ????				      MAC	sleep
+     60  0000 ????			   .CYCLES    SET	{1}
+     61  0000 ????
+     62  0000 ????				      IF	.CYCLES < 2
+     63  0000 ????				      ECHO	"MACRO ERROR: 'SLEEP': Duration must be > 1"
+     64  0000 ????				      ERR
+     65  0000 ????				      ENDIF
+     66  0000 ????
+     67  0000 ????				      IF	.CYCLES & 1
+     68  0000 ????				      IFNCONST	NO_ILLEGAL_OPCODES
+     69  0000 ????				      nop	0
+     70  0000 ????				      ELSE
+     71  0000 ????				      bit	VSYNC
+     72  0000 ????				      ENDIF
+     73  0000 ????			   .CYCLES    SET	.CYCLES - 3
+     74  0000 ????				      ENDIF
+     75  0000 ????
+     76  0000 ????				      REPEAT	.CYCLES / 2
+     77  0000 ????				      nop
+     78  0000 ????				      REPEND
+     79  0000 ????				      ENDM		;usage: SLEEP n (n>1)
+     80  0000 ????
+     81  0000 ????						;-------------------------------------------------------------------------------
+     82  0000 ????						; VERTICAL_SYNC
+     83  0000 ????						; revised version by Edwin Blink -- saves bytes!
+     84  0000 ????						; Inserts the code required for a proper 3 scanline vertical sync sequence
+     85  0000 ????						; Note: Alters the accumulator
+     86  0000 ????
+     87  0000 ????						; OUT: A = 0
+     88  0000 ????
+     89  0000 ????				      MAC	vertical_sync
+     90  0000 ????				      lda	#%1110	; each '1' bits generate a VSYNC ON line (bits 1..3)
+     91  0000 ????			   .VSLP1     sta	WSYNC	; 1st '0' bit resets Vsync, 2nd '0' bit exit loop
+     92  0000 ????				      sta	VSYNC
+     93  0000 ????				      lsr
+     94  0000 ????				      bne	.VSLP1	; branch until VYSNC has been reset
+     95  0000 ????				      ENDM
+     96  0000 ????
+     97  0000 ????						;-------------------------------------------------------------------------------
+     98  0000 ????						; CLEAN_START
+     99  0000 ????						; Original author: Andrew Davie
+    100  0000 ????						; Standardised start-up code, clears stack, all TIA registers and RAM to 0
+    101  0000 ????						; Sets stack pointer to $FF, and all registers to 0
+    102  0000 ????						; Sets decimal mode off, sets interrupt flag (kind of un-necessary)
+    103  0000 ????						; Use as very first section of code on boot (ie: at reset)
+    104  0000 ????						; Code written to minimise total ROM usage - uses weird 6502 knowledge :)
+    105  0000 ????
+    106  0000 ????				      MAC	clean_start
+    107  0000 ????				      sei
+    108  0000 ????				      cld
+    109  0000 ????
+    110  0000 ????				      IFNCONST	NO_ILLEGAL_OPCODES
+    111  0000 ????				      lxa	#0
+    112  0000 ????				      ELSE
+    113  0000 ????				      ldx	#0
+    114  0000 ????				      txa
+    115  0000 ????				      ENDIF
+    116  0000 ????				      tay
+    117  0000 ????			   .CLEAR_STACK dex
+    118  0000 ????				      txs
+    119  0000 ????				      pha
+    120  0000 ????				      bne	.CLEAR_STACK	; SP=$FF, X = A = Y = 0
+    121  0000 ????
+    122  0000 ????				      ENDM
+    123  0000 ????
+    124  0000 ????						;-------------------------------------------------------
+    125  0000 ????						; SET_POINTER
+    126  0000 ????						; Original author: Manuel Rotschkar
+    127  0000 ????						;
+    128  0000 ????						; Sets a 2 byte RAM pointer to an absolute address.
+    129  0000 ????						;
+    130  0000 ????						; Usage: SET_POINTER pointer, address
+    131  0000 ????						; Example: SET_POINTER SpritePTR, SpriteData
+    132  0000 ????						;
+    133  0000 ????						; Note: Alters the accumulator, NZ flags
+    134  0000 ????						; IN 1: 2 byte RAM location reserved for pointer
+    135  0000 ????						; IN 2: absolute address
+    136  0000 ????
+    137  0000 ????				      MAC	set_pointer
+    138  0000 ????			   .POINTER   SET	{1}
+    139  0000 ????			   .ADDRESS   SET	{2}
+    140  0000 ????
+    141  0000 ????				      LDA	#<.ADDRESS	; Get Lowbyte of Address
+    142  0000 ????				      STA	.POINTER	; Store in pointer
+    143  0000 ????				      LDA	#>.ADDRESS	; Get Hibyte of Address
+    144  0000 ????				      STA	.POINTER+1	; Store in pointer+1
+    145  0000 ????
+    146  0000 ????				      ENDM
+    147  0000 ????
+    148  0000 ????						;-------------------------------------------------------
+    149  0000 ????						; BOUNDARY byte#
+    150  0000 ????						; Original author: Denis Debro (borrowed from Bob Smith / Thomas)
+    151  0000 ????						;
+    152  0000 ????						; Push data to a certain position inside a page and keep count of how
+    153  0000 ????						; many free bytes the programmer will have.
+    154  0000 ????						;
+    155  0000 ????						; eg: BOUNDARY 5    ; position at byte #5 in page
+    156  0000 ????
+    157  0000 ????			   .FREE_BYTES SET	0
+    158  0000 ????				      MAC	boundary
+    159  0000 ????				      REPEAT	256
+    160  0000 ????				      IF	<. % {1} = 0
+    161  0000 ????				      MEXIT
+    162  0000 ????				      ELSE
+    163  0000 ????			   .FREE_BYTES SET	.FREE_BYTES + 1
+    164  0000 ????				      .byte	$00
+    165  0000 ????				      ENDIF
+    166  0000 ????				      REPEND
+    167  0000 ????				      ENDM
+    168  0000 ????
+    169  0000 ????
+    170  0000 ????						; EOF
+------- FILE D:\src\u\s\emu\tests\bins\collect\collect-08-SelectAndResetSupport.asm
+     46  0000 ????
+     47  0000 ????						;===============================================================================
+     48  0000 ????						; Define Constants
+     49  0000 ????						;===============================================================================
+     50  0000 ????						; height of the arena (gameplay area).  Since we're using a 2 line kernel,
+     51  0000 ????						; actual height will be twice this.  Also, we're using 0-89 for the
+     52  0000 ????						; scanlines so actual height is 176 = 88*2
+     53  0000 ????	       00 57	   ARENA_HEIGHT =	87
+     54  0000 ????
+     55  0000 ????						;===============================================================================
+     56  0000 ????						; Define RAM Usage
+     57  0000 ????						;===============================================================================
+     58  0000 ????
+     59  0000 ????						; define a segment for variables
+     60  0000 ????						; .U means uninitialized, does not end up in ROM
+     61 U00a9 ????				      SEG.U	VARS
+     62 U00a9 ????
+     63 U00a9 ????						; RAM starts at $80
+     64 U0080					      ORG	$80
+     65 U0080
+     66 U0080							; Holds 2 digit score for each player, stored as BCD (Binary Coded Decimal)
+     67 U0080		       00 00	   Score      ds	2	; stored in $80-81
+     68 U0082							; CODING TIP - The : is optional. However, if you remember to include the :
+     69 U0082							;		in all of your labels you can then easily find where
+     70 U0082							;		something is defined by including : in the search.
+     71 U0082							;		Find "Score:" will bring you here, find "Score" will locate
+     72 U0082							;		all places that the variable Score is used.
+     73 U0082
+     74 U0082							; Offsets into digit graphic data
+     75 U0082		       00 00	   DigitOnes  ds	2	; stored in $82-83, DigitOnes = Score, DigitOnes+1 = Score+1
+     76 U0084		       00 00	   DigitTens  ds	2	; stored in $84-85, DigitTens = Score, DigitTens+1 = Score+1
+     77 U0086
+     78 U0086							; graphic data ready to put into PF1 during display score routine
+     79 U0086		       00 00	   ScoreGfx   ds	2	; stored in $86-87
+     80 U0088
+     81 U0088							; scratch variable
+     82 U0088		       00	   Temp       ds	1	; stored in $88
+     83 U0089
+     84 U0089							; object X positions in $89-8D
+     85 U0089		       00 00 00 00*ObjectX    ds	5	; player0, player1, missile0, missile1, ball
+     86 U008e
+     87 U008e							; object Y positions in $8E-92
+     88 U008e		       00 00 00 00*ObjectY    ds	5	; player0, player1, missile0, missile1, ball
+     89 U0093
+     90 U0093							; DoDraw storage in $93-94
+     91 U0093		       00	   Player0Draw ds	1	; used for drawing player0
+     92 U0094		       00	   Player1Draw ds	1	; used for drawing player1
+     93 U0095
+     94 U0095							; DoDraw Graphic Pointers in $95-98
+     95 U0095		       00 00	   Player0Ptr ds	2	; used for drawing player0
+     96 U0097		       00 00	   Player1Ptr ds	2	; used for drawing player1
+     97 U0099
+     98 U0099							; frame counter
+     99 U0099		       00	   Frame      ds	1	; stored in $99
+    100 U009a
+    101 U009a		       00 00 00 00*TimerPF    ds	6	; stored in $9A-9F
+    102 U00a0		       00	   ArenaColor ds	1	; stored in $A0
+    103 U00a1
+    104 U00a1							;save player locations for playfield collision logic
+    105 U00a1		       00 00	   SavedX     ds	2	; stored in $A1-A2
+    106 U00a3		       00 00	   SavedY     ds	2	; stored in $A3-A4
+    107 U00a5
+    108 U00a5		       00	   ArenaOffset ds	1	; stored in $A5
+    109 U00a6
+    110 U00a6		       00	   Temp2      ds	1	; stored in $A6
+    111 U00a7
+    112 U00a7							; D7, 1=Game Active, 0=Game Over
+    113 U00a7		       00	   GameState  ds	1	; stored in $A7
+    114 U00a8							; CODING TIP - There are 8 bits within a byte.  Dx notation is used to
+    115 U00a8							;		specify a specific bit where x is 0-7.
+    116 U00a8							;		D7 is the high bit, D0 is the low bit.
+    117 U00a8							;		D7 and D6 can be quickly tested without trashing any CPU
+    118 U00a8							;		registers by using the BIT command.  You can see this in
+    119 U00a8							;		action in OverScan where TIA's collision detection registers
+    120 U00a8							;		are tested using the BIT command.
+    121 U00a8
+    122 U00a8		       00	   ColorCycle ds	1	; stored in $A8
+    123 U00a9							;===============================================================================
+    124 U00a9							; Define Start of Cartridge
+    125 U00a9							;===============================================================================
+    126 U00a9
+    127 U00a9							; define a segment for code
+    128  10000 ????				       SEG	CODE
+    129  10000 ????
+    130  10000 ????						; 2K ROM starts at $F800, 4K ROM starts at $F000
+    131  f800					      ORG	$F800
+    132  f800
+    133  f800							;===============================================================================
+    134  f800							; PosObject
+    135  f800							;----------
+    136  f800							; subroutine for setting the X position of any TIA object
+    137  f800							; when called, set the following registers:
+    138  f800							;   A - holds the X position of the object
+    139  f800							;   X - holds which object to position
+    140  f800							;	 0 = player0
+    141  f800							;	 1 = player1
+    142  f800							;	 2 = missile0
+    143  f800							;	 3 = missile1
+    144  f800							;	 4 = ball
+    145  f800							; the routine will set the coarse X position of the object, as well as the
+    146  f800							; fine-tune register that will be used when HMOVE is used.
+    147  f800							;===============================================================================
+    148  f800				   PosObject
+    149  f800		       38		      sec
+    150  f801		       85 02		      sta	WSYNC
+    151  f803				   DivideLoop
+    152  f803		       e9 0f		      sbc	#15	; 2  2 - each time thru this loop takes 5 cycles, which is
+    153  f805		       b0 fc		      bcs	DivideLoop	; 2  4 - the same amount of time it takes to draw 15 pixels
+    154  f807		       49 07		      eor	#7	; 2  6 - The EOR & ASL statements convert the remainder
+    155  f809		       0a		      asl		; 2  8 - of position/15 to the value needed to fine tune
+    156  f80a		       0a		      asl		; 2 10 - the X position
+    157  f80b		       0a		      asl		; 2 12
+    158  f80c		       0a		      asl		; 2 14
+    159  f80d		       9d 20 00 	      sta.wx	HMP0,X	; 5 19 - store fine tuning of X
+    160  f810		       95 10		      sta	RESP0,X	; 4 23 - set coarse X position of object
+    161  f812		       60		      rts		; 6 29
+    162  f813
+    163  f813
+    164  f813							;===============================================================================
+    165  f813							; Initialize Atari
+    166  f813							;===============================================================================
+    167  f813
+    168  f813				   InitSystem
+    169  f813							; CLEAN_START is a macro found in macro.h
+    170  f813							; it sets all RAM, TIA registers and CPU registers to 0
+      0  f813					      CLEAN_START
+      1  f813		       78		      sei
+      2  f814		       d8		      cld
+      3  f815
+      4  f815				  -	      IFNCONST	NO_ILLEGAL_OPCODES
+      5  f815				  -	      lxa	#0
+      6  f815					      ELSE
+      7  f815		       a2 00		      ldx	#0
+      8  f817		       8a		      txa
+      9  f818					      ENDIF
+     10  f818		       a8		      tay
+     11  f819		       ca	   .CLEAR_STACK dex
+     12  f81a		       9a		      txs
+     13  f81b		       48		      pha
+     14  f81c		       d0 fb		      bne	.CLEAR_STACK
+     15  f81e
+    172  f81e
+    173  f81e		       20 f5 fa 	      jsr	InitPos	; put objects in default position
+    174  f821							; from here we "fall into" the main loop
+    175  f821
+    176  f821							;===============================================================================
+    177  f821							; Main Program Loop
+    178  f821							;===============================================================================
+    179  f821
+    180  f821				   Main
+    181  f821		       20 30 f8 	      jsr	VerticalSync	; Jump to SubRoutine VerticalSync
+    182  f824		       20 64 f8 	      jsr	VerticalBlank	; Jump to SubRoutine VerticalBlank
+    183  f827		       20 7b f8 	      jsr	Kernel	; Jump to SubRoutine Kernel
+    184  f82a		       20 63 f9 	      jsr	OverScan	; Jump to SubRoutine OverScan
+    185  f82d		       4c 21 f8 	      jmp	Main	; JuMP to Main
+    186  f830
+    187  f830
+    188  f830							;===============================================================================
+    189  f830							; Vertical Sync
+    190  f830							; -------------
+    191  f830							; here we generate the signal that tells the TV to move the beam to the top of
+    192  f830							; the screen so we can start the next frame of video.
+    193  f830							; The Sync Signal must be on for 3 scanlines.
+    194  f830							;===============================================================================
+    195  f830
+    196  f830				   VerticalSync
+    197  f830		       a9 02		      lda	#2	; LoaD Accumulator with 2 so D1=1
+    198  f832		       a2 31		      ldx	#49	; LoaD X with 49
+    199  f834		       85 02		      sta	WSYNC	; Wait for SYNC (halts CPU until end of scanline)
+    200  f836		       85 00		      sta	VSYNC	; Accumulator D1=1, turns on Vertical Sync signal
+    201  f838		       8e 96 02 	      stx	TIM64T	; set Score+1 to go off in 41 scanlines (49 * 64) / 76
+    202  f83b		       85 0a		      sta	CTRLPF	; D1=1, playfield now in SCORE mode
+    203  f83d		       a5 99		      lda	Frame
+    204  f83f		       29 3f		      and	#$3f
+    205  f841		       d0 02		      bne	VSskip
+    206  f843		       c6 a8		      dec	ColorCycle
+    207  f845		       e6 99	   VSskip     inc	Frame	; increment Frame count
+    208  f847
+    209  f847		       85 02		      sta	WSYNC	; Wait for Sync - halts CPU until end of 1st scanline of VSYNC
+    210  f849		       85 02		      sta	WSYNC	; wait until end of 2nd scanline of VSYNC
+    211  f84b		       a9 00		      lda	#0	; LoaD Accumulator with 0 so D1=0
+    212  f84d		       85 0d		      sta	PF0	; blank the playfield
+    213  f84f		       85 0e		      sta	PF1	; blank the playfield
+    214  f851		       85 0f		      sta	PF2	; blank the playfield
+    215  f853		       85 1b		      sta	GRP0	; blanks player0 if VDELP0 was off
+    216  f855		       85 1c		      sta	GRP1	; blanks player0 if VDELP0 was on, player1 if VDELP1 was off
+    217  f857		       85 1b		      sta	GRP0	; blanks			    player1 if VDELP1 was on
+    218  f859		       85 25		      sta	VDELP0	; turn off Vertical Delay
+    219  f85b		       85 26		      sta	VDELP1	; turn off Vertical Delay
+    220  f85d		       85 2c		      sta	CXCLR	; clear collision detection latches
+    221  f85f		       85 02		      sta	WSYNC	; wait until end of 3rd scanline of VSYNC
+    222  f861		       85 00		      sta	VSYNC	; Accumulator D1=0, turns off Vertical Sync signal
+    223  f863				   Sleep12		;	 jsr here to sleep for 12 cycles
+    224  f863		       60		      rts		; ReTurn from Subroutine
+    225  f864
+    226  f864
+    227  f864							;===============================================================================
+    228  f864							; Vertical Blank
+    229  f864							; --------------
+    230  f864							; game logic runs here.
+    231  f864							;===============================================================================
+    232  f864
+    233  f864				   VerticalBlank
+    234  f864		       20 df fa 	      jsr	ProcessSwitches
+    235  f867		       24 a7		      bit	GameState
+    236  f869		       10 06		      bpl	NotActive
+    237  f86b		       20 8e f9 	      jsr	UpdateTimer
+    238  f86e		       20 b3 f9 	      jsr	ProcessJoystick
+    239  f871				   NotActive
+    240  f871		       20 1a fa 	      jsr	PositionObjects
+    241  f874		       20 77 fa 	      jsr	SetObjectColors
+    242  f877		       20 b7 fa 	      jsr	PrepScoreForDisplay
+    243  f87a		       60		      rts		; ReTurn from Subroutine
+    244  f87b
+    245  f87b
+    246  f87b							;===============================================================================
+    247  f87b							; Kernel
+    248  f87b							; ------
+    249  f87b							; here we update the registers in TIA, the video chip, scanline by scanline
+    250  f87b							; in order to generate what the player sees.
+    251  f87b							;
+    252  f87b							; Timing is crucial in the kernel, so we need to count the cycles.  You may
+    253  f87b							; use your own method of counting cycles, this is how I do it:
+    254  f87b							;	 instruction	 ;xx yy - comment
+    255  f87b							;   xx = cycles instruction will take
+    256  f87b							;   yy = cumulative cycle count after instruction runs
+    257  f87b							;   comment = what's going on.  Some instructions have special notation:
+    258  f87b							;	 @aa-bb where aa and bb are numbers.  These are used to denote that the
+    259  f87b							;	     instruction MUST be done within a range of cycles.  This is especially
+    260  f87b							;	     true of updating the playfield where you need to update the register
+    261  f87b							;	     twice on a scanline if you want the left and right side of the screen
+    262  f87b							;	     to show different images.	If aa > bb that means the instruction can
+    263  f87b							;	     be executed on the prior scanline on or after cycle aa.
+    264  f87b							;	 (a b) where a and b are numbers.  These are used for branches to show
+    265  f87b							;	     the cycles and cycle count if the branch is taken.
+    266  f87b							;
+    267  f87b							; The following is used to denote when a new scanline starts:
+    268  f87b							;---------------------------------------
+    269  f87b							;
+    270  f87b							;===============================================================================
+    271  f87b
+    272  f87b				   Kernel
+    273  f87b		       85 02		      sta	WSYNC	; Wait for SYNC (halts CPU until end of scanline)
+    274  f87d							;---------------------------------------
+    275  f87d		       ad 84 02 	      lda	INTIM	; 4  4 - check the Score+1
+    276  f880		       d0 f9		      bne	Kernel	; 2  6 - (3 7) Branch if its Not Equal to 0
+    277  f882							; turn on the display
+    278  f882		       85 01		      sta	VBLANK	; 3  9 - Accumulator D1=0, turns off Vertical Blank signal (image output on)
+    279  f884		       a2 05		      ldx	#5	; 2 11 - use X as the loop counter for ScoreLoop
+    280  f886
+    281  f886							; first thing we draw is the score.  Score is drawn using only PF1 of the
+    282  f886							; playfield.  The playfield is set for in repeat mode, and SCORE is turned
+    283  f886							; on so the left and right sides take on the colors of player0 and player1.
+    284  f886							; To get here we can fall thru from above (cycle 11) OR loop back from below
+    285  f886							; (cycle 43). We'll cycle count from the worst case scenario
+    286  f886				   ScoreLoop		;   43 - cycle after bpl ScoreLoop
+    287  f886		       a4 84		      ldy	DigitTens	; 3 46 - get the tens digit offset for the Score
+    288  f888		       b9 00 fc 	      lda	DigitGfx,y	; 5 51 -   use it to load the digit graphics
+    289  f88b		       29 f0		      and	#$F0	; 2 53 -   remove the graphics for the ones digit
+    290  f88d		       85 86		      sta	ScoreGfx	; 3 56 -   and save it
+    291  f88f		       a4 82		      ldy	DigitOnes	; 3 59 - get the ones digit offset for the Score
+    292  f891		       b9 00 fc 	      lda	DigitGfx,y	; 5 64 -   use it to load the digit graphics
+    293  f894		       29 0f		      and	#$0F	; 2 66 -   remove the graphics for the tens digit
+    294  f896		       05 86		      ora	ScoreGfx	; 3 69 -   merge with the tens digit graphics
+    295  f898		       85 86		      sta	ScoreGfx	; 3 72 -   and save it
+    296  f89a		       85 02		      sta	WSYNC	; 3 75 - wait for end of scanline
+    297  f89c							;---------------------------------------
+    298  f89c		       85 0e		      sta	PF1	; 3  3 - @66-28, update playfield for Score dislay
+    299  f89e		       a4 85		      ldy	DigitTens+1	; 3  6 - get the left digit offset for the Score+1
+    300  f8a0		       b9 00 fc 	      lda	DigitGfx,y	; 5 11 -   use it to load the digit graphics
+    301  f8a3		       29 f0		      and	#$F0	; 2 13 -   remove the graphics for the ones digit
+    302  f8a5		       85 87		      sta	ScoreGfx+1	; 3 16 -   and save it
+    303  f8a7		       a4 83		      ldy	DigitOnes+1	; 3 19 - get the ones digit offset for the Score+1
+    304  f8a9		       b9 00 fc 	      lda	DigitGfx,y	; 5 24 -   use it to load the digit graphics
+    305  f8ac		       29 0f		      and	#$0F	; 2 26 -   remove the graphics for the tens digit
+    306  f8ae		       05 87		      ora	ScoreGfx+1	; 3 29 -   merge with the tens digit graphics
+    307  f8b0		       85 87		      sta	ScoreGfx+1	; 3 32 -   and save it
+    308  f8b2		       20 63 f8 	      jsr	Sleep12	;12 44 - waste some cycles
+    309  f8b5		       85 0e		      sta	PF1	; 3 47 - @39-54, update playfield for Score+1 display
+    310  f8b7		       a4 86		      ldy	ScoreGfx	; 3 50 - preload for next scanline
+    311  f8b9		       85 02		      sta	WSYNC	; 3 53 - wait for end of scanline
+    312  f8bb							;---------------------------------------
+    313  f8bb		       84 0e		      sty	PF1	; 3  3 - update playfield for the Score display
+    314  f8bd		       e6 84		      inc	DigitTens	; 5  8 - advance for the next line of graphic data
+    315  f8bf		       e6 85		      inc	DigitTens+1	; 5 13 - advance for the next line of graphic data
+    316  f8c1		       e6 82		      inc	DigitOnes	; 5 18 - advance for the next line of graphic data
+    317  f8c3		       e6 83		      inc	DigitOnes+1	; 5 23 - advance for the next line of graphic data
+    318  f8c5		       20 63 f8 	      jsr	Sleep12	;12 35 - waste some cycles
+    319  f8c8		       ca		      dex		; 2 37 - decrease the loop counter
+    320  f8c9		       85 0e		      sta	PF1	; 3 40 - @39-54, update playfield for the Score+1 display
+    321  f8cb		       d0 b9		      bne	ScoreLoop	; 2 42 - (3 43) if dex != 0 then branch to ScoreLoop
+    322  f8cd		       85 02		      sta	WSYNC	; 3 45 - wait for end of scanline
+    323  f8cf							;---------------------------------------
+    324  f8cf		       86 0e		      stx	PF1	; 3  3 - x = 0, so this blanks out playfield
+    325  f8d1		       85 02		      sta	WSYNC	; 3  6 - wait for end of scanline
+    326  f8d3							;---------------------------------------
+    327  f8d3		       a9 00		      lda	#0	; 2  2
+    328  f8d5		       85 0a		      sta	CTRLPF	; 3  5 - turn off SCORE mode
+    329  f8d7		       a2 01		      ldx	#1	; 2  7
+    330  f8d9							; draw timer bar
+    331  f8d9				   TimerBar
+    332  f8d9		       85 02		      sta	WSYNC	; 3
+    333  f8db							;---------------------------------------
+    334  f8db		       a5 9a		      lda	TimerPF	; 3  3
+    335  f8dd		       85 0d		      sta	PF0	; 3  6
+    336  f8df		       a5 9b		      lda	TimerPF+1	; 3  9
+    337  f8e1		       85 0e		      sta	PF1	; 3 12
+    338  f8e3		       a5 9c		      lda	TimerPF+2	; 3 15
+    339  f8e5		       85 0f		      sta	PF2	; 3 18
+      0  f8e7					      SLEEP	20	;20 38
+      1  f8e7				   .CYCLES    SET	20
+      2  f8e7
+      3  f8e7				  -	      IF	.CYCLES < 2
+      4  f8e7				  -	      ECHO	"MACRO ERROR: 'SLEEP': Duration must be > 1"
+      5  f8e7				  -	      ERR
+      6  f8e7					      ENDIF
+      7  f8e7
+      8  f8e7				  -	      IF	.CYCLES & 1
+      9  f8e7				  -	      IFNCONST	NO_ILLEGAL_OPCODES
+     10  f8e7				  -	      nop	0
+     11  f8e7				  -	      ELSE
+     12  f8e7				  -	      bit	VSYNC
+     13  f8e7				  -	      ENDIF
+     14  f8e7				  -.CYCLES    SET	.CYCLES - 3
+     15  f8e7					      ENDIF
+     16  f8e7
+     17  f8e7					      REPEAT	.CYCLES / 2
+     18  f8e7		       ea		      nop
+     17  f8e7					      REPEND
+     18  f8e8		       ea		      nop
+     17  f8e8					      REPEND
+     18  f8e9		       ea		      nop
+     17  f8e9					      REPEND
+     18  f8ea		       ea		      nop
+     17  f8ea					      REPEND
+     18  f8eb		       ea		      nop
+     17  f8eb					      REPEND
+     18  f8ec		       ea		      nop
+     17  f8ec					      REPEND
+     18  f8ed		       ea		      nop
+     17  f8ed					      REPEND
+     18  f8ee		       ea		      nop
+     17  f8ee					      REPEND
+     18  f8ef		       ea		      nop
+     17  f8ef					      REPEND
+     18  f8f0		       ea		      nop
+     19  f8f1					      REPEND
+    341  f8f1		       a5 9d		      lda	TimerPF+3	; 3 41
+    342  f8f3		       85 0d		      sta	PF0	; 3 44
+    343  f8f5		       a5 9e		      lda	TimerPF+4	; 3 47
+    344  f8f7		       85 0e		      sta	PF1	; 3 50
+    345  f8f9		       a5 9f		      lda	TimerPF+5	; 3 53
+    346  f8fb		       85 0f		      sta	PF2	; 3 56
+    347  f8fd		       ca		      dex		; 2 58
+    348  f8fe		       10 d9		      bpl	TimerBar	; 2 60 (3 61)
+    349  f900		       85 02		      sta	WSYNC	; 3 63
+    350  f902							;---------------------------------------
+    351  f902		       a9 00		      lda	#0	; 2  2
+    352  f904		       85 0d		      sta	PF0	; 3  5
+    353  f906		       85 0e		      sta	PF1	; 3  8
+    354  f908		       85 0f		      sta	PF2	; 3 11
+    355  f90a		       a5 a0		      lda	ArenaColor	; 3 14
+    356  f90c		       85 08		      sta	COLUPF	; 3 17
+    357  f90e		       85 02		      sta	WSYNC	; 3 20 - gab between timer and Arena
+    358  f910							;---------------------------------------
+    359  f910
+    360  f910
+    361  f910							; The Arena is drawn using what is known as a 2 line kernel, or 2LK for
+    362  f910							; short. Basically the code is designed so that the TIA register updates are
+    363  f910							; spread out over 2 scanlines instead of one.	TIA has a feature for the
+    364  f910							; player objects, as well as the ball, called Vertical Delay which allows
+    365  f910							; the objects to still start on any scanline even though they are only
+    366  f910							; updated every-other scanline.  Vertical Delay is controlled by the TIA
+    367  f910							; registers VDELP0, VDELP1 and VDELBL.
+    368  f910							;
+    369  f910							; ArenaLoop:
+    370  f910							;	 line 1 - updates player0, playfield
+    371  f910							;	 line 2 - updates player1, playfield
+    372  f910							;	 if not at bottom, goto ArenaLoop
+    373  f910
+    374  f910							; we need to preload GRP1 so that player1 can appear on the very first
+    375  f910							; scanline of the Arena
+    376  f910
+    377  f910		       a9 01		      lda	#1	; 2  2
+    378  f912		       85 0a		      sta	CTRLPF	; 3  5 - turn off SCORE mode and turn on REFLECT
+    379  f914		       a0 58		      ldy	#ARENA_HEIGHT+1	; 2  7 - the arena will be 180 scanlines (from 0-89)*2
+    380  f916		       a6 a5		      ldx	ArenaOffset	; 3 10 - used for drawing playfield
+    381  f918
+    382  f918							; prime GRP1 so player1 can appear on topmost scanline of the Arena
+    383  f918		       a9 09		      lda	#HUMAN_HEIGHT-1	; 2 12 - height of player0 graphics,
+    384  f91a		       c7 93		      dcp	Player0Draw	; 5 17 - Decrement Player0Draw and compare with height
+    385  f91c		       b0 03		      bcs	DoDrawGrp0pre	; 2 19 - (3 20) if Carry is Set, then player0 is on current scanline
+    386  f91e		       a9 00		      lda	#0	; 2 21 - otherwise use 0 to turn off player0
+    387  f920		       2c		      .byte.b	$2C	; 4 25 - $2C = BIT with absolute addressing, trick that
+    388  f921							;	  causes the lda (Player0Ptr),y to be skipped
+    389  f921				   DoDrawGrp0pre		;   20 - from bcs DoDrawGRP0pre
+    390  f921		       b1 95		      lda	(Player0Ptr),y	; 5 25 - load the shape for player0
+    391  f923		       85 1b		      sta	GRP0	; 3 28 - @0-22, update player0 graphics
+    392  f925		       88		      dey		; 2 30
+    393  f926
+    394  f926				   ArenaLoop		;   30 - (currently 7 from bpl ArenaLoop)
+    395  f926		       98		      tya		; 2 32 - 2LK loop counter in A for testing
+    396  f927		       29 03		      and	#%11	; 2 34 - test for every 4th time through the loop,
+    397  f929		       d0 01		      bne	SkipX	; 2 36 (3 37) branch if not 4th time
+    398  f92b		       e8		      inx		; 2 38 - if 4th time, increase X so new playfield data is used
+    399  f92c				   SkipX		;   38 - use 38 as it's the longest path here
+    400  f92c
+    401  f92c							; continuation of line 2 of the 2LK
+    402  f92c							; this precalculates data that's used on line 1 of the 2LK
+    403  f92c		       a9 09		      lda	#HUMAN_HEIGHT-1	; 2 40 - height of the humanoid graphics, subtract 1 due to starting with 0
+    404  f92e		       c7 94		      dcp	Player1Draw	; 5 45 - Decrement Player1Draw and compare with height
+    405  f930		       b0 03		      bcs	DoDrawGrp1	; 2 47 - (3 48) if Carry is Set, then player1 is on current scanline
+    406  f932		       a9 00		      lda	#0	; 2 49 - otherwise use 0 to turn off player1
+    407  f934		       2c		      .byte.b	$2C	; 4 53 - $2C = BIT with absolute addressing, trick that
+    408  f935							;	  causes the lda (Player1Ptr),y to be skipped
+    409  f935				   DoDrawGrp1		;   48 - from bcs DoDrawGrp1
+    410  f935		       b1 97		      lda	(Player1Ptr),y	; 5 53 - load the shape for player1
+    411  f937		       85 02		      sta	WSYNC	; 3 56
+    412  f939							;---------------------------------------
+    413  f939							; start of line 1 of the 2LK
+    414  f939		       85 1c		      sta	GRP1	; 3  3 - @0-22, update player1 graphics
+    415  f93b		       bd 64 fc 	      lda	ArenaPF0,x	; 4  7 - get current scanline's playfield pattern
+    416  f93e		       85 0d		      sta	PF0	; 3 10 - @0-22 and update it
+    417  f940		       bd 90 fc 	      lda	ArenaPF1,x	; 4 14 - get current scanline's playfield pattern
+    418  f943		       85 0e		      sta	PF1	; 3 17 - @71-28 and update it
+    419  f945		       bd bc fc 	      lda	ArenaPF2,x	; 4 21 - get current scanline's playfield pattern
+    420  f948		       85 0f		      sta	PF2	; 3 24 - @60-39
+    421  f94a
+    422  f94a							; precalculate data that's needed for line 2 of the 2LK
+    423  f94a		       a9 09		      lda	#HUMAN_HEIGHT-1	; 2 26 - height of the box graphics,
+    424  f94c		       c7 93		      dcp	Player0Draw	; 5 31 - Decrement Player0Draw and compare with height
+    425  f94e		       b0 03		      bcs	DoDrawGrp0	; 2 33 - (3 34) if Carry is Set then player0 is on current scanline
+    426  f950		       a9 00		      lda	#0	; 2 35 - otherwise use 0 to turn off player0
+    427  f952		       2c		      .byte.b	$2C	; 4 39 - $2C = BIT with absolute addressing, trick that
+    428  f953							;	  causes the lda (Player0Ptr),y to be skipped
+    429  f953				   DoDrawGrp0		;   34 - from bcs DoDrawGRP0
+    430  f953		       b1 95		      lda	(Player0Ptr),y	; 5 39 - load the shape for player0
+    431  f955		       85 02		      sta	WSYNC	; 3 42
+    432  f957							;---------------------------------------
+    433  f957							; start of line 2 of the 2LK
+    434  f957		       85 1b		      sta	GRP0	; 3  3 - @0-22, update player0 graphics
+    435  f959		       88		      dey		; 2  5 - decrease the 2LK loop counter
+    436  f95a		       d0 ca		      bne	ArenaLoop	; 2  7 - (3  8) branch if there's more Arena to draw
+    437  f95c		       84 0d		      sty	PF0	; 3 10 - Y is 0, blank out playfield
+    438  f95e		       84 0e		      sty	PF1	; 3 13 - Y is 0, blank out playfield
+    439  f960		       84 0f		      sty	PF2	; 3 16 - Y is 0, blank out playfield
+    440  f962		       60		      rts		; 6 22 - ReTurn from Subroutine
+    441  f963
+    442  f963
+    443  f963							;===============================================================================
+    444  f963							; Overscan
+    445  f963							; --------------
+    446  f963							; Process Object Collisions here
+    447  f963							;===============================================================================
+    448  f963
+    449  f963				   OverScan
+    450  f963		       85 02		      sta	WSYNC	; Wait for SYNC (halts CPU until end of scanline)
+    451  f965		       a9 02		      lda	#2	; LoaD Accumulator with 2 so D1=1
+    452  f967		       85 01		      sta	VBLANK	; STore Accumulator to VBLANK, D1=1 turns image output off
+    453  f969
+    454  f969							; set the Score+1 for 27 scanlines.  Each scanline lasts 76 cycles,
+    455  f969							; but the Score+1 counts down once every 64 cycles, so use this
+    456  f969							; formula to figure out the value to set.
+    457  f969							;	 (scanlines * 76) / 64
+    458  f969							; Also note that it might be slight off due to when on the scanline TIM64T
+    459  f969							; is updated.	So use Stella to check how many scanlines the code is
+    460  f969							; generating and adjust accordingly.
+    461  f969							;
+    462  f969							; originally 32, changed to 35 after tweaking size of Arena
+    463  f969		       a9 23		      lda	#35	; set Score+1 for 27 scanlines, 32 = ((27 * 76) / 64)
+    464  f96b		       8d 96 02 	      sta	TIM64T	; set Score+1 to go off in 27 scanlines
+    465  f96e
+    466  f96e							; Test if player collided with playfield
+    467  f96e		       24 02		      bit	CXP0FB	; N = player0/playfield, V=player0/ball
+    468  f970		       10 08		      bpl	notP0PF	; if N is off, then player0 did not collide with playfield
+    469  f972		       a5 a1		      lda	SavedX	; recall saved X
+    470  f974		       85 89		      sta	ObjectX	; and move player back to it
+    471  f976		       a5 a3		      lda	SavedY	; recall saved Y
+    472  f978		       85 8e		      sta	ObjectY	; and move player back to it
+    473  f97a				   notP0PF
+    474  f97a		       24 03		      bit	CXP1FB	; N = player1/playfield, V=player1/ball
+    475  f97c		       10 08		      bpl	notP1PF	; if N is off, then player1 did not collide with playfield
+    476  f97e		       a5 a2		      lda	SavedX+1	; recall saved X
+    477  f980		       85 8a		      sta	ObjectX+1	; and move player back to it
+    478  f982		       a5 a4		      lda	SavedY+1	; recall saved Y
+    479  f984		       85 8f		      sta	ObjectY+1	; and move player back to it
+    480  f986				   notP1PF
+    481  f986
+    482  f986				   OSwait
+    483  f986		       85 02		      sta	WSYNC	; Wait for SYNC (halts CPU until end of scanline)
+    484  f988		       ad 84 02 	      lda	INTIM	; Check the Score+1
+    485  f98b		       d0 f9		      bne	OSwait	; Branch if its Not Equal to 0
+    486  f98d		       60		      rts		; ReTurn from Subroutine
+    487  f98e
+    488  f98e
+    489  f98e							;===============================================================================
+    490  f98e							; UpdateTimer
+    491  f98e							; -----------
+    492  f98e							; udpates timer display
+    493  f98e							;===============================================================================
+    494  f98e				   UpdateTimer
+    495  f98e		       a5 99		      lda	Frame
+    496  f990		       29 3f		      and	#63
+    497  f992		       f0 01		      beq	TimerTick
+    498  f994		       60		      rts
+    499  f995
+    500  f995				   TimerTick
+    501  f995		       a5 9a		      lda	TimerPF
+    502  f997		       29 f0		      and	#%11110000
+    503  f999		       d0 05		      bne	DecrementTimer
+    504  f99b							; reset timer for demo
+    505  f99b		       a9 00		      lda	#0
+    506  f99d		       85 a7		      sta	GameState
+    507  f99f		       60		      rts
+    508  f9a0
+    509  f9a0				   DecrementTimer
+    510  f9a0		       46 9f		      lsr	TimerPF+5	; PF2 right side, reversed bits so shift right
+    511  f9a2		       26 9e		      rol	TimerPF+4	; PF1 right side, normal bits so shift left
+    512  f9a4		       66 9d		      ror	TimerPF+3	; PF0 right side, reversed bits so shift right
+    513  f9a6		       a5 9d		      lda	TimerPF+3	; only upper nybble used, so we need to put bit 3 into C
+    514  f9a8		       4a		      lsr
+    515  f9a9		       4a		      lsr
+    516  f9aa		       4a		      lsr
+    517  f9ab		       4a		      lsr
+    518  f9ac		       66 9c		      ror	TimerPF+2	; PF2 left side, reversed bits so shift right
+    519  f9ae		       26 9b		      rol	TimerPF+1	; PF1 left side, normal bits so shift left
+    520  f9b0		       66 9a		      ror	TimerPF	; PF0 left side, reversed bits so shift right
+    521  f9b2		       60		      rts
+    522  f9b3
+    523  f9b3							;===============================================================================
+    524  f9b3							; ProcessJoystick
+    525  f9b3							; --------------
+    526  f9b3							; Read left joystick and move the humanoid
+    527  f9b3							; for testing, read right joystick and move second humanoid
+    528  f9b3							;
+    529  f9b3							; joystick directions are held in the SWCHA register of the RIOT chip.
+    530  f9b3							; Directions are read via the following bit pattern:
+    531  f9b3							;   76543210
+    532  f9b3							;   RLDUrldu
+    533  f9b3							;
+    534  f9b3							; UPPERCASE denotes the left joystick directions
+    535  f9b3							; lowercase denotes the right joystick directions
+    536  f9b3							;
+    537  f9b3							; NOTE the values are the opposite of what you might expect. If the direction
+    538  f9b3							; is held, the bit value will be 0.
+    539  f9b3							;
+    540  f9b3							; Fire buttons are read via INPT4 (left) and INPT5 (right).  They are currently
+    541  f9b3							; used to slow down player movement to make alignment testing easier.
+    542  f9b3							;===============================================================================
+    543  f9b3				   ProcessJoystick
+    544  f9b3		       ad 80 02 	      lda	SWCHA	; reads joystick positions
+    545  f9b6
+    546  f9b6		       a2 00		      ldx	#0	; x=0 for left joystick, x=1 for right
+    547  f9b8				   PJloop
+    548  f9b8		       b4 89		      ldy	ObjectX,x	; save original Y location so the player can be
+    549  f9ba		       94 a1		      sty	SavedX,x	;   bounced back upon colliding with the playfield
+    550  f9bc		       b4 8e		      ldy	ObjectY,x	; save original Y location so the player can be
+    551  f9be		       94 a3		      sty	SavedY,x	;   bounced back upon colliding with the playfield
+    552  f9c0		       b4 0c		      ldy	INPT4,x	; check the firebutton for this joystick
+    553  f9c2		       30 10		      bmi	NormalSpeed	; if it's not held down then player moves at full speed
+    554  f9c4		       48		      pha		; PusH A onto stack (saves value of A)
+    555  f9c5		       a5 99		      lda	Frame	; if it is held down, then only move once every 8 frames
+    556  f9c7		       29 07		      and	#7
+    557  f9c9		       f0 08		      beq	SlowMovement
+    558  f9cb		       68		      pla		; PuLl A from stack (restores value of A)
+    559  f9cc		       0a		      asl		; shift the 4 direction readings out of A
+    560  f9cd		       0a		      asl		; so the other joystick can be processed
+    561  f9ce		       0a		      asl
+    562  f9cf		       0a		      asl
+    563  f9d0		       4c 14 fa 	      jmp	NextJoystick
+    564  f9d3
+    565  f9d3				   SlowMovement
+    566  f9d3		       68		      pla		; PuLl A from stack (restores value of A)
+    567  f9d4				   NormalSpeed
+    568  f9d4		       0a		      asl		; shift A bits left, R is now in the carry bit
+    569  f9d5		       b0 0f		      bcs	CheckLeft	; branch if joystick is not held right
+    570  f9d7		       b4 89		      ldy	ObjectX,x	; get the object's X position
+    571  f9d9		       c8		      iny		; and move it right
+    572  f9da		       c0 a0		      cpy	#160	; test for edge of screen
+    573  f9dc		       d0 02		      bne	SaveX	; save Y if we're not at the edge
+    574  f9de		       a0 00		      ldy	#0	; else wrap to left edge
+    575  f9e0		       94 89	   SaveX      sty	ObjectX,x	; saveX
+    576  f9e2		       a0 00		      ldy	#0	; turn off reflect of player, which
+    577  f9e4		       94 0b		      sty	REFP0,x	; makes humanoid image face right
+    578  f9e6
+    579  f9e6				   CheckLeft
+    580  f9e6		       0a		      asl		; shift A bits left, L is now in the carry bit
+    581  f9e7		       b0 0f		      bcs	CheckDown	; branch if joystick not held left
+    582  f9e9		       b4 89		      ldy	ObjectX,x	; get the object's X position
+    583  f9eb		       88		      dey		; and move it left
+    584  f9ec		       c0 ff		      cpy	#255	; test for edge of screen
+    585  f9ee		       d0 02		      bne	SaveX2	; save X if we're not at the edge
+    586  f9f0		       a0 9f		      ldy	#159	; else wrap to right edge
+    587  f9f2		       94 89	   SaveX2     sty	ObjectX,x	; save X
+    588  f9f4		       a0 08		      ldy	#8	; turn on reflect of player, which
+    589  f9f6		       94 0b		      sty	REFP0,x	; makes humanoid image face left
+    590  f9f8
+    591  f9f8				   CheckDown
+    592  f9f8		       0a		      asl		; shift A bits left, D is now in the carry bit
+    593  f9f9		       b0 0b		      bcs	CheckUp	; branch if joystick not held down
+    594  f9fb		       b4 8e		      ldy	ObjectY,x	; get the object's Y position
+    595  f9fd		       88		      dey		; move it down
+    596  f9fe		       c0 ff		      cpy	#255	; test for bottom of screen
+    597  fa00		       d0 02		      bne	SaveY	; save Y if we're not at the bottom
+    598  fa02		       a0 af		      ldy	#ARENA_HEIGHT*2+1	; else wrap to top
+    599  fa04		       94 8e	   SaveY      sty	ObjectY,x	; save Y
+    600  fa06
+    601  fa06				   CheckUp
+    602  fa06		       0a		      asl		; shift A bits left, U is now in the carry bit
+    603  fa07		       b0 0b		      bcs	NextJoystick	; branch if joystick not held up
+    604  fa09		       b4 8e		      ldy	ObjectY,x	; get the object's Y position
+    605  fa0b		       c8		      iny		; move it up
+    606  fa0c		       c0 b0		      cpy	#ARENA_HEIGHT*2+2	; test for top of screen
+    607  fa0e		       d0 02		      bne	SaveY2	; save Y if we're not at the top
+    608  fa10		       a0 00		      ldy	#0	; else wrap to bottom
+    609  fa12		       94 8e	   SaveY2     sty	ObjectY,x	; save Y
+    610  fa14
+    611  fa14				   NextJoystick
+    612  fa14		       e8		      inx		; increase loop control
+    613  fa15		       e0 02		      cpx	#2	; check if we've processed both joysticks
+    614  fa17		       d0 9f		      bne	PJloop	; branch if we haven't
+    615  fa19
+    616  fa19		       60		      rts
+    617  fa1a
+    618  fa1a							;===============================================================================
+    619  fa1a							; PositionObjects
+    620  fa1a							; --------------
+    621  fa1a							; Updates TIA for X position of all objects
+    622  fa1a							; Updates Kernel variables for Y position of all objects
+    623  fa1a							;===============================================================================
+    624  fa1a				   PositionObjects
+    625  fa1a		       a2 01		      ldx	#1	; position objects 0-1: player0 and player1
+    626  fa1c				   POloop
+    627  fa1c		       b5 89		      lda	ObjectX,x	; get the object's X position
+    628  fa1e		       20 00 f8 	      jsr	PosObject	; set coarse X position and fine-tune amount
+    629  fa21		       ca		      dex		; DEcrement X
+    630  fa22		       10 f8		      bpl	POloop	; Branch PLus so we position all objects
+    631  fa24		       85 02		      sta	WSYNC	; wait for end of scanline
+    632  fa26		       85 2a		      sta	HMOVE	; use fine-tune values to set final X positions
+    633  fa28
+    634  fa28							; prep player 1's Y position for 2LK
+    635  fa28		       a2 01		      ldx	#1	; preload X for setting VDELPx
+    636  fa2a		       a5 8e		      lda	ObjectY	; get the human's Y position
+    637  fa2c		       18		      clc
+    638  fa2d		       69 01		      adc	#1	; add 1 to compensate for priming of GRP0
+    639  fa2f		       4a		      lsr		; divide by 2 for the 2LK position
+    640  fa30		       85 88		      sta	Temp	; save for position calculations
+    641  fa32		       b0 02		      bcs	NoDelay0	; if carry is set we don't need Vertical Delay
+    642  fa34		       86 25		      stx	VDELP0	; carry was clear, so set Vertical Delay
+    643  fa36				   NoDelay0
+    644  fa36							; Player0Draw = ARENA_HEIGHT + HUMAN_HEIGHT - Y position + 1
+    645  fa36							; the + 1 compensates for priming of GRP0
+    646  fa36		       a9 62		      lda	#(ARENA_HEIGHT + HUMAN_HEIGHT + 1)
+    647  fa38		       38		      sec
+    648  fa39		       e5 88		      sbc	Temp
+    649  fa3b		       85 93		      sta	Player0Draw
+    650  fa3d
+    651  fa3d							; Player0Ptr = HumanGfx + HUMAN_HEIGHT - 1 - Y position
+    652  fa3d		       a9 59		      lda	#<(HumanGfx + HUMAN_HEIGHT - 1)
+    653  fa3f		       38		      sec
+    654  fa40		       e5 88		      sbc	Temp
+    655  fa42		       85 95		      sta	Player0Ptr
+    656  fa44		       a9 fc		      lda	#>(HumanGfx + HUMAN_HEIGHT - 1)
+    657  fa46		       e9 00		      sbc	#0
+    658  fa48		       85 96		      sta	Player0Ptr+1
+    659  fa4a
+    660  fa4a							; prep player 2's Y position for 2LK
+    661  fa4a		       a5 8f		      lda	ObjectY+1	; get the box's Y position
+    662  fa4c		       4a		      lsr		; divide by 2 for the 2LK position
+    663  fa4d		       85 88		      sta	Temp	; save for position calculations
+    664  fa4f		       b0 02		      bcs	NoDelay1	; if carry is set we don't need Vertical Delay
+    665  fa51		       86 26		      stx	VDELP1	; carry was clear, so set Vertical Delay
+    666  fa53				   NoDelay1
+    667  fa53							; Player1Draw = ARENA_HEIGHT + HUMAN_HEIGHT - Y position + 1
+    668  fa53		       a9 61		      lda	#(ARENA_HEIGHT + HUMAN_HEIGHT)
+    669  fa55		       38		      sec
+    670  fa56		       e5 88		      sbc	Temp
+    671  fa58		       85 94		      sta	Player1Draw
+    672  fa5a
+    673  fa5a		       a2 00		      ldx	#0
+    674  fa5c		       2c 82 02 	      bit	SWCHB
+    675  fa5f		       10 02		      bpl	TwoPlayer
+    676  fa61		       a2 01		      ldx	#1
+    677  fa63				   TwoPlayer
+    678  fa63							; Player1Ptr = BoxGfx + HUMAN_HEIGHT - 1 - Y position
+    679  fa63		       bd 73 fa 	      lda	ShapePtrLow,x
+    680  fa66		       38		      sec
+    681  fa67		       e5 88		      sbc	Temp
+    682  fa69		       85 97		      sta	Player1Ptr
+    683  fa6b		       bd 75 fa 	      lda	ShapePtrHi,x
+    684  fa6e		       e9 00		      sbc	#0
+    685  fa70		       85 98		      sta	Player1Ptr+1
+    686  fa72
+    687  fa72		       60		      rts
+    688  fa73
+    689  fa73				   ShapePtrLow
+    690  fa73		       59		      .byte.b	<(HumanGfx + HUMAN_HEIGHT - 1)
+    691  fa74		       63		      .byte.b	<(BoxGfx + HUMAN_HEIGHT - 1)
+    692  fa75
+    693  fa75				   ShapePtrHi
+    694  fa75		       fc		      .byte.b	>(HumanGfx + HUMAN_HEIGHT - 1)
+    695  fa76		       fc		      .byte.b	>(BoxGfx + HUMAN_HEIGHT - 1)
+    696  fa77
+    697  fa77							;===============================================================================
+    698  fa77							; SetObjectColors
+    699  fa77							; --------------
+    700  fa77							; Set the 4 color registers based on the state of TV Type.
+    701  fa77							; Eventually this will also handle color cycling of attract mode
+    702  fa77							;===============================================================================
+    703  fa77				   SetObjectColors
+    704  fa77		       a9 ff		      lda	#$FF
+    705  fa79		       85 a6		      sta	Temp2	; default to color mask
+    706  fa7b		       25 a8		      and	ColorCycle	; color cycle
+    707  fa7d		       24 a7		      bit	GameState
+    708  fa7f		       10 02		      bpl	SOCgameover
+    709  fa81		       a9 00		      lda	#0	; if game is active, no color cycle
+    710  fa83				   SOCgameover
+    711  fa83		       85 88		      sta	Temp
+    712  fa85		       a2 04		      ldx	#4	; we're going to set 5 colors (0-4)
+    713  fa87		       a0 04		      ldy	#4	; default to the color entries in the table (0-4)
+    714  fa89		       ad 82 02 	      lda	SWCHB	; read the state of the console switches
+    715  fa8c		       29 08		      and	#%00001000	; test state of D3, the TV Type switch
+    716  fa8e		       d0 06		      bne	SOCloop	; if D3=1 then use color
+    717  fa90		       a0 0f		      ldy	#$0f
+    718  fa92		       84 a6		      sty	Temp2	; set B&W mask
+    719  fa94		       a0 09		      ldy	#9	; else use the b&w entries in the table (5-9)
+    720  fa96				   SOCloop
+    721  fa96		       b9 ad fa 	      lda	Colors,y	; get the color or b&w value
+    722  fa99		       45 88		      eor	Temp	; color cycle
+    723  fa9b		       25 a6		      and	Temp2	; B&W mask
+    724  fa9d		       95 05		      sta	COLUP0-1,x	; and set it
+    725  fa9f		       88		      dey		; decrease Y
+    726  faa0		       ca		      dex		; decrease X
+    727  faa1		       d0 f3		      bne	SOCloop	; Branch Not Equal to Zero
+    728  faa3		       b9 ad fa 	      lda	Colors,y	; get the Arena color
+    729  faa6		       45 88		      eor	Temp	; color cycle
+    730  faa8		       25 a6		      and	Temp2	; B&W mask
+    731  faaa		       85 a0		      sta	ArenaColor	; save in RAM for Kernal Usage
+    732  faac
+    733  faac		       60		      rts		; ReTurn from Subroutine
+    734  faad
+    735  faad				   Colors
+    736  faad		       46		      .byte.b	$46	; red	      - goes into COLUPF, color for Arena (after Timer is drawn)
+    737  faae		       86		      .byte.b	$86	; blue       - goes into COLUP0, color for player0 and missile0
+    738  faaf		       c6		      .byte.b	$C6	; green      - goes into COLUP1, color for player1 and missile1
+    739  fab0		       64		      .byte.b	$64	; purple     - goes into COLUPF, color for Timer
+    740  fab1		       00		      .byte.b	$00	; black      - goes into COLUBK, color for background
+    741  fab2		       0a		      .byte.b	$0A	; light grey - goes into COLUPF, color for Arena (after Timer is drawn)
+    742  fab3		       0e		      .byte.b	$0E	; white      - goes into COLUP0, color for player0 and missile0
+    743  fab4		       06		      .byte.b	$06	; dark grey  - goes into COLUP1, color for player1 and missile1
+    744  fab5		       04		      .byte.b	$04	; dark grey  - goes into COLUPF, color for Timer
+    745  fab6		       00		      .byte.b	$00	; black      - goes into COLUBK, color for background
+    746  fab7
+    747  fab7							;===============================================================================
+    748  fab7							; PrepScoreForDisplay
+    749  fab7							; --------------
+    750  fab7							; Converts the high and low nybbles of the RAM variables Score and Score+1
+    751  fab7							; into offsets into the digit graphics so the values can be displayed.
+    752  fab7							; Each digit uses 5 bytes of data for the graphics.  For the low nybble we need
+    753  fab7							; to multiply by 5, but the 6507 does not have a multiply feature.  It can,
+    754  fab7							; however, shift the bits in a byte left, which is the same as a multiply by 2.
+    755  fab7							; Using this, we can get multiply a # by 5 like this:
+    756  fab7							;	 # * 5 = (# * 2 * 2) + #
+    757  fab7							; The value in the upper nybble is already times 16, so we need to divide it.
+    758  fab7							; The 6507 can shift the bits the right, which is the same as divide by 2.
+    759  fab7							;	 (# / 16) * 5 = (# / 2 / 2) + (# / 2 / 2 / 2 / 2)
+    760  fab7							;===============================================================================
+    761  fab7
+    762  fab7				   PrepScoreForDisplay
+    763  fab7							; for testing purposes, set Score to Humanoid Y and Score+1 to Box Y
+    764  fab7		       a5 8e		      lda	ObjectY
+    765  fab9		       85 80		      sta	Score
+    766  fabb		       a5 8f		      lda	ObjectY+1
+    767  fabd		       85 81		      sta	Score+1
+    768  fabf
+    769  fabf				   PSFDskip
+    770  fabf		       a2 01		      ldx	#1	; use X as the loop counter for PSFDloop
+    771  fac1				   PSFDloop
+    772  fac1		       b5 80		      lda	Score,x	; LoaD A with Score+1(first pass) or Score(second pass)
+    773  fac3		       29 0f		      and	#$0F	; remove the tens digit
+    774  fac5		       85 88		      sta	Temp	; Store A into Temp
+    775  fac7		       0a		      asl		; Accumulator Shift Left (# * 2)
+    776  fac8		       0a		      asl		; Accumulator Shift Left (# * 4)
+    777  fac9		       65 88		      adc	Temp	; ADd with Carry value in Temp (# * 5)
+    778  facb		       95 82		      sta	DigitOnes,x	; STore A in DigitOnes+1(first pass) or DigitOnes(second pass)
+    779  facd		       b5 80		      lda	Score,x	; LoaD A with Score+1(first pass) or Score(second pass)
+    780  facf		       29 f0		      and	#$F0	; remove the ones digit
+    781  fad1		       4a		      lsr		; Logical Shift Right (# / 2)
+    782  fad2		       4a		      lsr		; Logical Shift Right (# / 4)
+    783  fad3		       85 88		      sta	Temp	; Store A into Temp
+    784  fad5		       4a		      lsr		; Logical Shift Right (# / 8)
+    785  fad6		       4a		      lsr		; Logical Shift Right (# / 16)
+    786  fad7		       65 88		      adc	Temp	; ADd with Carry value in Temp ((# / 16) * 5)
+    787  fad9		       95 84		      sta	DigitTens,x	; STore A in DigitTens+1(first pass) or DigitTens(second pass)
+    788  fadb		       ca		      dex		; DEcrement X by 1
+    789  fadc		       10 e3		      bpl	PSFDloop	; Branch PLus (positive) to PSFDloop
+    790  fade		       60		      rts		; ReTurn from Subroutine
+    791  fadf
+    792  fadf
+    793  fadf							;===============================================================================
+    794  fadf							; ProcessSwitches
+    795  fadf							; --------------
+    796  fadf							; This routine processes the SELECT and RESET switches on the console.  The
+    797  fadf							; state of the switches is in the SWCHB register.
+    798  fadf							;   - D1=0 means SELECT is held.  Turn off an active game and increment game variation
+    799  fadf							;   - D0=0 means RESET is held.  Start a new game
+    800  fadf							;===============================================================================
+    801  fadf				   ProcessSwitches
+    802  fadf		       ad 82 02 	      lda	SWCHB	; load in the state of the switches
+    803  fae2		       4a		      lsr		; D0 is now in C
+    804  fae3		       b0 08		      bcs	NotReset	; if D0 was on, the RESET switch was not held
+    805  fae5		       20 f5 fa 	      jsr	InitPos	; Prep for new game
+    806  fae8		       a9 80		      lda	#%10000000
+    807  faea		       85 a7		      sta	GameState	; set D7 on to signify Game Active
+    808  faec		       60		      rts
+    809  faed
+    810  faed				   NotReset
+    811  faed		       4a		      lsr		; D1 is now in C
+    812  faee		       b0 04		      bcs	NotSelect
+    813  faf0		       a9 00		      lda	#0
+    814  faf2		       85 a7		      sta	GameState	; clear D7 to signify Game Over
+    815  faf4
+    816  faf4				   NotSelect
+    817  faf4		       60		      rts
+    818  faf5
+    819  faf5
+    820  faf5							;===============================================================================
+    821  faf5							; InitPos
+    822  faf5							; --------------
+    823  faf5							;===============================================================================
+    824  faf5				   InitPos
+    825  faf5							; set starting location of player0 and player1 objects
+    826  faf5		       a9 0a		      lda	#10
+    827  faf7		       85 89		      sta	ObjectX
+    828  faf9		       85 0c		      sta	REFP1	; bit D3 is on, so reflect player1
+    829  fafb		       a9 8e		      lda	#142
+    830  fafd		       85 8a		      sta	ObjectX+1
+    831  faff		       a9 63		      lda	#$63
+    832  fb01		       85 8e		      sta	ObjectY
+    833  fb03		       85 8f		      sta	ObjectY+1
+    834  fb05		       85 0b		      sta	REFP0	; bit D3 is off, so don't reflect player0
+    835  fb07							; reset timer
+    836  fb07		       a9 ff		      lda	#%11111111
+    837  fb09		       85 9a		      sta	TimerPF
+    838  fb0b		       85 9b		      sta	TimerPF+1
+    839  fb0d		       85 9c		      sta	TimerPF+2
+    840  fb0f		       85 9d		      sta	TimerPF+3
+    841  fb11		       85 9e		      sta	TimerPF+4
+    842  fb13		       85 9f		      sta	TimerPF+5
+    843  fb15		       60		      rts
+    844  fb16
+    845  fb16
+    846  fb16							;===============================================================================
+    847  fb16							; free space check before DigitGfx
+    848  fb16							;===============================================================================
+    849  fb16
+    850  fb16					      if	(* & $FF)
+ ------ 234 bytes free before DigitGfx
+    851  fb16					      echo	"------", [(>.+1)*256 - .]d, "bytes free before DigitGfx"
+    852  fc00		       00 00 00 00*	      align	256
+    853  fc00					      endif
+    854  fc00
+    855  fc00
+    856  fc00							;===============================================================================
+    857  fc00							; Digit Graphics
+    858  fc00							;===============================================================================
+    859  fc00					      align	256
+    860  fc00				   DigitGfx
+    861  fc00		       77		      .byte.b	%01110111
+    862  fc01		       55		      .byte.b	%01010101
+    863  fc02		       55		      .byte.b	%01010101
+    864  fc03		       55		      .byte.b	%01010101
+    865  fc04		       77		      .byte.b	%01110111
+    866  fc05
+    867  fc05		       11		      .byte.b	%00010001
+    868  fc06		       11		      .byte.b	%00010001
+    869  fc07		       11		      .byte.b	%00010001
+    870  fc08		       11		      .byte.b	%00010001
+    871  fc09		       11		      .byte.b	%00010001
+    872  fc0a
+    873  fc0a		       77		      .byte.b	%01110111
+    874  fc0b		       11		      .byte.b	%00010001
+    875  fc0c		       77		      .byte.b	%01110111
+    876  fc0d		       44		      .byte.b	%01000100
+    877  fc0e		       77		      .byte.b	%01110111
+    878  fc0f
+    879  fc0f		       77		      .byte.b	%01110111
+    880  fc10		       11		      .byte.b	%00010001
+    881  fc11		       33		      .byte.b	%00110011
+    882  fc12		       11		      .byte.b	%00010001
+    883  fc13		       77		      .byte.b	%01110111
+    884  fc14
+    885  fc14		       55		      .byte.b	%01010101
+    886  fc15		       55		      .byte.b	%01010101
+    887  fc16		       77		      .byte.b	%01110111
+    888  fc17		       11		      .byte.b	%00010001
+    889  fc18		       11		      .byte.b	%00010001
+    890  fc19
+    891  fc19		       77		      .byte.b	%01110111
+    892  fc1a		       44		      .byte.b	%01000100
+    893  fc1b		       77		      .byte.b	%01110111
+    894  fc1c		       11		      .byte.b	%00010001
+    895  fc1d		       77		      .byte.b	%01110111
+    896  fc1e
+    897  fc1e		       77		      .byte.b	%01110111
+    898  fc1f		       44		      .byte.b	%01000100
+    899  fc20		       77		      .byte.b	%01110111
+    900  fc21		       55		      .byte.b	%01010101
+    901  fc22		       77		      .byte.b	%01110111
+    902  fc23
+    903  fc23		       77		      .byte.b	%01110111
+    904  fc24		       11		      .byte.b	%00010001
+    905  fc25		       11		      .byte.b	%00010001
+    906  fc26		       11		      .byte.b	%00010001
+    907  fc27		       11		      .byte.b	%00010001
+    908  fc28
+    909  fc28		       77		      .byte.b	%01110111
+    910  fc29		       55		      .byte.b	%01010101
+    911  fc2a		       77		      .byte.b	%01110111
+    912  fc2b		       55		      .byte.b	%01010101
+    913  fc2c		       77		      .byte.b	%01110111
+    914  fc2d
+    915  fc2d		       77		      .byte.b	%01110111
+    916  fc2e		       55		      .byte.b	%01010101
+    917  fc2f		       77		      .byte.b	%01110111
+    918  fc30		       11		      .byte.b	%00010001
+    919  fc31		       77		      .byte.b	%01110111
+    920  fc32
+    921  fc32		       22		      .byte.b	%00100010
+    922  fc33		       55		      .byte.b	%01010101
+    923  fc34		       77		      .byte.b	%01110111
+    924  fc35		       55		      .byte.b	%01010101
+    925  fc36		       55		      .byte.b	%01010101
+    926  fc37
+    927  fc37		       66		      .byte.b	%01100110
+    928  fc38		       55		      .byte.b	%01010101
+    929  fc39		       66		      .byte.b	%01100110
+    930  fc3a		       55		      .byte.b	%01010101
+    931  fc3b		       66		      .byte.b	%01100110
+    932  fc3c
+    933  fc3c		       33		      .byte.b	%00110011
+    934  fc3d		       44		      .byte.b	%01000100
+    935  fc3e		       44		      .byte.b	%01000100
+    936  fc3f		       44		      .byte.b	%01000100
+    937  fc40		       33		      .byte.b	%00110011
+    938  fc41
+    939  fc41		       66		      .byte.b	%01100110
+    940  fc42		       55		      .byte.b	%01010101
+    941  fc43		       55		      .byte.b	%01010101
+    942  fc44		       55		      .byte.b	%01010101
+    943  fc45		       66		      .byte.b	%01100110
+    944  fc46
+    945  fc46		       77		      .byte.b	%01110111
+    946  fc47		       44		      .byte.b	%01000100
+    947  fc48		       66		      .byte.b	%01100110
+    948  fc49		       44		      .byte.b	%01000100
+    949  fc4a		       77		      .byte.b	%01110111
+    950  fc4b
+    951  fc4b		       77		      .byte.b	%01110111
+    952  fc4c		       44		      .byte.b	%01000100
+    953  fc4d		       66		      .byte.b	%01100110
+    954  fc4e		       44		      .byte.b	%01000100
+    955  fc4f		       44		      .byte.b	%01000100
+    956  fc50
+    957  fc50				   HumanGfx
+    958  fc50		       1c		      .byte.b	%00011100
+    959  fc51		       18		      .byte.b	%00011000
+    960  fc52		       18		      .byte.b	%00011000
+    961  fc53		       18		      .byte.b	%00011000
+    962  fc54		       5a		      .byte.b	%01011010
+    963  fc55		       5a		      .byte.b	%01011010
+    964  fc56		       3c		      .byte.b	%00111100
+    965  fc57		       00		      .byte.b	%00000000
+    966  fc58		       18		      .byte.b	%00011000
+    967  fc59		       18		      .byte.b	%00011000
+    968  fc59		       00 0a	   HUMAN_HEIGHT =	* - HumanGfx
+    969  fc5a
+    970  fc5a				   BoxGfx
+    971  fc5a		       00		      .byte.b	%00000000
+    972  fc5b		       00		      .byte.b	%00000000
+    973  fc5c		       ff		      .byte.b	%11111111
+    974  fc5d		       81		      .byte.b	%10000001
+    975  fc5e		       81		      .byte.b	%10000001
+    976  fc5f		       81		      .byte.b	%10000001
+    977  fc60		       81		      .byte.b	%10000001
+    978  fc61		       81		      .byte.b	%10000001
+    979  fc62		       81		      .byte.b	%10000001
+    980  fc63		       ff		      .byte.b	%11111111
+    981  fc64
+    982  fc64				   ArenaPF0		; PF0 is drawn in reverse order, and only the upper nybble
+    983  fc64		       f0		      .byte.b	%11110000	; Arena 1
+    984  fc65		       10		      .byte.b	%00010000
+    985  fc66		       10		      .byte.b	%00010000
+    986  fc67		       10		      .byte.b	%00010000
+    987  fc68		       10		      .byte.b	%00010000
+    988  fc69		       10		      .byte.b	%00010000
+    989  fc6a		       10		      .byte.b	%00010000
+    990  fc6b		       10		      .byte.b	%00010000
+    991  fc6c		       10		      .byte.b	%00010000
+    992  fc6d		       10		      .byte.b	%00010000
+    993  fc6e		       10		      .byte.b	%00010000
+    994  fc6f		       10		      .byte.b	%00010000
+    995  fc70		       10		      .byte.b	%00010000
+    996  fc71		       10		      .byte.b	%00010000
+    997  fc72		       10		      .byte.b	%00010000
+    998  fc73		       10		      .byte.b	%00010000
+    999  fc74		       10		      .byte.b	%00010000
+   1000  fc75		       10		      .byte.b	%00010000
+   1001  fc76		       10		      .byte.b	%00010000
+   1002  fc77		       10		      .byte.b	%00010000
+   1003  fc78		       10		      .byte.b	%00010000
+   1004  fc79		       f0		      .byte.b	%11110000
+   1005  fc7a
+   1006  fc7a		       f0		      .byte.b	%11110000	; Arena 2
+   1007  fc7b		       10		      .byte.b	%00010000
+   1008  fc7c		       10		      .byte.b	%00010000
+   1009  fc7d		       10		      .byte.b	%00010000
+   1010  fc7e		       10		      .byte.b	%00010000
+   1011  fc7f		       10		      .byte.b	%00010000
+   1012  fc80		       10		      .byte.b	%00010000
+   1013  fc81		       10		      .byte.b	%00010000
+   1014  fc82		       10		      .byte.b	%00010000
+   1015  fc83		       10		      .byte.b	%00010000
+   1016  fc84		       10		      .byte.b	%00010000
+   1017  fc85		       10		      .byte.b	%00010000
+   1018  fc86		       10		      .byte.b	%00010000
+   1019  fc87		       10		      .byte.b	%00010000
+   1020  fc88		       10		      .byte.b	%00010000
+   1021  fc89		       10		      .byte.b	%00010000
+   1022  fc8a		       10		      .byte.b	%00010000
+   1023  fc8b		       10		      .byte.b	%00010000
+   1024  fc8c		       10		      .byte.b	%00010000
+   1025  fc8d		       10		      .byte.b	%00010000
+   1026  fc8e		       10		      .byte.b	%00010000
+   1027  fc8f		       f0		      .byte.b	%11110000
+   1028  fc90
+   1029  fc90
+   1030  fc90				   ArenaPF1		; PF1 is drawn in expected order
+   1031  fc90		       ff		      .byte.b	%11111111
+   1032  fc91		       00		      .byte.b	%00000000
+   1033  fc92		       00		      .byte.b	%00000000
+   1034  fc93		       38		      .byte.b	%00111000
+   1035  fc94		       00		      .byte.b	%00000000
+   1036  fc95		       00		      .byte.b	%00000000
+   1037  fc96		       00		      .byte.b	%00000000
+   1038  fc97		       c0		      .byte.b	%11000000
+   1039  fc98		       40		      .byte.b	%01000000
+   1040  fc99		       40		      .byte.b	%01000000
+   1041  fc9a		       41		      .byte.b	%01000001
+   1042  fc9b		       41		      .byte.b	%01000001
+   1043  fc9c		       40		      .byte.b	%01000000
+   1044  fc9d		       40		      .byte.b	%01000000
+   1045  fc9e		       c0		      .byte.b	%11000000
+   1046  fc9f		       00		      .byte.b	%00000000
+   1047  fca0		       00		      .byte.b	%00000000
+   1048  fca1		       00		      .byte.b	%00000000
+   1049  fca2		       38		      .byte.b	%00111000
+   1050  fca3		       00		      .byte.b	%00000000
+   1051  fca4		       00		      .byte.b	%00000000
+   1052  fca5		       ff		      .byte.b	%11111111
+   1053  fca6
+   1054  fca6		       ff		      .byte.b	%11111111
+   1055  fca7		       00		      .byte.b	%00000000
+   1056  fca8		       00		      .byte.b	%00000000
+   1057  fca9		       38		      .byte.b	%00111000
+   1058  fcaa		       01		      .byte.b	%00000001
+   1059  fcab		       01		      .byte.b	%00000001
+   1060  fcac		       00		      .byte.b	%00000000
+   1061  fcad		       c0		      .byte.b	%11000000
+   1062  fcae		       60		      .byte.b	%01100000
+   1063  fcaf		       30		      .byte.b	%00110000
+   1064  fcb0		       18		      .byte.b	%00011000
+   1065  fcb1		       18		      .byte.b	%00011000
+   1066  fcb2		       30		      .byte.b	%00110000
+   1067  fcb3		       60		      .byte.b	%01100000
+   1068  fcb4		       c0		      .byte.b	%11000000
+   1069  fcb5		       00		      .byte.b	%00000000
+   1070  fcb6		       01		      .byte.b	%00000001
+   1071  fcb7		       01		      .byte.b	%00000001
+   1072  fcb8		       38		      .byte.b	%00111000
+   1073  fcb9		       00		      .byte.b	%00000000
+   1074  fcba		       00		      .byte.b	%00000000
+   1075  fcbb		       ff		      .byte.b	%11111111
+   1076  fcbc
+   1077  fcbc
+   1078  fcbc				   ArenaPF2		; PF2 is drawn in reverse order
+   1079  fcbc		       ff		      .byte.b	%11111111	; Arena 1
+   1080  fcbd		       80		      .byte.b	%10000000
+   1081  fcbe		       00		      .byte.b	%00000000
+   1082  fcbf		       00		      .byte.b	%00000000
+   1083  fcc0		       00		      .byte.b	%00000000
+   1084  fcc1		       00		      .byte.b	%00000000
+   1085  fcc2		       1c		      .byte.b	%00011100
+   1086  fcc3		       04		      .byte.b	%00000100
+   1087  fcc4		       00		      .byte.b	%00000000
+   1088  fcc5		       00		      .byte.b	%00000000
+   1089  fcc6		       00		      .byte.b	%00000000
+   1090  fcc7		       00		      .byte.b	%00000000
+   1091  fcc8		       00		      .byte.b	%00000000
+   1092  fcc9		       00		      .byte.b	%00000000
+   1093  fcca		       04		      .byte.b	%00000100
+   1094  fccb		       1c		      .byte.b	%00011100
+   1095  fccc		       00		      .byte.b	%00000000
+   1096  fccd		       00		      .byte.b	%00000000
+   1097  fcce		       00		      .byte.b	%00000000
+   1098  fccf		       00		      .byte.b	%00000000
+   1099  fcd0		       80		      .byte.b	%10000000
+   1100  fcd1		       ff		      .byte.b	%11111111
+   1101  fcd2
+   1102  fcd2		       ff		      .byte.b	%11111111	; Arena 2
+   1103  fcd3		       00		      .byte.b	%00000000
+   1104  fcd4		       04		      .byte.b	%00000100
+   1105  fcd5		       04		      .byte.b	%00000100
+   1106  fcd6		       1c		      .byte.b	%00011100
+   1107  fcd7		       00		      .byte.b	%00000000
+   1108  fcd8		       00		      .byte.b	%00000000
+   1109  fcd9		       00		      .byte.b	%00000000
+   1110  fcda		       00		      .byte.b	%00000000
+   1111  fcdb		       c0		      .byte.b	%11000000
+   1112  fcdc		       80		      .byte.b	%10000000
+   1113  fcdd		       80		      .byte.b	%10000000
+   1114  fcde		       c0		      .byte.b	%11000000
+   1115  fcdf		       00		      .byte.b	%00000000
+   1116  fce0		       00		      .byte.b	%00000000
+   1117  fce1		       00		      .byte.b	%00000000
+   1118  fce2		       00		      .byte.b	%00000000
+   1119  fce3		       1c		      .byte.b	%00011100
+   1120  fce4		       04		      .byte.b	%00000100
+   1121  fce5		       04		      .byte.b	%00000100
+   1122  fce6		       00		      .byte.b	%00000000
+   1123  fce7		       ff		      .byte.b	%11111111
+   1124  fce8
+   1125  fce8
+   1126  fce8							;===============================================================================
+   1127  fce8							; free space check before End of Cartridge
+   1128  fce8							;===============================================================================
+   1129  fce8
+   1130  fce8					      if	(* & $FF)
+ ------ 786 bytes free before End of Cartridge
+   1131  fce8					      echo	"------", [$FFFA - *]d, "bytes free before End of Cartridge"
+   1132  fd00		       00 00 00 00*	      align	256
+   1133  fd00					      endif
+   1134  fd00
+   1135  fd00							;===============================================================================
+   1136  fd00							; Define End of Cartridge
+   1137  fd00							;===============================================================================
+   1138  fffa					      ORG	$FFFA	; set address to 6507 Interrupt Vectors
+   1139  fffa		       13 f8		      .WORD.w	InitSystem	; NMI
+   1140  fffc		       13 f8		      .WORD.w	InitSystem	; RESET
+   1141  fffe		       13 f8		      .WORD.w	InitSystem	; IRQ

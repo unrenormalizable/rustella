@@ -1,4 +1,4 @@
-------- FILE D:\src\u\s\emu\tests\spiceware_collect\3\collect.asm LEVEL 1 PASS 2
+------- FILE D:\src\u\s\emu\tests\bins\collect\collect-03-ScoreAndTimerDisplay.asm LEVEL 1 PASS 2
       1  10000 ????						;===============================================================================
       2  10000 ????						; Program Information
       3  10000 ????						;===============================================================================
@@ -18,7 +18,7 @@
      17  10000 ????						;===============================================================================
      18  10000 ????
      19  10000 ????						; 2014.06.24 - generate a stable display
-     20  10000 ????						; 2014.06.25 - add timers
+     20  10000 ????						; 2014.06.25 - add timers 
      21  10000 ????						; 2014.06.28 - add score display and check for TV Type
      22  10000 ????
      23  10000 ????
@@ -32,7 +32,7 @@
      31  10000 ????						; address space and also removes support for external interrupts.
      32  10000 ????				       PROCESSOR	6502
      33  10000 ????
-     34  10000 ????						; vcs.h contains the standard definitions for TIA and RIOT registers
+     34  10000 ????						; vcs.h contains the standard definitions for TIA and RIOT registers 
 ------- FILE vcs.h LEVEL 2 PASS 2
       0  10000 ????				       include	vcs.h
       1  10000 ????						; VCS.H
@@ -235,7 +235,7 @@
     198  0000 ????				      SEG
     199  0000 ????
     200  0000 ????						; EOF
-------- FILE D:\src\u\s\emu\tests\spiceware_collect\3\collect.asm
+------- FILE D:\src\u\s\emu\tests\bins\collect\collect-03-ScoreAndTimerDisplay.asm
      36  0000 ????
      37  0000 ????						; macro.h contains commonly used routines which aid in coding
 ------- FILE macro.h LEVEL 2 PASS 2
@@ -410,7 +410,7 @@
     168  0000 ????
     169  0000 ????
     170  0000 ????						; EOF
-------- FILE D:\src\u\s\emu\tests\spiceware_collect\3\collect.asm
+------- FILE D:\src\u\s\emu\tests\bins\collect\collect-03-ScoreAndTimerDisplay.asm
      39  0000 ????
      40  0000 ????
      41  0000 ????						;===============================================================================
@@ -515,7 +515,7 @@
     125  f831		       85 0f		      sta	PF2	; blank the playfield
     126  f833		       85 02		      sta	WSYNC	; wait until end of 3rd scanline of VSYNC
     127  f835		       85 00		      sta	VSYNC	; Accumulator D1=0, turns off Vertical Sync signal
-    128  f837				   Sleep12		;	 jsr here to sleep for 12 cycles
+    128  f837				   Sleep12		;	 jsr here to sleep for 12 cycles	
     129  f837		       60		      rts		; ReTurn from Subroutine
     130  f838
     131  f838
@@ -559,7 +559,7 @@
     169  f83f
     170  f83f				   Kernel
     171  f83f		       85 02		      sta	WSYNC	; Wait for SYNC (halts CPU until end of scanline)
-    172  f841							;---------------------------------------
+    172  f841							;---------------------------------------		 
     173  f841		       ad 84 02 	      lda	INTIM	; 4  4 - check the timer
     174  f844		       d0 f9		      bne	Kernel	; 2  6 - (3 7) Branch if its Not Equal to 0
     175  f846							; turn on the display
@@ -582,7 +582,7 @@
     192  f85a		       05 86		      ora	ScoreGfx	; 3 69 -   merge with the tens digit graphics
     193  f85c		       85 86		      sta	ScoreGfx	; 3 72 -   and save it
     194  f85e		       85 02		      sta	WSYNC	; 3 75 - wait for end of scanline
-    195  f860							;---------------------------------------
+    195  f860							;---------------------------------------	 
     196  f860		       85 0e		      sta	PF1	; 3  3 - @66-28, update playfield for Score dislay
     197  f862		       a4 85		      ldy	DigitTens+1	; 3  6 - get the left digit offset for the Timer
     198  f864		       b9 00 f9 	      lda	DigitGfx,y	; 5 11 -   use it to load the digit graphics
@@ -595,7 +595,7 @@
     205  f874		       85 87		      sta	TimerGfx	; 3 32 -   and save it
     206  f876		       20 37 f8 	      jsr	Sleep12	;12 44 - waste some cycles
     207  f879		       85 0e		      sta	PF1	; 3 47 - @39-54, update playfield for Timer display
-    208  f87b		       a4 86		      ldy	ScoreGfx	; 3 50 - preload for next scanline
+    208  f87b		       a4 86		      ldy	ScoreGfx	; 3 50 - preload for next scanline 
     209  f87d		       85 02		      sta	WSYNC	; 3 53 - wait for end of scanline
     210  f87f							;---------------------------------------
     211  f87f		       84 0e		      sty	PF1	; 3  3 - update playfield for the Score display
@@ -609,15 +609,15 @@
     219  f88f		       d0 b9		      bne	ScoreLoop	; 2 42 - (3 43) if dex != 0 then branch to ScoreLoop
     220  f891		       85 02		      sta	WSYNC	; 3 45 - wait for end of scanline
     221  f893							;---------------------------------------
-    222  f893		       86 0e		      stx	PF1	; 3  3 - x = 0, so this blanks out playfield
+    222  f893		       86 0e		      stx	PF1	; 3  3 - x = 0, so this blanks out playfield	     
     223  f895		       85 02		      sta	WSYNC	; 3  6 - wait for end of scanline
-    224  f897							;---------------------------------------
+    224  f897							;---------------------------------------	 
     225  f897		       85 02		      sta	WSYNC	; 3  3 - put some white space between Score/Timer and the arena
-    226  f899							;---------------------------------------
+    226  f899							;---------------------------------------	 
     227  f899		       a2 b3		      ldx	#179	; 2  2 - the arena will be 180 scanlines (from 0-179)
     228  f89b				   KernelLoop
     229  f89b		       85 02		      sta	WSYNC	; 3  5 - Wait for SYNC (halts CPU until end of scanline)
-    230  f89d							;---------------------------------------
+    230  f89d							;---------------------------------------	 
     231  f89d		       86 09		      stx	COLUBK	; 3  3 - STore X into TIA's background color register
     232  f89f		       ca		      dex		; 2  5 - DEcrement X by 1
     233  f8a0		       d0 f9		      bne	KernelLoop	; 2  7 - (3 8) Branch if Not Equal to 0
@@ -638,8 +638,8 @@
     248  f8a9
     249  f8a9							; set the timer for 27 scanlines.  Each scanline lasts 76 cycles,
     250  f8a9							; but the timer counts down once every 64 cycles, so use this
-    251  f8a9							; formula to figure out the value to set.
-    252  f8a9							;	 (scanlines * 76) / 64
+    251  f8a9							; formula to figure out the value to set.  
+    252  f8a9							;	 (scanlines * 76) / 64	  
     253  f8a9							; Also note that it might be slight off due to when on the scanline TIM64T
     254  f8a9							; is updated.	So use Stella to check how many scanlines the code is
     255  f8a9							; generating and adjust accordingly.
@@ -672,7 +672,7 @@
     282  f8c3		       b9 cd f8 	      lda	Colors,y	; get the color or b&w value
     283  f8c6		       95 06		      sta	COLUP0,x	; and set it
     284  f8c8		       88		      dey		; decrease Y
-    285  f8c9		       ca		      dex		; decrease X
+    285  f8c9		       ca		      dex		; decrease X 
     286  f8ca		       10 f7		      bpl	SOCloop	; Branch PLus (positive)
     287  f8cc		       60		      rts		; ReTurn from Subroutine
     288  f8cd
@@ -698,7 +698,7 @@
     308  f8d5							;	 # * 5 = (# * 2 * 2) + #
     309  f8d5							; The value in the upper nybble is already times 16, so we need to divide it.
     310  f8d5							; The 6507 can shift the bits the right, which is the same as divide by 2.
-    311  f8d5							;	 (# / 16) * 5 = (# / 2 / 2) + (# / 2 / 2 / 2 / 2)
+    311  f8d5							;	 (# / 16) * 5 = (# / 2 / 2) + (# / 2 / 2 / 2 / 2)  
     312  f8d5							;===============================================================================
     313  f8d5
     314  f8d5				   PrepScoreForDisplay
@@ -728,7 +728,7 @@
     338  f8f5		       95 84		      sta	DigitTens,x	; STore A in DigitTens+1(first pass) or DigitTens(second pass)
     339  f8f7		       ca		      dex		; DEcrement X by 1
     340  f8f8		       10 e3		      bpl	PSFDloop	; Branch PLus (positive) to PSFDloop
-    341  f8fa		       60		      rts		; ReTurn from Subroutine
+    341  f8fa		       60		      rts		; ReTurn from Subroutine      
     342  f8fb
     343  f8fb
     344  f8fb							;===============================================================================
@@ -856,7 +856,7 @@
     464  fa00							;===============================================================================
     465  fa00							; Define End of Cartridge
     466  fa00							;===============================================================================
-    467  fffa					      ORG	$FFFA	; set address to 6507 Interrupt Vectors
+    467  fffa					      ORG	$FFFA	; set address to 6507 Interrupt Vectors 
     468  fffa		       00 f8		      .WORD.w	InitSystem	; NMI
     469  fffc		       00 f8		      .WORD.w	InitSystem	; RESET
     470  fffe		       00 f8		      .WORD.w	InitSystem	; IRQ

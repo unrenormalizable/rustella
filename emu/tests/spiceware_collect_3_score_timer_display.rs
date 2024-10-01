@@ -12,7 +12,7 @@ fn spiceware_collect_3_score_timer_display() {
         "tests",
         "bins",
         "collect",
-        "collect_3.bin",
+        "collect-03-ScoreAndTimerDisplay.bin",
     ]
     .iter()
     .collect();

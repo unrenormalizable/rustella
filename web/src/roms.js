@@ -2,26 +2,94 @@ import { getStartAddress } from './utils'
 
 const TEST_ROMS = [
   {
-    name: 'Step 1 - Generate a Stable Display',
-    url: '/roms/collect_1.bin',
+    name: 'collect-01-StableDisplay',
+    url: '/roms/collect-01-StableDisplay.bin',
     start_addr: 0xf800,
+    info_url: '',
   },
   {
-    name: 'Step 2 - Timers',
-    url: '/roms/collect_2.bin',
+    name: 'collect-02-Timer',
+    url: '/roms/collect-02-Timer.bin',
     start_addr: 0xf800,
+    info_url: '',
   },
   {
-    name: 'Step 3 - Score & Timer display',
-    url: '/roms/collect_3.bin',
+    name: 'collect-03-ScoreAndTimerDisplay',
+    url: '/roms/collect-03-ScoreAndTimerDisplay.bin',
     start_addr: 0xf800,
+    info_url: '',
   },
   {
-    name: 'asymmetric',
-    url: '/roms/asymmetric.bin',
-    start_addr: 0xf000,
-    info_url:
-      'https://www.vbforums.com/showthread.php?834149-Atari-2600-Programming-Tutorial-4-Asymmetric-Graphics!-(Demo-Included)',
+    name: 'collect-04-2LineKernel',
+    url: '/roms/collect-04-2LineKernel.bin',
+    start_addr: 0xf800,
+    info_url: '',
+  },
+  {
+    name: 'collect-05-AutomateVerticalDelay',
+    url: '/roms/collect-05-AutomateVerticalDelay.bin',
+    start_addr: 0xf800,
+    info_url: '',
+  },
+  {
+    name: 'collect-06-SpecChange',
+    url: '/roms/collect-06-SpecChange.bin',
+    start_addr: 0xf800,
+    info_url: '',
+  },
+  {
+    name: 'collect-07-DrawThePlayfield',
+    url: '/roms/collect-07-DrawThePlayfield.bin',
+    start_addr: 0xf800,
+    info_url: '',
+  },
+  {
+    name: 'collect-08-SelectAndResetSupport',
+    url: '/roms/collect-08-SelectAndResetSupport.bin',
+    start_addr: 0xf800,
+    info_url: '',
+  },
+  {
+    name: 'collect-09-GameVariations',
+    url: '/roms/collect-09-GameVariations.bin',
+    start_addr: 0xf800,
+    info_url: '',
+  },
+  {
+    name: 'collect-10-RandomNumbers',
+    url: '/roms/collect-10-RandomNumbers.bin',
+    start_addr: 0xf800,
+    info_url: '',
+  },
+  {
+    name: 'collect-11-AddTheBallObject',
+    url: '/roms/collect-11-AddTheBallObject.bin',
+    start_addr: 0xf800,
+    info_url: '',
+  },
+  {
+    name: 'collect-12-AddTheMissileObjects',
+    url: '/roms/collect-12-AddTheMissileObjects.bin',
+    start_addr: 0xf800,
+    info_url: '',
+  },
+  {
+    name: 'collect-13-AddSoundEffects',
+    url: '/roms/collect-13-AddSoundEffects.bin',
+    start_addr: 0xf800,
+    info_url: '',
+  },
+  {
+    name: 'collect-14-AddAnimation',
+    url: '/roms/collect-14-AddAnimation.bin',
+    start_addr: 0xf800,
+    info_url: '',
+  },
+  {
+    name: 'collect-15-CollectMini',
+    url: '/roms/collect-15-CollectMini.bin  ',
+    start_addr: 0xf800,
+    info_url: '',
   },
   {
     name: '8blit-s01e02-background',
@@ -34,6 +102,13 @@ const TEST_ROMS = [
     url: '/roms/8blit-s01e03-background.bin',
     start_addr: 0xf000,
     info_url: '',
+  },
+  {
+    name: 'asymmetric-playfield',
+    url: '/roms/asymmetric.bin',
+    start_addr: 0xf000,
+    info_url:
+      'https://www.vbforums.com/showthread.php?834149-Atari-2600-Programming-Tutorial-4-Asymmetric-Graphics!-(Demo-Included)',
   },
   {
     name: '8blit-s01e04-Playfield-01',

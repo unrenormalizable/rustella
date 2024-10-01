@@ -12,7 +12,7 @@ fn spiceware_collect_1_stable_display() {
         "tests",
         "bins",
         "collect",
-        "collect_1.bin",
+        "collect-01-StableDisplay.bin",
     ]
     .iter()
     .collect();

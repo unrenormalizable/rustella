@@ -12,7 +12,7 @@ fn spiceware_collect_2_timers() {
         "tests",
         "bins",
         "collect",
-        "collect_2.bin",
+        "collect-02-Timer.bin",
     ]
     .iter()
     .collect();

@@ -1,0 +1,138 @@
+--- Symbol List (sorted by symbol)
+0.FREE_BYTES             0000                  
+1.CLEAR_STACK            f819              (R )
+ARENA_HEIGHT             0059              (R )
+ArenaLoop                f8e0              (R )
+AUDC0                    0015                  
+AUDC1                    0016                  
+AUDF0                    0017                  
+AUDF1                    0018                  
+AUDV0                    0019                  
+AUDV1                    001a                  
+BOX_HEIGHT               0008                  
+BoxDraw                  0092              (R )
+BoxGfx                   fb5a              (R )
+BoxPtr                   0095              (R )
+CheckDown                f95a              (R )
+CheckLeft                f948              (R )
+CheckUp                  f968              (R )
+Colors                   f9e1              (R )
+COLUBK                   0009                  
+COLUP0                   0006              (R )
+COLUP1                   0007                  
+COLUPF                   0008                  
+CTRLPF                   000a              (R )
+CXBLPF                   0006                  
+CXCLR                    002c                  
+CXM0FB                   0004                  
+CXM0P                    0000                  
+CXM1FB                   0005                  
+CXM1P                    0001                  
+CXP0FB                   0002                  
+CXP1FB                   0003                  
+CXPPMM                   0007                  
+DigitGfx                 fb00              (R )
+DigitOnes                0082              (R )
+DigitTens                0084              (R )
+DivideLoop               f803              (R )
+DoDrawGrp0               f8e9              (R )
+DoDrawGrp1               f8fc              (R )
+DoDrawGrp1pre            f8db              (R )
+ENABL                    001f                  
+ENAM0                    001d                  
+ENAM1                    001e                  
+Frame                    0097              (R )
+GRP0                     001b              (R )
+GRP1                     001c              (R )
+HMBL                     0024                  
+HMCLR                    002b                  
+HMM0                     0022                  
+HMM1                     0023                  
+HMOVE                    002a              (R )
+HMP0                     0020              (R )
+HMP1                     0021                  
+HUMAN_HEIGHT             000a                  
+HumanDraw                0091              (R )
+HumanGfx                 fb50              (R )
+HumanPtr                 0093              (R )
+InitSystem               f813              (R )
+INPT0                    0008                  
+INPT1                    0009                  
+INPT2                    000a                  
+INPT3                    000b                  
+INPT4                    000c              (R )
+INPT5                    000d                  
+INTIM                    0284              (R )
+Kernel                   f872              (R )
+macro.h                  0000 ????         (R )
+Main                     f82c              (R )
+NextJoystick             f976              (R )
+NO_ILLEGAL_OPCODES       0001              (R )
+NoDelay0                 f995              (R )
+NoDelay1                 f9b5              (R )
+NormalSpeed              f936              (R )
+NUSIZ0                   0004                  
+NUSIZ1                   0005                  
+ObjectX                  0089              (R )
+ObjectY                  008d              (R )
+OSwait                   f915              (R )
+OverScan                 f90a              (R )
+PF0                      000d              (R )
+PF1                      000e              (R )
+PF2                      000f              (R )
+PJloop                   f922              (R )
+POloop                   f97e              (R )
+PositionObjects          f97c              (R )
+PosObject                f800              (R )
+PrepScoreForDisplay      f9e9              (R )
+ProcessJoystick          f91d              (R )
+PSFDloop                 f9f3              (R )
+PSFDskip                 f9f1                  
+REFP0                    000b              (R )
+REFP1                    000c                  
+RESBL                    0014                  
+RESM0                    0012                  
+RESM1                    0013                  
+RESMP0                   0028                  
+RESMP1                   0029                  
+RESP0                    0010              (R )
+RESP1                    0011                  
+RSYNC                    0003                  
+SaveX                    f942              (R )
+SaveX2                   f954              (R )
+SaveY                    f966              (R )
+SaveY2                   f974              (R )
+Score                    0080              (R )
+ScoreGfx                 0086              (R )
+ScoreLoop                f87d              (R )
+SetObjectColors          f9ca              (R )
+Sleep12                  f864              (R )
+SlowMovement             f935              (R )
+SOCloop                  f9d7              (R )
+SWACNT                   0281                  
+SWBCNT                   0283                  
+SWCHA                    0280              (R )
+SWCHB                    0282              (R )
+T1024T                   0297                  
+Temp                     0088              (R )
+TIA_BASE_ADDRESS         0000              (R )
+TIA_BASE_READ_ADDRESS    0000              (R )
+TIA_BASE_WRITE_ADDRESS   0000              (R )
+TIM1T                    0294                  
+TIM64T                   0296              (R )
+TIM8T                    0295                  
+Timer                    0081              (R )
+TimerGfx                 0087              (R )
+TIMINT                   0285                  
+VBLANK                   0001              (R )
+vcs.h                    0000 ????         (R )
+VDELBL                   0027                  
+VDELP0                   0025              (R )
+VDELP1                   0026              (R )
+VERSION_MACRO            006d                  
+VERSION_VCS              006a                  
+VerticalBlank            f865              (R )
+VerticalSync             f83b              (R )
+VSYNC                    0000              (R )
+WSYNC                    0002              (R )
+--- End of Symbol List.

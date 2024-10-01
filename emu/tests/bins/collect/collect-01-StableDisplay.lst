@@ -1,11 +1,11 @@
-------- FILE collect.asm LEVEL 1 PASS 2
+------- FILE D:\src\u\s\emu\tests\bins\collect\collect-01-StableDisplay.asm LEVEL 1 PASS 2
       1  10000 ????						;===============================================================================
       2  10000 ????						; Program Information
       3  10000 ????						;===============================================================================
       4  10000 ????
       5  10000 ????						; Program:	 Collect
       6  10000 ????						; Program by:	 Darrell Spice, Jr
-      7  10000 ????						; Last Update:  June 25, 2014
+      7  10000 ????						; Last Update:  June 24, 2014
       8  10000 ????						;
       9  10000 ????						; Super simple game of "collect the boxes" used for presentation on
      10  10000 ????						; developing Atari 2600 homebrew games.
@@ -17,21 +17,20 @@
      16  10000 ????						; Change Log
      17  10000 ????						;===============================================================================
      18  10000 ????
-     19  10000 ????						; 2013.06.24 - generate a stable display
-     20  10000 ????						; 2013.06.25 - add timers
+     19  10000 ????						; 2013.06.24 - ver.  1 - generate a stable display
+     20  10000 ????
      21  10000 ????
-     22  10000 ????
-     23  10000 ????						;===============================================================================
-     24  10000 ????						; Initialize dasm
-     25  10000 ????						;===============================================================================
-     26  10000 ????
-     27  10000 ????						; Dasm supports a number of processors, this line tells dasm the code
-     28  10000 ????						; is for the 6502 CPU.  The Atari has a 6507, which is 6502 that's been
-     29  10000 ????						; put into a "reduced package".  This package limits the 6507 to an 8K
-     30  10000 ????						; address space and also removes support for external interrupts.
-     31  10000 ????				       PROCESSOR	6502
-     32  10000 ????
-     33  10000 ????						; vcs.h contains the standard definitions for TIA and RIOT registers
+     22  10000 ????						;===============================================================================
+     23  10000 ????						; Initialize dasm
+     24  10000 ????						;===============================================================================
+     25  10000 ????
+     26  10000 ????						; Dasm supports a number of processors, this line tells dasm the code
+     27  10000 ????						; is for the 6502 CPU.  The Atari has a 6507, which is 6502 that's been
+     28  10000 ????						; put into a "reduced package".  This package limits the 6507 to an 8K
+     29  10000 ????						; address space and also removes support for external interrupts.
+     30  10000 ????				       PROCESSOR	6502
+     31  10000 ????
+     32  10000 ????						; vcs.h contains the standard definitions for TIA and RIOT registers
 ------- FILE vcs.h LEVEL 2 PASS 2
       0  10000 ????				       include	vcs.h
       1  10000 ????						; VCS.H
@@ -234,9 +233,9 @@
     198  0000 ????				      SEG
     199  0000 ????
     200  0000 ????						; EOF
-------- FILE collect.asm
-     35  0000 ????
-     36  0000 ????						; macro.h contains commonly used routines which aid in coding
+------- FILE D:\src\u\s\emu\tests\bins\collect\collect-01-StableDisplay.asm
+     34  0000 ????
+     35  0000 ????						; macro.h contains commonly used routines which aid in coding
 ------- FILE macro.h LEVEL 2 PASS 2
       0  0000 ????				      include	macro.h
       1  0000 ????						; MACRO.H
@@ -409,41 +408,41 @@
     168  0000 ????
     169  0000 ????
     170  0000 ????						; EOF
-------- FILE collect.asm
+------- FILE D:\src\u\s\emu\tests\bins\collect\collect-01-StableDisplay.asm
+     37  0000 ????
      38  0000 ????
-     39  0000 ????
-     40  0000 ????						;===============================================================================
-     41  0000 ????						; Define RAM Usage
-     42  0000 ????						;===============================================================================
-     43  0000 ????
-     44  0000 ????						; define a segment for variables
-     45  0000 ????						; .U means uninitialized, does not end up in ROM
-     46 U0080 ????				      SEG.U	VARS
-     47 U0080 ????
-     48 U0080 ????						; RAM starts at $80
-     49 U0080					      ORG	$80
-     50 U0080
-     51 U0080							; coming soon!
+     39  0000 ????						;===============================================================================
+     40  0000 ????						; Define RAM Usage
+     41  0000 ????						;===============================================================================
+     42  0000 ????
+     43  0000 ????						; define a segment for variables
+     44  0000 ????						; .U means uninitialized, does not end up in ROM
+     45 U0080 ????				      SEG.U	VARS
+     46 U0080 ????
+     47 U0080 ????						; RAM starts at $80
+     48 U0080					      ORG	$80
+     49 U0080
+     50 U0080							; coming soon!
+     51 U0080
      52 U0080
-     53 U0080
-     54 U0080							;===============================================================================
-     55 U0080							; Define Start of Cartridge
-     56 U0080							;===============================================================================
-     57 U0080
-     58 U0080							; define a segment for code
-     59  10000 ????				       SEG	CODE
-     60  10000 ????
-     61  10000 ????						; 2K ROM starts at $F800, 4K ROM starts at $F000
-     62  f800					      ORG	$F800
+     53 U0080							;===============================================================================
+     54 U0080							; Define Start of Cartridge
+     55 U0080							;===============================================================================
+     56 U0080
+     57 U0080							; define a segment for code
+     58  10000 ????				       SEG	CODE
+     59  10000 ????
+     60  10000 ????						; 2K ROM starts at $F800, 4K ROM starts at $F000
+     61  f800					      ORG	$F800
+     62  f800
      63  f800
-     64  f800
-     65  f800							;===============================================================================
-     66  f800							; Initialize Atari
-     67  f800							;===============================================================================
-     68  f800
-     69  f800				   InitSystem
-     70  f800							; CLEAN_START is a macro found in macro.h
-     71  f800							; it sets all RAM, TIA registers and CPU registers to 0
+     64  f800							;===============================================================================
+     65  f800							; Initialize Atari
+     66  f800							;===============================================================================
+     67  f800
+     68  f800				   InitSystem
+     69  f800							; CLEAN_START is a macro found in macro.h
+     70  f800							; it sets all RAM, TIA registers and CPU registers to 0
       0  f800					      CLEAN_START
       1  f800		       78		      sei
       2  f801		       d8		      cld
@@ -460,115 +459,107 @@
      13  f808		       48		      pha
      14  f809		       d0 fb		      bne	.CLEAR_STACK
      15  f80b
-     73  f80b
-     74  f80b							; from here we "fall into" the main loop
+     72  f80b
+     73  f80b							; from here we "fall into" the main loop
+     74  f80b
      75  f80b
-     76  f80b
-     77  f80b							;===============================================================================
-     78  f80b							; Main Program Loop
-     79  f80b							;===============================================================================
-     80  f80b
-     81  f80b				   Main
-     82  f80b		       20 1a f8 	      jsr	VerticalSync	; Jump to SubRoutine VerticalSync
-     83  f80e		       20 30 f8 	      jsr	VerticalBlank	; Jump to SubRoutine VerticalBlank
-     84  f811		       20 31 f8 	      jsr	Kernel	; Jump to SubRoutine Kernel
-     85  f814		       20 44 f8 	      jsr	OverScan	; Jump to SubRoutine OverScan
-     86  f817		       4c 0b f8 	      jmp	Main	; JuMP to Main
+     76  f80b							;===============================================================================
+     77  f80b							; Main Program Loop
+     78  f80b							;===============================================================================
+     79  f80b
+     80  f80b				   Main
+     81  f80b		       20 1a f8 	      jsr	VerticalSync	; Jump to SubRoutine VerticalSync
+     82  f80e		       20 2b f8 	      jsr	VerticalBlank	; Jump to SubRoutine VerticalBlank
+     83  f811		       20 33 f8 	      jsr	Kernel	; Jump to SubRoutine Kernel
+     84  f814		       20 43 f8 	      jsr	OverScan	; Jump to SubRoutine OverScan
+     85  f817		       4c 0b f8 	      jmp	Main	; JuMP to Main
+     86  f81a
      87  f81a
-     88  f81a
-     89  f81a							;===============================================================================
-     90  f81a							; Vertical Sync
-     91  f81a							; -------------
-     92  f81a							; here we generate the signal that tells the TV to move the beam to the top of
-     93  f81a							; the screen so we can start the next frame of video.
-     94  f81a							; The Sync Signal must be on for 3 scanlines.
-     95  f81a							;===============================================================================
-     96  f81a
-     97  f81a				   VerticalSync
-     98  f81a		       a9 02		      lda	#2	; LoaD Accumulator with 2 so D1=1
-     99  f81c		       a2 31		      ldx	#49	; LoaD X with 49
-    100  f81e		       85 02		      sta	WSYNC	; Wait for SYNC (halts CPU until end of scanline)
-    101  f820		       85 00		      sta	VSYNC	; Accumulator D1=1, turns on Vertical Sync signal
-    102  f822		       8e 96 02 	      stx	TIM64T	; set timer to go off in 41 scanlines (49 * 64) / 76
-    103  f825		       85 02		      sta	WSYNC	; Wait for Sync - halts CPU until end of 1st scanline of VSYNC
-    104  f827		       85 02		      sta	WSYNC	; wait until end of 2nd scanline of VSYNC
-    105  f829		       a9 00		      lda	#0	; LoaD Accumulator with 0 so D1=0
-    106  f82b		       85 02		      sta	WSYNC	; wait until end of 3rd scanline of VSYNC
-    107  f82d		       85 00		      sta	VSYNC	; Accumulator D1=0, turns off Vertical Sync signal
-    108  f82f		       60		      rts		; ReTurn from Subroutine
-    109  f830
-    110  f830
-    111  f830							;===============================================================================
-    112  f830							; Vertical Blank
-    113  f830							; --------------
-    114  f830							; game logic runs here.  Coming soon!
-    115  f830							;===============================================================================
-    116  f830
-    117  f830				   VerticalBlank
-    118  f830		       60		      rts		; ReTurn from Subroutine
-    119  f831
-    120  f831
-    121  f831							;===============================================================================
-    122  f831							; Kernel
-    123  f831							; ------
-    124  f831							; here we update the registers in TIA (the video chip) in order to generate
-    125  f831							; what the player sees.  For now we're just going to output 192 colored
-    126  f831							; scanlines lines so we have something to see.
-    127  f831							;===============================================================================
-    128  f831
-    129  f831				   Kernel
-    130  f831		       85 02		      sta	WSYNC	; Wait for SYNC (halts CPU until end of scanline)
-    131  f833		       ad 84 02 	      lda	INTIM	; check the timer
-    132  f836		       d0 f9		      bne	Kernel	; Branch if its Not Equal to 0
-    133  f838							; turn on the display
-    134  f838		       85 01		      sta	VBLANK	; Accumulator D1=0, turns off Vertical Blank signal (image output on)
-    135  f83a
-    136  f83a							; draw the screen
-    137  f83a		       a2 c0		      ldx	#192	; Load X with 192
-    138  f83c				   KernelLoop
-    139  f83c		       85 02		      sta	WSYNC	; Wait for SYNC (halts CPU until end of scanline)
-    140  f83e		       86 09		      stx	COLUBK	; STore X into TIA's background color register
-    141  f840		       ca		      dex		; DEcrement X by 1
-    142  f841		       d0 f9		      bne	KernelLoop	; Branch if Not Equal to 0
-    143  f843		       60		      rts		; ReTurn from Subroutine
-    144  f844
-    145  f844
-    146  f844							;===============================================================================
-    147  f844							; Overscan
-    148  f844							; --------------
-    149  f844							; game logic runs here.  Since we don't have any yet, just delay so that the
-    150  f844							; entire video frame consists of 262 scanlines
-    151  f844							;===============================================================================
-    152  f844
-    153  f844				   OverScan
-    154  f844		       85 02		      sta	WSYNC	; Wait for SYNC (halts CPU until end of scanline)
-    155  f846		       a9 02		      lda	#2	; LoaD Accumulator with 2 so D1=1
-    156  f848		       85 01		      sta	VBLANK	; STore Accumulator to VBLANK, D1=1 turns image output off
-    157  f84a
-    158  f84a							; set the timer for 27 scanlines.  Each scanline lasts 76 cycles,
-    159  f84a							; but the timer counts down once every 64 cycles, so use this
-    160  f84a							; formula to figure out the value to set.
-    161  f84a							;	 (scanlines * 76) / 64
-    162  f84a							; Also note that it might be slight off due to when on the scanline TIM64T
-    163  f84a							; is updated.	So use Stella to check how many scanlines the code is
-    164  f84a							; generating and adjust accordingly.
-    165  f84a		       a9 20		      lda	#32	; set timer for 27 scanlines, 32 = ((27 * 76) / 64)
-    166  f84c		       8d 96 02 	      sta	TIM64T	; set timer to go off in 27 scanlines
-    167  f84f
-    168  f84f							; game logic will go here
-    169  f84f
-    170  f84f				   OSwait
-    171  f84f		       85 02		      sta	WSYNC	; Wait for SYNC (halts CPU until end of scanline)
-    172  f851		       ad 84 02 	      lda	INTIM	; Check the timer
-    173  f854		       d0 f9		      bne	OSwait	; Branch if its Not Equal to 0
-    174  f856		       60		      rts		; ReTurn from Subroutine
-    175  f857
-    176  f857
-    177  f857							;===============================================================================
-    178  f857							; Define End of Cartridge
-    179  f857							;===============================================================================
-    180  fffa					      ORG	$FFFA	; set address to 6507 Interrupt Vectors
-    181  fffa		       00 f8		      .WORD.w	InitSystem	; NMI
-    182  fffc		       00 f8		      .WORD.w	InitSystem	; RESET
-    183  fffe		       00 f8		      .WORD.w	InitSystem	; IRQ
-    184  10000
+     88  f81a							;===============================================================================
+     89  f81a							; Vertical Sync
+     90  f81a							; -------------
+     91  f81a							; here we generate the signal that tells the TV to move the beam to the top of
+     92  f81a							; the screen so we can start the next frame of video.
+     93  f81a							; The Sync Signal must be on for 3 scanlines.
+     94  f81a							;===============================================================================
+     95  f81a
+     96  f81a				   VerticalSync
+     97  f81a		       a9 02		      lda	#2	; LoaD Accumulator with 2 so D1=1
+     98  f81c		       85 02		      sta	WSYNC	; Wait for SYNC (halts CPU until end of scanline)
+     99  f81e		       85 00		      sta	VSYNC	; Accumulator D1=1, turns on Vertical Sync signal
+    100  f820		       85 02		      sta	WSYNC	; Wait for Sync - halts CPU until end of 1st scanline of VSYNC
+    101  f822		       85 02		      sta	WSYNC	; wait until end of 2nd scanline of VSYNC
+    102  f824		       a9 00		      lda	#0	; LoaD Accumulator with 0 so D1=0
+    103  f826		       85 02		      sta	WSYNC	; wait until end of 3rd scanline of VSYNC
+    104  f828		       85 00		      sta	VSYNC	; Accumulator D1=0, turns off Vertical Sync signal
+    105  f82a		       60		      rts		; ReTurn from Subroutine
+    106  f82b
+    107  f82b
+    108  f82b							;===============================================================================
+    109  f82b							; Vertical Blank
+    110  f82b							; --------------
+    111  f82b							; game logic runs here.
+    112  f82b							; Since we don't have any yet, just delay for 37 scanlines
+    113  f82b							;===============================================================================
+    114  f82b
+    115  f82b				   VerticalBlank
+    116  f82b		       a2 25		      ldx	#37	; LoaD X with 37
+    117  f82d				   vbLoop
+    118  f82d		       85 02		      sta	WSYNC	; Wait for SYNC (halts CPU until end of scanline)
+    119  f82f		       ca		      dex		; DEcrement X by 1
+    120  f830		       d0 fb		      bne	vbLoop	; Branch if Not Equal to 0
+    121  f832		       60		      rts		; ReTurn from Subroutine
+    122  f833
+    123  f833
+    124  f833							;===============================================================================
+    125  f833							; Kernel
+    126  f833							; ------
+    127  f833							; here we update the registers in TIA (the video chip) in order to generate
+    128  f833							; what the player sees.  For now we're just going to output 192 colored
+    129  f833							; scanlines lines so we have something to see.
+    130  f833							;===============================================================================
+    131  f833
+    132  f833				   Kernel
+    133  f833							; turn on the display
+    134  f833		       85 02		      sta	WSYNC	; Wait for SYNC (halts CPU until end of scanline)
+    135  f835		       a9 00		      lda	#0	; LoaD Accumulator with 0 so D1=0
+    136  f837		       85 01		      sta	VBLANK	; Accumulator D1=1, turns off Vertical Blank signal (image output on)
+    137  f839
+    138  f839							; draw the screen
+    139  f839		       a2 c0		      ldx	#192	; Load X with 192
+    140  f83b				   KernelLoop
+    141  f83b		       85 02		      sta	WSYNC	; Wait for SYNC (halts CPU until end of scanline)
+    142  f83d		       86 09		      stx	COLUBK	; STore X into TIA's background color register
+    143  f83f		       ca		      dex		; DEcrement X by 1
+    144  f840		       d0 f9		      bne	KernelLoop	; Branch if Not Equal to 0
+    145  f842		       60		      rts		; ReTurn from Subroutine
+    146  f843
+    147  f843
+    148  f843							;===============================================================================
+    149  f843							; Overscan
+    150  f843							; --------------
+    151  f843							; game logic runs here.  Since we don't have any yet, just delay so that the
+    152  f843							; entire video frame consists of 262 scanlines
+    153  f843							;===============================================================================
+    154  f843
+    155  f843				   OverScan
+    156  f843		       85 02		      sta	WSYNC	; Wait for SYNC (halts CPU until end of scanline)
+    157  f845		       a9 02		      lda	#2	; LoaD Accumulator with 2 so D1=1
+    158  f847		       85 01		      sta	VBLANK	; STore Accumulator to VBLANK, D1=1 turns image output off
+    159  f849
+    160  f849		       a2 1b		      ldx	#27	; LoaD X with 27
+    161  f84b				   osLoop
+    162  f84b		       85 02		      sta	WSYNC	; Wait for SYNC (halts CPU until end of scanline)
+    163  f84d		       ca		      dex		; DEcrement X by 1
+    164  f84e		       d0 fb		      bne	osLoop	; Branch if Not Equal to 0
+    165  f850		       60		      rts		; ReTurn from Subroutine
+    166  f851
+    167  f851
+    168  f851							;===============================================================================
+    169  f851							; Define End of Cartridge
+    170  f851							;===============================================================================
+    171  fffa					      ORG	$FFFA	; set address to 6507 Interrupt Vectors
+    172  fffa		       00 f8		      .WORD.w	InitSystem	; NMI
+    173  fffc		       00 f8		      .WORD.w	InitSystem	; RESET
+    174  fffe		       00 f8		      .WORD.w	InitSystem	; IRQ
+    175  10000
