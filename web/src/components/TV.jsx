@@ -30,10 +30,10 @@ const renderFrame = (setTotalFrames, colorMap, context) => (pixels) => {
   }
 
   context.putImageData(imgData, 0, 0)
-  fillRect(context, 68, 0, 160, 3, 'rgba(255, 0, 0, 0.3)')
-  fillRect(context, 68, 3, 160, 37, 'rgba(0, 255, 0, 0.3)')
-  fillRect(context, 68, 232, 160, 30, 'rgba(0, 0, 255, 0.3)')
-  fillRect(context, 0, 0, 68, 262, 'rgba(255, 255, 255, 0.3)')
+  fillRect(context, 68, 0, 160, 3, 'rgba(255, 0, 0, 0.2)')
+  fillRect(context, 68, 3, 160, 37, 'rgba(0, 255, 0, 0.2)')
+  fillRect(context, 68, 232, 160, 30, 'rgba(0, 0, 255, 0.2)')
+  fillRect(context, 0, 0, 68, 262, 'rgba(255, 255, 255, 0.2)')
   setTotalFrames((x) => x + 1)
 }
 
@@ -124,6 +124,7 @@ const TV = () => {
     <div className="flex flex-col items-center">
       <div className="mb-1 flex flex-row">
         <select
+          className="max-w-60"
           value={selectedStockRomId}
           onChange={(e) => {
             const id = e.target.value
