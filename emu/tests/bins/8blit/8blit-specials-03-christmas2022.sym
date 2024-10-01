@@ -1,0 +1,127 @@
+--- Symbol List (sorted by symbol)
+0.FREE_BYTES             0000                  
+1.CLEAR_STACK            f006              (R )
+2.VSLP1                  f013              (R )
+AUDC0                    0015                  
+AUDC1                    0016                  
+AUDF0                    0017                  
+AUDF1                    0018                  
+AUDV0                    0019                  
+AUDV1                    001a                  
+BGColor                  ff39              (R )
+cel                      008c              (R )
+checktimer               f083              (R )
+COLUBK                   0009              (R )
+COLUP0                   0006                  
+COLUP1                   0007                  
+COLUPF                   0008              (R )
+CTRLPF                   000a                  
+CXBLPF                   0006                  
+CXCLR                    002c                  
+CXM0FB                   0004                  
+CXM0P                    0000                  
+CXM1FB                   0005                  
+CXM1P                    0001                  
+CXP0FB                   0002                  
+CXP1FB                   0003                  
+CXPPMM                   0007                  
+ENABL                    001f                  
+ENAM0                    001d                  
+ENAM1                    001e                  
+GRP0                     001b                  
+GRP1                     001c                  
+HMBL                     0024                  
+HMCLR                    002b                  
+HMM0                     0022                  
+HMM1                     0023                  
+HMOVE                    002a                  
+HMP0                     0020                  
+HMP1                     0021                  
+INPT0                    0008                  
+INPT1                    0009                  
+INPT2                    000a                  
+INPT3                    000b                  
+INPT4                    000c                  
+INPT5                    000d                  
+INTIM                    0284              (R )
+kernel                   f08a              (R )
+nextframe                f011              (R )
+NO_ILLEGAL_OPCODES       0001              (R )
+NUSIZ0                   0004                  
+NUSIZ1                   0005                  
+PF0                      000d              (R )
+PF0_lsb_ptr              fe48              (R )
+PF0_msb_ptr              fe4c              (R )
+PF0_ptr                  0080              (R )
+PF1                      000e              (R )
+PF1_lsb_ptr              fe50              (R )
+PF1_msb_ptr              fe54              (R )
+PF1_ptr                  0082              (R )
+PF2                      000f              (R )
+PF2_lsb_ptr              fe58              (R )
+PF2_msb_ptr              fe5c              (R )
+PF2_ptr                  0084              (R )
+PF3_lsb_ptr              fe60              (R )
+PF3_msb_ptr              fe64              (R )
+PF3_ptr                  0086              (R )
+PF4_lsb_ptr              fe68              (R )
+PF4_msb_ptr              fe6c              (R )
+PF4_ptr                  0088              (R )
+PF5_lsb_ptr              fe70              (R )
+PF5_msb_ptr              fe74              (R )
+PF5_ptr                  008a              (R )
+PFBitmap0                f0c8              (R )
+PFBitmap1                f188              (R )
+PFBitmap10               f848              (R )
+PFBitmap11               f908              (R )
+PFBitmap12               f9c8              (R )
+PFBitmap13               fa88              (R )
+PFBitmap14               fb48              (R )
+PFBitmap15               fc08              (R )
+PFBitmap16               fcc8              (R )
+PFBitmap17               fd88              (R )
+PFBitmap2                f248              (R )
+PFBitmap3                f308              (R )
+PFBitmap4                f3c8              (R )
+PFBitmap5                f488              (R )
+PFBitmap6                f548              (R )
+PFBitmap7                f608              (R )
+PFBitmap8                f6c8              (R )
+PFBitmap9                f788              (R )
+PFColor                  fe78              (R )
+rate                     008d              (R )
+REFP0                    000b                  
+REFP1                    000c                  
+RESBL                    0014                  
+reset                    f000              (R )
+RESM0                    0012                  
+RESM1                    0013                  
+RESMP0                   0028                  
+RESMP1                   0029                  
+RESP0                    0010                  
+RESP1                    0011                  
+RSYNC                    0003                  
+skip1                    f03b              (R )
+skip2                    f039              (R )
+SWACNT                   0281                  
+SWBCNT                   0283                  
+SWCHA                    0280                  
+SWCHB                    0282                  
+T1024T                   0297                  
+TIA_BASE_ADDRESS         0000              (R )
+TIA_BASE_READ_ADDRESS    0000              (R )
+TIA_BASE_WRITE_ADDRESS   0000              (R )
+TIM1T                    0294                  
+TIM64T                   0296              (R )
+TIM8T                    0295                  
+timer2                   f0c0              (R )
+TIMINT                   0285                  
+VBLANK                   0001                  
+VDELBL                   0027                  
+VDELP0                   0025                  
+VDELP1                   0026                  
+VERSION_MACRO            006d                  
+VERSION_VCS              006a                  
+VSYNC                    0000              (R )
+WSYNC                    0002              (R )
+--- End of Symbol List.

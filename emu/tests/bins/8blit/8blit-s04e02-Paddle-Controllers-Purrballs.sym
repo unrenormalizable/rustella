@@ -1,0 +1,171 @@
+--- Symbol List (sorted by symbol)
+0.FREE_BYTES             0000                  
+1.CLEAR_STACK            f006              (R )
+2.VSLP1                  f051              (R )
+3.CYCLES                 0014              (R )
+6.noeor0                 f22a              (R )
+7.divide                 f230              (R )
+AUDC0                    0015              (R )
+AUDC1                    0016              (R )
+AUDF0                    0017              (R )
+AUDF1                    0018              (R )
+AUDV0                    0019              (R )
+AUDV1                    001a              (R )
+ballactive               f210              (R )
+bearingOffset            f301              (R )
+BLUE                     00a6              (R )
+charge                   f16f              (R )
+checktimer               f104              (R )
+col_no_adj               f0d1              (R )
+col_on                   f0d4              (R )
+collision                f0a0              (R )
+collision_done           f0ea              (R )
+collisionCnt             0089              (R )
+COLUBK                   0009              (R )
+COLUP0                   0006              (R )
+COLUP1                   0007              (R )
+COLUPF                   0008              (R )
+cont                     f155              (R )
+CTRLPF                   000a              (R )
+CXBLPF                   0006                  
+CXCLR                    002c              (R )
+CXM0FB                   0004              (R )
+CXM0P                    0000              (R )
+CXM1FB                   0005                  
+CXM1P                    0001                  
+CXP0FB                   0002                  
+CXP1FB                   0003                  
+CXPPMM                   0007                  
+digitIdx                 0092              (R )
+digits                   f374              (R )
+doneM0FB                 f0ad              (R )
+doneM0P                  f0bf              (R )
+donep0                   f17c              (R )
+ears                     f311              (R )
+ENABL                    001f                  
+ENAM0                    001d              (R )
+ENAM1                    001e              (R )
+galoisLfsrRand           f223              (R )
+GRP0                     001b              (R )
+GRP1                     001c                  
+HMBL                     0024                  
+HMCLR                    002b                  
+HMM0                     0022              (R )
+HMM1                     0023                  
+HMOVE                    002a              (R )
+HMP0                     0020              (R )
+HMP1                     0021              (R )
+initObject               f213              (R )
+INPT0                    0008                  
+INPT1                    0009              (R )
+INPT2                    000a                  
+INPT3                    000b                  
+INPT4                    000c                  
+INPT5                    000d                  
+INTIM                    0284              (R )
+m_y                      0082              (R )
+mBearing                 0085              (R )
+mBearingOld              0087              (R )
+mCollision               008d              (R )
+MISSILE0_XPOS            002b              (R )
+MISSILE1_XPOS            0074              (R )
+MISSILE_YPOS             004b              (R )
+moveBall                 f1f2              (R )
+nextCollObject           f08d              (R )
+nextFrame                f04f              (R )
+no_collision             f0ec              (R )
+NO_ILLEGAL_OPCODES       0001              (R )
+noM0                     f1ba              (R )
+noM1                     f1ac              (R )
+noP0                     f1c9              (R )
+NUSIZ0                   0004              (R )
+NUSIZ1                   0005              (R )
+ORANGE                   003c              (R )
+overscan_timer           f1ea              (R )
+OVERSCANLINES            001e              (R )
+OVERSCANTIME             0023              (R )
+p0                       f360                  
+p1                       f365                  
+p2                       f36a                  
+p3                       f36f                  
+p_x                      0084                  
+paddle                   f300              (R )
+PADDLE_POS               0005              (R )
+PF0                      000d              (R )
+PF0_data_cat             f318              (R )
+PF1                      000e              (R )
+PF1_data_cat             f330              (R )
+PF2                      000f              (R )
+PF2_data_cat             f348              (R )
+PF_col_cat               f316                  
+pf_segindex              0081              (R )
+pf_segment               0080              (R )
+pfCnt                    008b              (R )
+PFSEGHEIGHT              000f              (R )
+pos                      f066              (R )
+PositionX                f22d              (R )
+pValue                   0098              (R )
+r_seed                   008e              (R )
+RED                      0046              (R )
+REFP0                    000b                  
+REFP1                    000c                  
+RESBL                    0014                  
+reset                    f000              (R )
+RESM0                    0012                  
+RESM1                    0013                  
+RESMP0                   0028                  
+RESMP1                   0029                  
+RESP0                    0010              (R )
+RESP1                    0011                  
+revBearing               f0e3              (R )
+revOrgBearing            f0e5              (R )
+RSYNC                    0003                  
+score                    0091              (R )
+scoreCnt                 008c                  
+showEars                 f119              (R )
+SHOWEARS_LEN             001e              (R )
+showEarsCnt              0097              (R )
+showScore                f12e              (R )
+skipx                    f188              (R )
+snd_ch                   f274              (R )
+snd_cont                 f280              (R )
+snd_done                 f280              (R )
+snd_on                   008f              (R )
+snd_process              f272              (R )
+sndPlayBounce            f23f              (R )
+sndPlayPaddle            f261              (R )
+sndPlayRespawn           f250              (R )
+softReset                f01a                  
+soutCount                0096              (R )
+SOUTLINES                000f              (R )
+SWACNT                   0281                  
+SWBCNT                   0283                  
+SWCHA                    0280                  
+SWCHB                    0282                  
+T1024T                   0297                  
+temp                     0094              (R )
+TIA_BASE_ADDRESS         0000              (R )
+TIA_BASE_READ_ADDRESS    0000              (R )
+TIA_BASE_WRITE_ADDRESS   0000              (R )
+TIM1T                    0294                  
+TIM64T                   0296              (R )
+TIM8T                    0295                  
+TIMINT                   0285                  
+VBLANK                   0001              (R )
+VBLANKLINES              0025              (R )
+VBLANKTIME               002b              (R )
+VDELBL                   0027                  
+VDELP0                   0025                  
+VDELP1                   0026                  
+VERSION_MACRO            006d                  
+VERSION_VCS              006a                  
+verticalBlank            f058                  
+vout                     f173              (R )
+voutCount                0095                  
+VOUTLINES                0058              (R )
+voutscore                f134              (R )
+VSYNC                    0000              (R )
+WHITE                    000e              (R )
+WSYNC                    0002              (R )
+YELLOW                   001e              (R )
+--- End of Symbol List.

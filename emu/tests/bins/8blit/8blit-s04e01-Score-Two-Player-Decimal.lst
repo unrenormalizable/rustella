@@ -1,0 +1,750 @@
+------- FILE D:\src\u\s\emu\tests\bins\8blit\8blit-s04e01-Score-Two-Player-Decimal.asm LEVEL 1 PASS 2
+      1  10000 ????						; S04E01 Score - Two Player Decimal Mode
+      2  10000 ????
+      3  10000 ????						; Demonstrates how to display two two-digit DECIMAL scores (0-99) using the 
+      4  10000 ????						; split playfield. This example makes use of a digit data table to store the
+      5  10000 ????						; patterns, multiplication, masking, pushing/pulling to/from the stack, and 
+      6  10000 ????						; the sed/cld opcodes to enter and exit decimal mode
+      7  10000 ????
+      8  10000 ????						; This Episode on Youtube - https://www.youtube.com/watch?v=lUJmDX1fd18
+      9  10000 ????
+     10  10000 ????						; Become a Patron - https://patreon.com/8blit
+     11  10000 ????						; 8blit Merch - https://8blit.myspreadshop.com/
+     12  10000 ????						; Subscribe to 8Blit - https://www.youtube.com/8blit?sub_confirmation=1
+     13  10000 ????						; Follow on Facebook - https://www.facebook.com/8Blit
+     14  10000 ????						; Follow on Instagram - https://www.instagram.com/8blit
+     15  10000 ????						; Visit the Website - https://www.8blit.com 
+     16  10000 ????
+     17  10000 ????						; Email - 8blit0@gmail.com
+     18  10000 ????
+     19  10000 ????				       processor	6502
+     20  10000 ????
+------- FILE vcs.h LEVEL 2 PASS 2
+      0  10000 ????				       include	"vcs.h"
+      1  10000 ????						; VCS.H
+      2  10000 ????						; Version 1.06, 06/SEP/2020
+      3  10000 ????
+      4  10000 ????		00 6a	    VERSION_VCS =	106
+      5  10000 ????
+      6  10000 ????						; THIS IS *THE* "STANDARD" VCS.H
+      7  10000 ????						; THIS FILE IS EXPLICITLY SUPPORTED AS A DASM-PREFERRED COMPANION FILE
+      8  10000 ????						; The latest version can be found at https://dasm-assembler.github.io/
+      9  10000 ????						;
+     10  10000 ????						; This file defines hardware registers and memory mapping for the
+     11  10000 ????						; Atari 2600. It is distributed as a companion machine-specific support package
+     12  10000 ????						; for the DASM compiler. Updates to this file, DASM, and associated tools are
+     13  10000 ????						; available at at https://dasm-assembler.github.io/
+     14  10000 ????						;
+     15  10000 ????						; Many thanks to the people who have contributed. If you find an issue with the
+     16  10000 ????						; contents, or would like ot add something, please report as an issue at...
+     17  10000 ????						; https://github.com/dasm-assembler/dasm/issues
+     18  10000 ????
+     19  10000 ????						;
+     20  10000 ????						; Latest Revisions...
+     21  10000 ????						; 1.06  05/SEP/2020	 Modified header/license and links to new versions
+     22  10000 ????						; 1.05  13/NOV/2003	  - Correction to 1.04 - now functions as requested by MR.
+     23  10000 ????						;			  - Added VERSION_VCS equate (which will reflect 100x version #)
+     24  10000 ????						;			    This will allow conditional code to verify VCS.H being
+     25  10000 ????						;			    used for code assembly.
+     26  10000 ????						; 1.04  12/NOV/2003	 Added TIA_BASE_WRITE_ADDRESS and TIA_BASE_READ_ADDRESS for
+     27  10000 ????						;			 convenient disassembly/reassembly compatibility for hardware
+     28  10000 ????						;			 mirrored reading/writing differences.	This is more a 
+     29  10000 ????						;			 readability issue, and binary compatibility with disassembled
+     30  10000 ????						;			 and reassembled sources.  Per Manuel Rotschkar's suggestion.
+     31  10000 ????						; 1.03  12/MAY/2003	 Added SEG segment at end of file to fix old-code compatibility
+     32  10000 ????						;			 which was broken by the use of segments in this file, as
+     33  10000 ????						;			 reported by Manuel Polik on [stella] 11/MAY/2003
+     34  10000 ????						; 1.02  22/MAR/2003	 Added TIMINT($285)
+     35  10000 ????						; 1.01				Constant offset added to allow use for 3F-style bankswitching
+     36  10000 ????						;						 - define TIA_BASE_ADDRESS as $40 for Tigervision carts, otherwise
+     37  10000 ????						;						   it is safe to leave it undefined, and the base address will
+     38  10000 ????						;						   be set to 0.  Thanks to Eckhard Stolberg for the suggestion.
+     39  10000 ????						;			    Note, may use -DLABEL=EXPRESSION to define TIA_BASE_ADDRESS
+     40  10000 ????						;			  - register definitions are now generated through assignment
+     41  10000 ????						;			    in uninitialised segments.	This allows a changeable base
+     42  10000 ????						;			    address architecture.
+     43  10000 ????						; 1.0	22/MAR/2003		Initial release
+     44  10000 ????
+     45  10000 ????
+     46  10000 ????						;-------------------------------------------------------------------------------
+     47  10000 ????
+     48  10000 ????						; TIA_BASE_ADDRESS
+     49  10000 ????						; The TIA_BASE_ADDRESS defines the base address of access to TIA registers.
+     50  10000 ????						; Normally 0, the base address should (externally, before including this file)
+     51  10000 ????						; be set to $40 when creating 3F-bankswitched (and other?) cartridges.
+     52  10000 ????						; The reason is that this bankswitching scheme treats any access to locations
+     53  10000 ????						; < $40 as a bankswitch.
+     54  10000 ????
+     55  10000 ????			   -	       IFNCONST	TIA_BASE_ADDRESS
+     56  10000 ????			   -TIA_BASE_ADDRESS =	0
+     57  10000 ????				       ENDIF
+     58  10000 ????
+     59  10000 ????						; Note: The address may be defined on the command-line using the -D switch, eg:
+     60  10000 ????						; dasm.exe code.asm -DTIA_BASE_ADDRESS=$40 -f3 -v5 -ocode.bin
+     61  10000 ????						; *OR* by declaring the label before including this file, eg:
+     62  10000 ????						; TIA_BASE_ADDRESS = $40
+     63  10000 ????						;   include "vcs.h"
+     64  10000 ????
+     65  10000 ????						; Alternate read/write address capability - allows for some disassembly compatibility
+     66  10000 ????						; usage ; to allow reassembly to binary perfect copies).  This is essentially catering
+     67  10000 ????						; for the mirrored ROM hardware registers.
+     68  10000 ????
+     69  10000 ????						; Usage: As per above, define the TIA_BASE_READ_ADDRESS and/or TIA_BASE_WRITE_ADDRESS
+     70  10000 ????						; using the -D command-line switch, as required.  If the addresses are not defined, 
+     71  10000 ????						; they defaut to the TIA_BASE_ADDRESS.
+     72  10000 ????
+     73  10000 ????			   -	       IFNCONST	TIA_BASE_READ_ADDRESS
+     74  10000 ????			   -TIA_BASE_READ_ADDRESS =	TIA_BASE_ADDRESS
+     75  10000 ????				       ENDIF
+     76  10000 ????
+     77  10000 ????			   -	       IFNCONST	TIA_BASE_WRITE_ADDRESS
+     78  10000 ????			   -TIA_BASE_WRITE_ADDRESS =	TIA_BASE_ADDRESS
+     79  10000 ????				       ENDIF
+     80  10000 ????
+     81  10000 ????						;-------------------------------------------------------------------------------
+     82  10000 ????
+     83 U002d ????				      SEG.U	TIA_REGISTERS_WRITE
+     84 U0000					      ORG	TIA_BASE_WRITE_ADDRESS
+     85 U0000
+     86 U0000							; DO NOT CHANGE THE RELATIVE ORDERING OF REGISTERS!
+     87 U0000
+     88 U0000		       00	   VSYNC      ds	1	; $00	 0000 00x0   Vertical Sync Set-Clear
+     89 U0001		       00	   VBLANK     ds	1	; $01	 xx00 00x0   Vertical Blank Set-Clear
+     90 U0002		       00	   WSYNC      ds	1	; $02	 ---- ----   Wait for Horizontal Blank
+     91 U0003		       00	   RSYNC      ds	1	; $03	 ---- ----   Reset Horizontal Sync Counter
+     92 U0004		       00	   NUSIZ0     ds	1	; $04	 00xx 0xxx   Number-Size player/missle 0
+     93 U0005		       00	   NUSIZ1     ds	1	; $05	 00xx 0xxx   Number-Size player/missle 1
+     94 U0006		       00	   COLUP0     ds	1	; $06	 xxxx xxx0   Color-Luminance Player 0
+     95 U0007		       00	   COLUP1     ds	1	; $07	 xxxx xxx0   Color-Luminance Player 1
+     96 U0008		       00	   COLUPF     ds	1	; $08	 xxxx xxx0   Color-Luminance Playfield
+     97 U0009		       00	   COLUBK     ds	1	; $09	 xxxx xxx0   Color-Luminance Background
+     98 U000a		       00	   CTRLPF     ds	1	; $0A	 00xx 0xxx   Control Playfield, Ball, Collisions
+     99 U000b		       00	   REFP0      ds	1	; $0B	 0000 x000   Reflection Player 0
+    100 U000c		       00	   REFP1      ds	1	; $0C	 0000 x000   Reflection Player 1
+    101 U000d		       00	   PF0	      ds	1	; $0D	 xxxx 0000   Playfield Register Byte 0
+    102 U000e		       00	   PF1	      ds	1	; $0E	 xxxx xxxx   Playfield Register Byte 1
+    103 U000f		       00	   PF2	      ds	1	; $0F	 xxxx xxxx   Playfield Register Byte 2
+    104 U0010		       00	   RESP0      ds	1	; $10	 ---- ----   Reset Player 0
+    105 U0011		       00	   RESP1      ds	1	; $11	 ---- ----   Reset Player 1
+    106 U0012		       00	   RESM0      ds	1	; $12	 ---- ----   Reset Missle 0
+    107 U0013		       00	   RESM1      ds	1	; $13	 ---- ----   Reset Missle 1
+    108 U0014		       00	   RESBL      ds	1	; $14	 ---- ----   Reset Ball
+    109 U0015		       00	   AUDC0      ds	1	; $15	 0000 xxxx   Audio Control 0
+    110 U0016		       00	   AUDC1      ds	1	; $16	 0000 xxxx   Audio Control 1
+    111 U0017		       00	   AUDF0      ds	1	; $17	 000x xxxx   Audio Frequency 0
+    112 U0018		       00	   AUDF1      ds	1	; $18	 000x xxxx   Audio Frequency 1
+    113 U0019		       00	   AUDV0      ds	1	; $19	 0000 xxxx   Audio Volume 0
+    114 U001a		       00	   AUDV1      ds	1	; $1A	 0000 xxxx   Audio Volume 1
+    115 U001b		       00	   GRP0       ds	1	; $1B	 xxxx xxxx   Graphics Register Player 0
+    116 U001c		       00	   GRP1       ds	1	; $1C	 xxxx xxxx   Graphics Register Player 1
+    117 U001d		       00	   ENAM0      ds	1	; $1D	 0000 00x0   Graphics Enable Missle 0
+    118 U001e		       00	   ENAM1      ds	1	; $1E	 0000 00x0   Graphics Enable Missle 1
+    119 U001f		       00	   ENABL      ds	1	; $1F	 0000 00x0   Graphics Enable Ball
+    120 U0020		       00	   HMP0       ds	1	; $20	 xxxx 0000   Horizontal Motion Player 0
+    121 U0021		       00	   HMP1       ds	1	; $21	 xxxx 0000   Horizontal Motion Player 1
+    122 U0022		       00	   HMM0       ds	1	; $22	 xxxx 0000   Horizontal Motion Missle 0
+    123 U0023		       00	   HMM1       ds	1	; $23	 xxxx 0000   Horizontal Motion Missle 1
+    124 U0024		       00	   HMBL       ds	1	; $24	 xxxx 0000   Horizontal Motion Ball
+    125 U0025		       00	   VDELP0     ds	1	; $25	 0000 000x   Vertical Delay Player 0
+    126 U0026		       00	   VDELP1     ds	1	; $26	 0000 000x   Vertical Delay Player 1
+    127 U0027		       00	   VDELBL     ds	1	; $27	 0000 000x   Vertical Delay Ball
+    128 U0028		       00	   RESMP0     ds	1	; $28	 0000 00x0   Reset Missle 0 to Player 0
+    129 U0029		       00	   RESMP1     ds	1	; $29	 0000 00x0   Reset Missle 1 to Player 1
+    130 U002a		       00	   HMOVE      ds	1	; $2A	 ---- ----   Apply Horizontal Motion
+    131 U002b		       00	   HMCLR      ds	1	; $2B	 ---- ----   Clear Horizontal Move Registers
+    132 U002c		       00	   CXCLR      ds	1	; $2C	 ---- ----   Clear Collision Latches
+    133 U002d
+    134 U002d							;-------------------------------------------------------------------------------
+    135 U002d
+    136 U000e ????				      SEG.U	TIA_REGISTERS_READ
+    137 U0000					      ORG	TIA_BASE_READ_ADDRESS
+    138 U0000
+    139 U0000							;											bit 7	 bit 6
+    140 U0000		       00	   CXM0P      ds	1	; $00	     xx00 0000	     Read Collision  M0-P1   M0-P0
+    141 U0001		       00	   CXM1P      ds	1	; $01	     xx00 0000			     M1-P0   M1-P1
+    142 U0002		       00	   CXP0FB     ds	1	; $02	     xx00 0000			     P0-PF   P0-BL
+    143 U0003		       00	   CXP1FB     ds	1	; $03	     xx00 0000			     P1-PF   P1-BL
+    144 U0004		       00	   CXM0FB     ds	1	; $04	     xx00 0000			     M0-PF   M0-BL
+    145 U0005		       00	   CXM1FB     ds	1	; $05	     xx00 0000			     M1-PF   M1-BL
+    146 U0006		       00	   CXBLPF     ds	1	; $06	     x000 0000			     BL-PF   -----
+    147 U0007		       00	   CXPPMM     ds	1	; $07	     xx00 0000			     P0-P1   M0-M1
+    148 U0008		       00	   INPT0      ds	1	; $08	     x000 0000	     Read Pot Port 0
+    149 U0009		       00	   INPT1      ds	1	; $09	     x000 0000	     Read Pot Port 1
+    150 U000a		       00	   INPT2      ds	1	; $0A	     x000 0000	     Read Pot Port 2
+    151 U000b		       00	   INPT3      ds	1	; $0B	     x000 0000	     Read Pot Port 3
+    152 U000c		       00	   INPT4      ds	1	; $0C		x000 0000	 Read Input (Trigger) 0
+    153 U000d		       00	   INPT5      ds	1	; $0D		x000 0000	 Read Input (Trigger) 1
+    154 U000e
+    155 U000e							;-------------------------------------------------------------------------------
+    156 U000e
+    157 U0298 ????				      SEG.U	RIOT
+    158 U0280					      ORG	$280
+    159 U0280
+    160 U0280							; RIOT MEMORY MAP
+    161 U0280
+    162 U0280		       00	   SWCHA      ds	1	; $280      Port A data register for joysticks:
+    163 U0281							;			Bits 4-7 for player 1.  Bits 0-3 for player 2.
+    164 U0281
+    165 U0281		       00	   SWACNT     ds	1	; $281      Port A data direction register (DDR)
+    166 U0282		       00	   SWCHB      ds	1	; $282		Port B data (console switches)
+    167 U0283		       00	   SWBCNT     ds	1	; $283      Port B DDR
+    168 U0284		       00	   INTIM      ds	1	; $284		Timer output
+    169 U0285
+    170 U0285		       00	   TIMINT     ds	1	; $285
+    171 U0286
+    172 U0286							; Unused/undefined registers ($285-$294)
+    173 U0286
+    174 U0286		       00		      ds	1	; $286
+    175 U0287		       00		      ds	1	; $287
+    176 U0288		       00		      ds	1	; $288
+    177 U0289		       00		      ds	1	; $289
+    178 U028a		       00		      ds	1	; $28A
+    179 U028b		       00		      ds	1	; $28B
+    180 U028c		       00		      ds	1	; $28C
+    181 U028d		       00		      ds	1	; $28D
+    182 U028e		       00		      ds	1	; $28E
+    183 U028f		       00		      ds	1	; $28F
+    184 U0290		       00		      ds	1	; $290
+    185 U0291		       00		      ds	1	; $291
+    186 U0292		       00		      ds	1	; $292
+    187 U0293		       00		      ds	1	; $293
+    188 U0294
+    189 U0294		       00	   TIM1T      ds	1	; $294		set 1 clock interval
+    190 U0295		       00	   TIM8T      ds	1	; $295      set 8 clock interval
+    191 U0296		       00	   TIM64T     ds	1	; $296      set 64 clock interval
+    192 U0297		       00	   T1024T     ds	1	; $297      set 1024 clock interval
+    193 U0298
+    194 U0298							;-------------------------------------------------------------------------------
+    195 U0298							; The following required for back-compatibility with code which does not use
+    196 U0298							; segments.
+    197 U0298
+    198  0000 ????				      SEG
+    199  0000 ????
+    200  0000 ????						; EOF
+------- FILE D:\src\u\s\emu\tests\bins\8blit\8blit-s04e01-Score-Two-Player-Decimal.asm
+------- FILE macro.h LEVEL 2 PASS 2
+      0  0000 ????				      include	"macro.h"
+      1  0000 ????						; MACRO.H
+      2  0000 ????						; Version 1.09, 05/SEP/2020
+      3  0000 ????
+      4  0000 ????	       00 6d	   VERSION_MACRO =	109
+      5  0000 ????
+      6  0000 ????						;
+      7  0000 ????						; THIS FILE IS EXPLICITLY SUPPORTED AS A DASM-PREFERRED COMPANION FILE
+      8  0000 ????						; The latest version can be found at https://dasm-assembler.github.io/
+      9  0000 ????						;
+     10  0000 ????						; This file defines DASM macros useful for development for the Atari 2600.
+     11  0000 ????						; It is distributed as a companion machine-specific support package
+     12  0000 ????						; for the DASM compiler.
+     13  0000 ????						;
+     14  0000 ????						; Many thanks to the people who have contributed. If you find an issue with the
+     15  0000 ????						; contents, or would like ot add something, please report as an issue at...
+     16  0000 ????						; https://github.com/dasm-assembler/dasm/issues
+     17  0000 ????
+     18  0000 ????
+     19  0000 ????						; Latest Revisions...
+     20  0000 ????						; 1.09  05/SEP/2020	 - updated license/links
+     21  0000 ????
+     22  0000 ????						; 1.08  13/JUL/2020	 - added use of LXA to CLEAN_START
+     23  0000 ????						; 1.07  19/JAN/2020	 - correction to comment VERTICAL_SYNC
+     24  0000 ????						; 1.06  03/SEP/2004	 - nice revision of VERTICAL_SYNC (Edwin Blink)
+     25  0000 ????						; 1.05  14/NOV/2003	 - Added VERSION_MACRO equate (which will reflect 100x version #)
+     26  0000 ????						;			   This will allow conditional code to verify MACRO.H being
+     27  0000 ????						;			   used for code assembly.
+     28  0000 ????						; 1.04  13/NOV/2003	 - SET_POINTER macro added (16-bit address load)
+     29  0000 ????						;
+     30  0000 ????						; 1.03  23/JUN/2003	 - CLEAN_START macro added - clears TIA, RAM, registers
+     31  0000 ????						;
+     32  0000 ????						; 1.02  14/JUN/2003	 - VERTICAL_SYNC macro added
+     33  0000 ????						;			   (standardised macro for vertical synch code)
+     34  0000 ????						; 1.01  22/MAR/2003	 - SLEEP macro added. 
+     35  0000 ????						;			 - NO_ILLEGAL_OPCODES switch implemented
+     36  0000 ????						; 1.0	22/MAR/2003		Initial release
+     37  0000 ????
+     38  0000 ????						; Note: These macros use illegal opcodes.  To disable illegal opcode usage, 
+     39  0000 ????						;   define the symbol NO_ILLEGAL_OPCODES (-DNO_ILLEGAL_OPCODES=1 on command-line).
+     40  0000 ????						;   If you do not allow illegal opcode usage, you must include this file 
+     41  0000 ????						;   *after* including VCS.H (as the non-illegal opcodes access hardware
+     42  0000 ????						;   registers and require them to be defined first).
+     43  0000 ????
+     44  0000 ????						; Available macros...
+     45  0000 ????						;   SLEEP n		 - sleep for n cycles
+     46  0000 ????						;   VERTICAL_SYNC	 - correct 3 scanline vertical synch code
+     47  0000 ????						;   CLEAN_START	 - set machine to known state on startup
+     48  0000 ????						;   SET_POINTER	 - load a 16-bit absolute to a 16-bit variable
+     49  0000 ????
+     50  0000 ????						;-------------------------------------------------------------------------------
+     51  0000 ????						; SLEEP duration
+     52  0000 ????						; Original author: Thomas Jentzsch
+     53  0000 ????						; Inserts code which takes the specified number of cycles to execute.	This is
+     54  0000 ????						; useful for code where precise timing is required.
+     55  0000 ????						; ILLEGAL-OPCODE VERSION DOES NOT AFFECT FLAGS OR REGISTERS.
+     56  0000 ????						; LEGAL OPCODE VERSION MAY AFFECT FLAGS
+     57  0000 ????						; Uses illegal opcode (DASM 2.20.01 onwards).
+     58  0000 ????
+     59  0000 ????				      MAC	sleep
+     60  0000 ????			   .CYCLES    SET	{1}
+     61  0000 ????
+     62  0000 ????				      IF	.CYCLES < 2
+     63  0000 ????				      ECHO	"MACRO ERROR: 'SLEEP': Duration must be > 1"
+     64  0000 ????				      ERR
+     65  0000 ????				      ENDIF
+     66  0000 ????
+     67  0000 ????				      IF	.CYCLES & 1
+     68  0000 ????				      IFNCONST	NO_ILLEGAL_OPCODES
+     69  0000 ????				      nop	0
+     70  0000 ????				      ELSE
+     71  0000 ????				      bit	VSYNC
+     72  0000 ????				      ENDIF
+     73  0000 ????			   .CYCLES    SET	.CYCLES - 3
+     74  0000 ????				      ENDIF
+     75  0000 ????
+     76  0000 ????				      REPEAT	.CYCLES / 2
+     77  0000 ????				      nop
+     78  0000 ????				      REPEND
+     79  0000 ????				      ENDM		;usage: SLEEP n (n>1)
+     80  0000 ????
+     81  0000 ????						;-------------------------------------------------------------------------------
+     82  0000 ????						; VERTICAL_SYNC
+     83  0000 ????						; revised version by Edwin Blink -- saves bytes!
+     84  0000 ????						; Inserts the code required for a proper 3 scanline vertical sync sequence
+     85  0000 ????						; Note: Alters the accumulator
+     86  0000 ????
+     87  0000 ????						; OUT: A = 0
+     88  0000 ????
+     89  0000 ????				      MAC	vertical_sync
+     90  0000 ????				      lda	#%1110	; each '1' bits generate a VSYNC ON line (bits 1..3)
+     91  0000 ????			   .VSLP1     sta	WSYNC	; 1st '0' bit resets Vsync, 2nd '0' bit exit loop
+     92  0000 ????				      sta	VSYNC
+     93  0000 ????				      lsr
+     94  0000 ????				      bne	.VSLP1	; branch until VYSNC has been reset
+     95  0000 ????				      ENDM
+     96  0000 ????
+     97  0000 ????						;-------------------------------------------------------------------------------
+     98  0000 ????						; CLEAN_START
+     99  0000 ????						; Original author: Andrew Davie
+    100  0000 ????						; Standardised start-up code, clears stack, all TIA registers and RAM to 0
+    101  0000 ????						; Sets stack pointer to $FF, and all registers to 0
+    102  0000 ????						; Sets decimal mode off, sets interrupt flag (kind of un-necessary)
+    103  0000 ????						; Use as very first section of code on boot (ie: at reset)
+    104  0000 ????						; Code written to minimise total ROM usage - uses weird 6502 knowledge :)
+    105  0000 ????
+    106  0000 ????				      MAC	clean_start
+    107  0000 ????				      sei
+    108  0000 ????				      cld
+    109  0000 ????
+    110  0000 ????				      IFNCONST	NO_ILLEGAL_OPCODES
+    111  0000 ????				      lxa	#0
+    112  0000 ????				      ELSE
+    113  0000 ????				      ldx	#0
+    114  0000 ????				      txa
+    115  0000 ????				      ENDIF
+    116  0000 ????				      tay
+    117  0000 ????			   .CLEAR_STACK dex
+    118  0000 ????				      txs
+    119  0000 ????				      pha
+    120  0000 ????				      bne	.CLEAR_STACK	; SP=$FF, X = A = Y = 0
+    121  0000 ????
+    122  0000 ????				      ENDM
+    123  0000 ????
+    124  0000 ????						;-------------------------------------------------------
+    125  0000 ????						; SET_POINTER
+    126  0000 ????						; Original author: Manuel Rotschkar
+    127  0000 ????						;
+    128  0000 ????						; Sets a 2 byte RAM pointer to an absolute address.
+    129  0000 ????						;
+    130  0000 ????						; Usage: SET_POINTER pointer, address
+    131  0000 ????						; Example: SET_POINTER SpritePTR, SpriteData
+    132  0000 ????						;
+    133  0000 ????						; Note: Alters the accumulator, NZ flags
+    134  0000 ????						; IN 1: 2 byte RAM location reserved for pointer
+    135  0000 ????						; IN 2: absolute address
+    136  0000 ????
+    137  0000 ????				      MAC	set_pointer
+    138  0000 ????			   .POINTER   SET	{1}
+    139  0000 ????			   .ADDRESS   SET	{2}
+    140  0000 ????
+    141  0000 ????				      LDA	#<.ADDRESS	; Get Lowbyte of Address
+    142  0000 ????				      STA	.POINTER	; Store in pointer
+    143  0000 ????				      LDA	#>.ADDRESS	; Get Hibyte of Address
+    144  0000 ????				      STA	.POINTER+1	; Store in pointer+1
+    145  0000 ????
+    146  0000 ????				      ENDM
+    147  0000 ????
+    148  0000 ????						;-------------------------------------------------------
+    149  0000 ????						; BOUNDARY byte#
+    150  0000 ????						; Original author: Denis Debro (borrowed from Bob Smith / Thomas)
+    151  0000 ????						;
+    152  0000 ????						; Push data to a certain position inside a page and keep count of how
+    153  0000 ????						; many free bytes the programmer will have.
+    154  0000 ????						;
+    155  0000 ????						; eg: BOUNDARY 5    ; position at byte #5 in page
+    156  0000 ????
+    157  0000 ????			   .FREE_BYTES SET	0
+    158  0000 ????				      MAC	boundary
+    159  0000 ????				      REPEAT	256
+    160  0000 ????				      IF	<. % {1} = 0
+    161  0000 ????				      MEXIT
+    162  0000 ????				      ELSE
+    163  0000 ????			   .FREE_BYTES SET	.FREE_BYTES + 1
+    164  0000 ????				      .byte	$00
+    165  0000 ????				      ENDIF
+    166  0000 ????				      REPEND
+    167  0000 ????				      ENDM
+    168  0000 ????
+    169  0000 ????
+    170  0000 ????						; EOF
+------- FILE D:\src\u\s\emu\tests\bins\8blit\8blit-s04e01-Score-Two-Player-Decimal.asm
+     23  0000 ????
+     24  0000 ????						; compiler symbols
+     25  0000 ????						;--------------------------------------
+     26  0000 ????	       00 b1	   VOUTLINES  =	177
+     27  0000 ????	       00 05	   SOUTLINES  =	5
+     28  0000 ????	       00 25	   VBLANKLINES =	37
+     29  0000 ????	       00 1e	   OVERSCANLINES =	30
+     30  0000 ????	       00 2b	   VBLANKTIME =	(VBLANKLINES * 76) / 64
+     31  0000 ????	       00 23	   OVERSCANTIME =	(OVERSCANLINES * 76) / 64
+     32  0000 ????
+     33 U008b ????				      seg.u	vars	;	  uninitialized segment
+     34 U0080					      org	$80	;	  origin set at base of ram 
+     35 U0080
+     36 U0080		       00 00	   score      ds	2	;	  player score's
+     37 U0082
+     38 U0082		       00 00	   digitIdx1  ds	2	;	  index for digits to use within the data table
+     39 U0084		       00 00	   digitIdx2  ds	2	;	  index for digits to use within the data table
+     40 U0086		       00	   temp1      ds	1	;	  general temp address to swap out values
+     41 U0087		       00	   temp2      ds	1	;	  general temp address to swap out values
+     42 U0088		       00	   voutCount  ds	1	;	  number of cycles left for vout
+     43 U0089		       00	   soutCount  ds	1	;	  number of cycles left for sount (the score)
+     44 U008a		       00	   counter    ds	1
+     45 U008b
+     46 U008b							; code
+     47 U008b							;--------------------------------------
+     48  10000 ????				       seg	code
+     49  f000					      org	$f000
+     50  f000
+     51  f000				   reset
+      0  f000					      CLEAN_START		;	  ouput: all ram/registers 0
+      1  f000		       78		      sei
+      2  f001		       d8		      cld
+      3  f002
+      4  f002				  -	      IFNCONST	NO_ILLEGAL_OPCODES
+      5  f002				  -	      lxa	#0
+      6  f002					      ELSE
+      7  f002		       a2 00		      ldx	#0
+      8  f004		       8a		      txa
+      9  f005					      ENDIF
+     10  f005		       a8		      tay
+     11  f006		       ca	   .CLEAR_STACK dex
+     12  f007		       9a		      txs
+     13  f008		       48		      pha
+     14  f009		       d0 fb		      bne	.CLEAR_STACK
+     15  f00b
+     53  f00b
+     54  f00b		       a9 00		      lda	#$00	; 2
+     55  f00d		       85 80		      sta	score	; 3	  p0 score  
+     56  f00f		       85 81		      sta	score+1	; 3	  p1 score	    
+     57  f011		       85 8a		      sta	counter	; 3	  counts down to next score increase
+     58  f013
+     59  f013				   nextFrame
+     60  f013		       c6 8a		      dec	counter	; 5		    
+     61  f015		       10 14		      bpl	noInc	; 2/3	  should we update the score
+     62  f017		       a9 10		      lda	#$10	; 2	  update every 1/6th second on NTSC
+     63  f019		       85 8a		      sta	counter	; 3
+     64  f01b
+     65  f01b		       f8		      sed		; 2	  set decimal mode
+     66  f01c		       18		      clc		; 2	  clear carry flag
+     67  f01d		       a5 80		      lda	score	; 3
+     68  f01f		       69 01		      adc	#$1	; 2	  add 1
+     69  f021		       85 80		      sta	score	; 3	  update p0 score
+     70  f023		       18		      clc		; 2	  clear carry flag
+     71  f024		       a5 81		      lda	score+1	; 3
+     72  f026		       69 02		      adc	#$2	; 2	  add 2
+     73  f028		       85 81		      sta	score+1	; 3	  update p1 score
+     74  f02a		       d8		      cld		; 2	  clear decimal mode
+     75  f02b
+     76  f02b				   noInc
+      0  f02b					      VERTICAL_SYNC		;10
+      1  f02b		       a9 0e		      lda	#%1110
+      2  f02d		       85 02	   .VSLP1     sta	WSYNC
+      3  f02f		       85 00		      sta	VSYNC
+      4  f031		       4a		      lsr
+      5  f032		       d0 f9		      bne	.VSLP1
+     78  f034		       a2 2b		      ldx	#VBLANKTIME	; 2			
+     79  f036		       8e 96 02 	      stx	TIM64T	; 3	    
+     80  f039		       a9 b1		      lda	#VOUTLINES	; 2	
+     81  f03b		       85 88		      sta	voutCount	; 3	
+     82  f03d		       a9 05		      lda	#SOUTLINES	; 2	
+     83  f03f		       85 89		      sta	soutCount	; 3	
+     84  f041		       a9 0e		      lda	#$0e	; 2	
+     85  f043		       85 08		      sta	COLUPF	; 3	
+     86  f045
+     87  f045							; calculate digit index for the score
+     88  f045							;----------------------------------
+     89  f045							; we're only using the first nibble of the score. if the score is '17',
+     90  f045							; then we pull '7' by masking the the first 4 bits (d0-d3). multiply that
+     91  f045							; by the height of the digits (5) to find the offset position of the '7'
+     92  f045							; digit. multiplication by 5 is done by multiplying it by 2 twice and then
+     93  f045							; adding the original value to the result. 7*2*2+7=35
+     94  f045
+     95  f045		       a0 01		      ldy	#$1	; 2	  start with p1 score
+     96  f047				   findIdx
+     97  f047		       b9 80 00 	      lda	score,y	; 2	  get the score   
+     98  f04a		       18		      clc		; 2	  clear the carry bit so it's not added in adc 
+     99  f04b		       48		      pha		; 3	  push the score to the stack 
+    100  f04c		       29 0f		      and	#$0f	; 2	  mask the first nibble 
+    101  f04e		       85 86		      sta	temp1	; 3	  store the first nibble in temp
+    102  f050		       0a		      asl		; 2	  shift left (multiply by 2)
+    103  f051		       0a		      asl		; 2	  shift left (multiply by 2)
+    104  f052		       65 86		      adc	temp1	; 2	  add the first nibble to the result 
+    105  f054		       99 82 00 	      sta	digitIdx1,y	; 3	  store calculated index
+    106  f057		       68		      pla		; 4	  pull original score from stack
+    107  f058		       29 f0		      and	#$f0	; 2	  mask the second nibble
+    108  f05a		       4a		      lsr		; 2	  shift right (divide by 2)
+    109  f05b		       4a		      lsr		; 2	  shift right (divide by 2)
+    110  f05c		       85 86		      sta	temp1	; 3	  store the result in temp
+    111  f05e		       4a		      lsr		; 2	  shift right (divide by 2)
+    112  f05f		       4a		      lsr		; 2	  shift right (divide by 2)
+    113  f060		       65 86		      adc	temp1	; 2	  add previous result in temp to get the offset
+    114  f062		       99 84 00 	      sta	digitIdx2,y	; 3	  store index @ address digitIdx+1
+    115  f065		       88		      dey		; 2	  move on to p0 score
+    116  f066		       10 df		      bpl	findIdx
+    117  f068
+    118  f068				   vbTimer
+    119  f068		       ad 84 02 	      lda	INTIM	; 2		      
+    120  f06b		       d0 fb		      bne	vbTimer	; 2/3	 
+    121  f06d		       85 01		      sta	VBLANK	; 3	  set vertical blank off
+    122  f06f
+    123  f06f		       85 02		      sta	WSYNC	; 3	
+    124  f071							;--------------------------------------	
+    125  f071
+    126  f071							; get graphic from data table by index
+    127  f071							;-------------------------------------
+    128  f071							; the digit graphics are stored as doubles, but we only want to display a
+    129  f071							; single digit so we mask off the first nibble before writing it to the 
+    130  f071							; playfield
+    131  f071
+    132  f071				   voutscore
+    133  f071
+    134  f071		       a6 82		      ldx	digitIdx1	; 3	  get the index of the 1's position for p0
+    135  f073		       bd 14 f1 	      lda	digits,x	; 4	  load the digit graphic for this scanline     
+    136  f076		       29 0f		      and	#$0f	; 2	  mask off first nibble so only see one number
+    137  f078		       85 86		      sta	temp1	; 3	  store in temp to combine later
+    138  f07a		       a6 84		      ldx	digitIdx2	; 3	  get the index of the 10's position for p0
+    139  f07c		       bd 14 f1 	      lda	digits,x	; 4	  load the digit graphic for this scanline
+    140  f07f		       29 f0		      and	#$f0	; 2	  mask off second nibble so only see one number
+    141  f081		       05 86		      ora	temp1	; 3	  'or' it with the 1's graphic we saved earlier
+    142  f083		       85 02		      sta	WSYNC	; 3/2	  end scanline
+    143  f085							;--------------------------------------
+    144  f085
+    145  f085		       85 0e		      sta	PF1	; 3	3 draw the the p0 score
+    146  f087		       85 86		      sta	temp1	; 3	  save p0 graphic for the next scanline
+    147  f089		       a6 83		      ldx	digitIdx1+1	; 3	  get the index of the 1's position for p1
+    148  f08b		       bd 14 f1 	      lda	digits,x	; 4	  load the digit graphic for this scanline     
+    149  f08e		       29 0f		      and	#$0f	; 2	  mask off first nibble so only see one number
+    150  f090		       85 87		      sta	temp2	; 3	  ..
+    151  f092		       a6 85		      ldx	digitIdx2+1	; 3
+    152  f094		       bd 14 f1 	      lda	digits,x	; 4
+    153  f097		       29 f0		      and	#$f0	; 2
+    154  f099		       05 87		      ora	temp2	; 3
+    155  f09b		       ea		      nop		; 2	  we need to be past cycle 38 to rewrite pf1
+    156  f09c		       ea		      nop		; 2
+    157  f09d		       ea		      nop		; 2
+    158  f09e		       85 0e		      sta	PF1	; 3   39	    
+    159  f0a0		       85 87		      sta	temp2	; 3	  save p1 graphic for the next scanline
+    160  f0a2		       85 02		      sta	WSYNC	; 3
+    161  f0a4							;--------------------------------------		 
+    162  f0a4		       e6 82		      inc	digitIdx1	; 5	  increase the offset for the p0 1's digit
+    163  f0a6		       e6 83		      inc	digitIdx1+1	; 5	  increase the offset for the p1 1's digit
+    164  f0a8
+    165  f0a8		       a5 86		      lda	temp1	; 3	  get previous saved p0 graphic
+    166  f0aa		       85 0e		      sta	PF1	; 3   16 write to pf1
+    167  f0ac		       e6 84		      inc	digitIdx2	; 5	  increase the offset for the p0 10's digit
+    168  f0ae		       e6 85		      inc	digitIdx2+1	; 5	  increase the offset for the p1 10's digit
+    169  f0b0		       a5 87		      lda	temp2	; 3	  get the previous saved p1 graphic
+    170  f0b2		       ea		      nop		; 2	  we need to be past cycle 38 to rewrite pf1
+    171  f0b3		       ea		      nop		; 2
+    172  f0b4		       ea		      nop		; 2
+    173  f0b5		       ea		      nop		; 2
+    174  f0b6		       85 0e		      sta	PF1	; 3	  40 write to pf1
+    175  f0b8
+    176  f0b8				   contScore
+    177  f0b8		       c6 89		      dec	soutCount	; 5	  counting down 5 cycles at 2 scanlines per
+    178  f0ba		       d0 b5		      bne	voutscore	; 2/3	       
+    179  f0bc
+    180  f0bc		       85 02		      sta	WSYNC	; 3
+    181  f0be							;--------------------------------------
+    182  f0be		       a9 00		      lda	#$0	; 2
+    183  f0c0		       85 0e		      sta	PF1	; 3
+    184  f0c2
+    185  f0c2		       85 02		      sta	WSYNC	; 3
+    186  f0c4							;--------------------------------------
+    187  f0c4
+    188  f0c4		       a9 00		      lda	#$0	; 2
+    189  f0c6		       85 0e		      sta	PF1	; 3
+    190  f0c8
+    191  f0c8		       85 02		      sta	WSYNC	; 3
+    192  f0ca							;--------------------------------------
+    193  f0ca		       85 02		      sta	WSYNC	; 3
+    194  f0cc							;--------------------------------------
+    195  f0cc		       85 02		      sta	WSYNC	; 3
+    196  f0ce							;--------------------------------------
+    197  f0ce
+    198  f0ce		       a9 90		      lda	#$90	; 2
+    199  f0d0		       85 09		      sta	COLUBK	; 3
+    200  f0d2				   vout
+    201  f0d2		       85 02		      sta	WSYNC	; 3
+    202  f0d4							;--------------------------------------
+    203  f0d4		       c6 88		      dec	voutCount	; 5
+    204  f0d6		       d0 fa		      bne	vout	; 2/3	     
+    205  f0d8
+    206  f0d8		       85 02		      sta	WSYNC	;  3
+    207  f0da							;--------------------------------------
+    208  f0da		       a9 00		      lda	#$00	;  2
+    209  f0dc		       85 09		      sta	COLUBK	;  3
+    210  f0de
+    211  f0de							; ---- overscan (30 scanlines)
+    212  f0de		       a2 23		      ldx	#OVERSCANTIME	;  2
+    213  f0e0		       8e 96 02 	      stx	TIM64T	;  3
+    214  f0e3				   osTimer
+    215  f0e3		       ad 84 02 	      lda	INTIM	;  2
+    216  f0e6		       d0 fb		      bne	osTimer	;  2/3
+    217  f0e8		       4c 13 f0 	      jmp	nextFrame	;  3	      
+    218  f0eb
+    219  f100		       00 00 00 00*	      align	$100	; align data
+    220  f100
+------- FILE digits.h LEVEL 2 PASS 2
+      0  f100					      include	"digits.h"
+      1  f100				   p0
+      2  f100		       88		      .byte.b	%10001000
+      3  f101		       88		      .byte.b	%10001000
+      4  f102		       e8		      .byte.b	%11101000
+      5  f103		       a8		      .byte.b	%10101000
+      6  f104		       e8		      .byte.b	%11101000
+      7  f105				   p1
+      8  f105		       8e		      .byte.b	%10001110
+      9  f106		       88		      .byte.b	%10001000
+     10  f107		       ee		      .byte.b	%11101110
+     11  f108		       a2		      .byte.b	%10100010
+     12  f109		       ee		      .byte.b	%11101110
+     13  f10a				   p2
+     14  f10a		       8e		      .byte.b	%10001110
+     15  f10b		       82		      .byte.b	%10000010
+     16  f10c		       e6		      .byte.b	%11100110
+     17  f10d		       a2		      .byte.b	%10100010
+     18  f10e		       ee		      .byte.b	%11101110
+     19  f10f				   p3
+     20  f10f		       82		      .byte.b	%10000010
+     21  f110		       82		      .byte.b	%10000010
+     22  f111		       ee		      .byte.b	%11101110
+     23  f112		       aa		      .byte.b	%10101010
+     24  f113		       ea		      .byte.b	%11101010
+     25  f114
+     26  f114
+     27  f114
+     28  f114							; 0 to 99 in 50 bytes
+     29  f114							; 00 to FF in 75 bytes
+     30  f114
+     31  f114				   digits
+     32  f114							; 00
+     33  f114		       77		      .byte.b	%01110111
+     34  f115		       55		      .byte.b	%01010101
+     35  f116		       55		      .byte.b	%01010101
+     36  f117		       55		      .byte.b	%01010101
+     37  f118		       77		      .byte.b	%01110111
+     38  f119							; 11
+     39  f119		       11		      .byte.b	%00010001
+     40  f11a		       11		      .byte.b	%00010001
+     41  f11b		       11		      .byte.b	%00010001
+     42  f11c		       11		      .byte.b	%00010001
+     43  f11d		       11		      .byte.b	%00010001
+     44  f11e							; 22
+     45  f11e		       77		      .byte.b	%01110111
+     46  f11f		       11		      .byte.b	%00010001
+     47  f120		       77		      .byte.b	%01110111
+     48  f121		       44		      .byte.b	%01000100
+     49  f122		       77		      .byte.b	%01110111
+     50  f123							; 33
+     51  f123		       77		      .byte.b	%01110111
+     52  f124		       11		      .byte.b	%00010001
+     53  f125		       33		      .byte.b	%00110011
+     54  f126		       11		      .byte.b	%00010001
+     55  f127		       77		      .byte.b	%01110111
+     56  f128							; 44
+     57  f128		       55		      .byte.b	%01010101
+     58  f129		       55		      .byte.b	%01010101
+     59  f12a		       77		      .byte.b	%01110111
+     60  f12b		       11		      .byte.b	%00010001
+     61  f12c		       11		      .byte.b	%00010001
+     62  f12d							; 55
+     63  f12d		       77		      .byte.b	%01110111
+     64  f12e		       44		      .byte.b	%01000100
+     65  f12f		       77		      .byte.b	%01110111
+     66  f130		       11		      .byte.b	%00010001
+     67  f131		       77		      .byte.b	%01110111
+     68  f132							; 66
+     69  f132		       77		      .byte.b	%01110111
+     70  f133		       44		      .byte.b	%01000100
+     71  f134		       77		      .byte.b	%01110111
+     72  f135		       55		      .byte.b	%01010101
+     73  f136		       77		      .byte.b	%01110111
+     74  f137							; 77
+     75  f137		       77		      .byte.b	%01110111
+     76  f138		       11		      .byte.b	%00010001
+     77  f139		       11		      .byte.b	%00010001
+     78  f13a		       11		      .byte.b	%00010001
+     79  f13b		       11		      .byte.b	%00010001
+     80  f13c							; 88
+     81  f13c		       77		      .byte.b	%01110111
+     82  f13d		       55		      .byte.b	%01010101
+     83  f13e		       77		      .byte.b	%01110111
+     84  f13f		       55		      .byte.b	%01010101
+     85  f140		       77		      .byte.b	%01110111
+     86  f141							; 99
+     87  f141		       77		      .byte.b	%01110111
+     88  f142		       55		      .byte.b	%01010101
+     89  f143		       77		      .byte.b	%01110111
+     90  f144		       11		      .byte.b	%00010001
+     91  f145		       77		      .byte.b	%01110111
+     92  f146							; AA
+     93  f146		       22		      .byte.b	%00100010
+     94  f147		       55		      .byte.b	%01010101
+     95  f148		       77		      .byte.b	%01110111
+     96  f149		       55		      .byte.b	%01010101
+     97  f14a		       55		      .byte.b	%01010101
+     98  f14b							; BB
+     99  f14b		       66		      .byte.b	%01100110
+    100  f14c		       55		      .byte.b	%01010101
+    101  f14d		       66		      .byte.b	%01100110
+    102  f14e		       55		      .byte.b	%01010101
+    103  f14f		       66		      .byte.b	%01100110
+    104  f150							; CC
+    105  f150		       77		      .byte.b	%01110111
+    106  f151		       44		      .byte.b	%01000100
+    107  f152		       44		      .byte.b	%01000100
+    108  f153		       44		      .byte.b	%01000100
+    109  f154		       77		      .byte.b	%01110111
+    110  f155							; DD
+    111  f155		       66		      .byte.b	%01100110
+    112  f156		       55		      .byte.b	%01010101
+    113  f157		       55		      .byte.b	%01010101
+    114  f158		       55		      .byte.b	%01010101
+    115  f159		       66		      .byte.b	%01100110
+    116  f15a							; EE
+    117  f15a		       77		      .byte.b	%01110111
+    118  f15b		       44		      .byte.b	%01000100
+    119  f15c		       66		      .byte.b	%01100110
+    120  f15d		       44		      .byte.b	%01000100
+    121  f15e		       77		      .byte.b	%01110111
+    122  f15f							; FF
+    123  f15f		       77		      .byte.b	%01110111
+    124  f160		       44		      .byte.b	%01000100
+    125  f161		       66		      .byte.b	%01100110
+    126  f162		       44		      .byte.b	%01000100
+    127  f163		       44		      .byte.b	%01000100
+------- FILE D:\src\u\s\emu\tests\bins\8blit\8blit-s04e01-Score-Two-Player-Decimal.asm
+    222  f164
+    223  fffa					      org	$fffa
+    224  fffa		       00 f0		      .word.w	reset	; nmi ($fffa)
+    225  fffc		       00 f0		      .word.w	reset	; reset ($fffc)
+    226  fffe		       00 f0		      .word.w	reset	; irq ($fffe)

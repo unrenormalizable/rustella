@@ -1,0 +1,156 @@
+--- Symbol List (sorted by symbol)
+0.FREE_BYTES             0000                  
+1.CLEAR_STACK            f006              (R )
+2.VSLP1                  f072              (R )
+AUDC0                    0015              (R )
+AUDC1                    0016                  
+AUDF0                    0017              (R )
+AUDF1                    0018                  
+AUDV0                    0019              (R )
+AUDV1                    001a                  
+b_bearing                0082              (R )
+b_bearing_old            0083              (R )
+b_x                      0080              (R )
+b_y                      0081              (R )
+bearing_offsets          f200              (R )
+change_arena             f03b              (R )
+checktimer               f0f2              (R )
+col_no_adj               f0b7              (R )
+col_on                   f0ba              (R )
+collision                f095              (R )
+collision_count          0084              (R )
+collision_done           f0d0              (R )
+COLUBK                   0009              (R )
+COLUP0                   0006                  
+COLUP1                   0007                  
+COLUPF                   0008              (R )
+CTRLPF                   000a              (R )
+CXBLPF                   0006              (R )
+CXCLR                    002c              (R )
+CXM0FB                   0004                  
+CXM0P                    0000                  
+CXM1FB                   0005                  
+CXM1P                    0001                  
+CXP0FB                   0002                  
+CXP1FB                   0003                  
+CXPPMM                   0007                  
+DivideLoop               f1bb              (R )
+ENABL                    001f              (R )
+ENAM0                    001d                  
+ENAM1                    001e                  
+galois_lfsr_backward     f1ae              (R )
+galois_lfsr_forward      f1a4              (R )
+galois_lfsr_random       f19a              (R )
+GRP0                     001b                  
+GRP1                     001c                  
+HMBL                     0024              (R )
+HMCLR                    002b                  
+HMM0                     0022                  
+HMM1                     0023                  
+HMOVE                    002a              (R )
+HMP0                     0020              (R )
+HMP1                     0021                  
+INPT0                    0008                  
+INPT1                    0009                  
+INPT2                    000a                  
+INPT3                    000b                  
+INPT4                    000c                  
+INPT5                    000d                  
+int_advance              f179              (R )
+int_inv                  f16b              (R )
+INTIM                    0284              (R )
+kernel                   f0fd              (R )
+l_seed                   0091              (R )
+mode                     0092              (R )
+NextFrame                f070              (R )
+no_collision             f0d2              (R )
+NO_ILLEGAL_OPCODES       0001              (R )
+no_reset                 f14f              (R )
+no_select                f187              (R )
+noball                   f120              (R )
+noeor0                   f1a1              (R )
+noeor1                   f1ab              (R )
+noeor2                   f1b5              (R )
+NUSIZ0                   0004                  
+NUSIZ1                   0005                  
+overscan_timer           f192              (R )
+PF0                      000d              (R )
+PF0_data_activision      f310              (R )
+PF0_data_atari           f232              (R )
+PF0_data_combat          f2c6              (R )
+PF0_data_pattern         f27c              (R )
+PF0_lsb_ptr              f218              (R )
+PF0_msb_ptr              f21c              (R )
+PF0_ptr                  0087              (R )
+PF1                      000e              (R )
+PF1_data_activision      f328              (R )
+PF1_data_atari           f24a              (R )
+PF1_data_combat          f2de              (R )
+PF1_data_pattern         f294              (R )
+PF1_lsb_ptr              f220              (R )
+PF1_msb_ptr              f224              (R )
+PF1_ptr                  0089              (R )
+PF2                      000f              (R )
+PF2_data_activision      f340              (R )
+PF2_data_atari           f262              (R )
+PF2_data_combat          f2f6              (R )
+PF2_data_pattern         f2ac              (R )
+PF2_lsb_ptr              f228              (R )
+PF2_msb_ptr              f22c              (R )
+PF2_ptr                  008b              (R )
+PF_col                   008f              (R )
+PF_col_activision        f30e              (R )
+PF_col_atari             f230              (R )
+PF_col_combat            f2c4              (R )
+PF_col_lsb_ptr           f210              (R )
+PF_col_msb_ptr           f214              (R )
+PF_col_pattern           f27a              (R )
+PF_col_ptr               008d              (R )
+pf_count                 0085              (R )
+PF_H                     0060              (R )
+pf_prev                  0086              (R )
+PositionX                f1b8              (R )
+r_seed                   0090              (R )
+REFP0                    000b                  
+REFP1                    000c                  
+RESBL                    0014                  
+reset                    f000              (R )
+RESM0                    0012                  
+RESM1                    0013                  
+RESMP0                   0028                  
+RESMP1                   0029                  
+RESP0                    0010              (R )
+RESP1                    0011                  
+reverse_bearing          f0c9              (R )
+reverse_org_bearing      f0cb              (R )
+RSYNC                    0003                  
+skip_reset               f153              (R )
+skip_select              f18b              (R )
+skipx                    f104              (R )
+snd                      f08a              (R )
+snd_on                   0095              (R )
+soft_reset               f016              (R )
+SWACNT                   0281                  
+SWBCNT                   0283                  
+SWCHA                    0280                  
+SWCHB                    0282              (R )
+swt_reset                0093              (R )
+swt_select               0094              (R )
+T1024T                   0297                  
+TIA_BASE_ADDRESS         0000              (R )
+TIA_BASE_READ_ADDRESS    0000              (R )
+TIA_BASE_WRITE_ADDRESS   0000              (R )
+TIM1T                    0294                  
+TIM64T                   0296              (R )
+TIM8T                    0295                  
+TIMINT                   0285                  
+VBLANK                   0001              (R )
+VDELBL                   0027                  
+VDELP0                   0025                  
+VDELP1                   0026                  
+VERSION_MACRO            006d                  
+VERSION_VCS              006a                  
+VerticalBlank            f079                  
+VSYNC                    0000              (R )
+WSYNC                    0002              (R )
+--- End of Symbol List.

@@ -1,0 +1,136 @@
+--- Symbol List (sorted by symbol)
+0.FREE_BYTES             0000                  
+1.CLEAR_STACK            f006              (R )
+2.VSLP1                  f02f              (R )
+AUDC0                    0015                  
+AUDC1                    0016                  
+AUDF0                    0017                  
+AUDF1                    0018                  
+AUDV0                    0019                  
+AUDV1                    001a                  
+CheckTimer               f087              (R )
+colp0                    0083                  
+COLUBK                   0009              (R )
+COLUP0                   0006              (R )
+COLUP1                   0007              (R )
+COLUPF                   0008              (R )
+CTRLPF                   000a              (R )
+CXBLPF                   0006                  
+CXCLR                    002c                  
+CXM0FB                   0004                  
+CXM0P                    0000                  
+CXM1FB                   0005                  
+CXM1P                    0001                  
+CXP0FB                   0002                  
+CXP1FB                   0003                  
+CXPPMM                   0007                  
+DivideLoop               f17c              (R )
+drawing_p0               f0a2              (R )
+drawing_p1               f0c5              (R )
+ENABL                    001f                  
+ENAM0                    001d                  
+ENAM1                    001e                  
+GRP0                     001b              (R )
+GRP1                     001c              (R )
+HMBL                     0024                  
+HMCLR                    002b                  
+HMM0                     0022                  
+HMM1                     0023                  
+HMOVE                    002a              (R )
+HMP0                     0020              (R )
+HMP1                     0021                  
+INPT0                    0008                  
+INPT1                    0009                  
+INPT2                    000a                  
+INPT3                    000b                  
+INPT4                    000c                  
+INPT5                    000d                  
+INTIM                    0284              (R )
+Kernel                   f092              (R )
+NextFrame                f02d              (R )
+NO_ILLEGAL_OPCODES       0001              (R )
+NUSIZ0                   0004                  
+NUSIZ1                   0005                  
+p0_x                     0082              (R )
+p0_y                     0080              (R )
+p1_x                     0086              (R )
+p1_y                     0084              (R )
+PF0                      000d              (R )
+PF0_data                 f200              (R )
+PF1                      000e              (R )
+PF1_data                 f218              (R )
+PF2                      000f              (R )
+PF2_data                 f230                  
+pf_count                 0087              (R )
+pf_end                   f0e6                  
+PF_H                     0060              (R )
+pos_nodown               f123              (R )
+pos_nodown1              f163              (R )
+pos_noleft               f113              (R )
+pos_noleft1              f153              (R )
+pos_noright              f103              (R )
+pos_noright1             f143              (R )
+pos_noup                 f12f              (R )
+pos_noup1                f16f              (R )
+PositionPlayers          f03d                  
+PositionX                f179              (R )
+REFP0                    000b              (R )
+REFP1                    000c              (R )
+RESBL                    0014                  
+Reset                    f000              (R )
+RESM0                    0012                  
+RESM1                    0013                  
+RESMP0                   0028                  
+RESMP1                   0029                  
+RESP0                    0010              (R )
+RESP1                    0011                  
+robot0_tcol              0090              (R )
+robot1_col_lsb_ptr       f29f              (R )
+robot1_col_msb_ptr       f2a1              (R )
+robot1_col_ptr           008b              (R )
+robot1_f0_col            f280              (R )
+robot1_f1_col            f28e              (R )
+robot_cel                0088              (R )
+robot_col_lsb_ptr        f29b              (R )
+robot_col_msb_ptr        f29d              (R )
+robot_col_ptr            0089              (R )
+ROBOT_F                  0002                  
+robot_f0                 f248              (R )
+robot_f0_col             f266              (R )
+robot_f1                 f255              (R )
+robot_f1_col             f273              (R )
+ROBOT_H                  000c              (R )
+robot_lsb_ptr            f262              (R )
+robot_msb_ptr            f264              (R )
+robot_ptr                008d              (R )
+robot_tcol               008f              (R )
+RSYNC                    0003                  
+SkipX                    f099              (R )
+SWACNT                   0281                  
+SWBCNT                   0283                  
+SWCHA                    0280              (R )
+SWCHB                    0282                  
+T1024T                   0297                  
+TIA_BASE_ADDRESS         0000              (R )
+TIA_BASE_READ_ADDRESS    0000              (R )
+TIA_BASE_WRITE_ADDRESS   0000              (R )
+TIM1T                    0294                  
+TIM64T                   0296              (R )
+TIM8T                    0295                  
+timer2                   f171              (R )
+TIMINT                   0285                  
+tp0_y                    0081              (R )
+tp1_y                    0085              (R )
+tpf0                     0091                  
+tpf1                     0092                  
+tpf2                     0093                  
+VBLANK                   0001              (R )
+VDELBL                   0027                  
+VDELP0                   0025              (R )
+VDELP1                   0026                  
+VERSION_MACRO            006d                  
+VERSION_VCS              006a                  
+VerticalBlank            f038                  
+VSYNC                    0000              (R )
+WSYNC                    0002              (R )
+--- End of Symbol List.

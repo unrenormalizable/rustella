@@ -1,4 +1,4 @@
-------- FILE D:\src\u\s\emu\tests\spiceware_collect\3\8blit-s01e04-Playfield-01.asm LEVEL 1 PASS 2
+------- FILE D:\src\u\s\emu\tests\bins\8blit\8blit-s01e04-Playfield-01.asm LEVEL 1 PASS 2
       1  10000					       processor	6502	; s01e04 Draw the playfield on an Atari 2600
 ------- FILE vcs.h LEVEL 2 PASS 2
       0  10000 ????				       include	"vcs.h"	; This example uses the TIA PF0, PF1, PF2, and CTLRPF 
@@ -202,7 +202,7 @@
     198  0000 ????				      SEG
     199  0000 ????
     200  0000 ????						; EOF
-------- FILE D:\src\u\s\emu\tests\spiceware_collect\3\8blit-s01e04-Playfield-01.asm
+------- FILE D:\src\u\s\emu\tests\bins\8blit\8blit-s01e04-Playfield-01.asm
       3  0000 ????						; Registers to draw playfield graphics using one register at a time
       4  0000 ????						; first in normal mode, and then in mirrored
       5  0000 ????						;

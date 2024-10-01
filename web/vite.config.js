@@ -19,6 +19,12 @@ export default defineConfig({
         },
         {
           src: normalizePath(
+            path.resolve(__dirname, `../emu/tests/bins/8blit/*.bin`)
+          ),
+          dest: `./roms/`,
+        },
+        {
+          src: normalizePath(
             path.resolve(__dirname, `../emu/tests/bins/*.bin`)
           ),
           dest: `./roms/`,

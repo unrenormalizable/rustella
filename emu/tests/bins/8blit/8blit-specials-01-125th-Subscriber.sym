@@ -1,0 +1,102 @@
+--- Symbol List (sorted by symbol)
+0.FREE_BYTES             0000                  
+1.CLEAR_STACK            f006              (R )
+2.VSLP1                  f035              (R )
+anim_count               0082              (R )
+ANIMDELAY                00b4              (R )
+AUDC0                    0015                  
+AUDC1                    0016                  
+AUDF0                    0017                  
+AUDF1                    0018                  
+AUDV0                    0019                  
+AUDV1                    001a                  
+col_index                0083              (R )
+COLMAXINDEX              000e              (R )
+COLPF                    0046              (R )
+COLUBK                   0009              (R )
+COLUP0                   0006              (R )
+COLUP1                   0007              (R )
+COLUPF                   0008              (R )
+continuecount            f060              (R )
+continuesegment          f084              (R )
+CTRLPF                   000a                  
+CXBLPF                   0006                  
+CXCLR                    002c                  
+CXM0FB                   0004                  
+CXM0P                    0000                  
+CXM1FB                   0005                  
+CXM1P                    0001                  
+CXP0FB                   0002                  
+CXP1FB                   0003                  
+CXPPMM                   0007                  
+ENABL                    001f                  
+ENAM0                    001d              (R )
+ENAM1                    001e              (R )
+GRP0                     001b              (R )
+GRP1                     001c              (R )
+HMBL                     0024                  
+HMCLR                    002b                  
+HMM0                     0022              (R )
+HMM1                     0023              (R )
+HMOVE                    002a              (R )
+HMP0                     0020              (R )
+HMP1                     0021              (R )
+INPT0                    0008                  
+INPT1                    0009                  
+INPT2                    000a                  
+INPT3                    000b                  
+INPT4                    000c                  
+INPT5                    000d                  
+INTIM                    0284                  
+irq                      fffa                  
+kernel                   f070              (R )
+lvblank                  f03e              (R )
+newsegment               f07c              (R )
+nextframe                f033              (R )
+NO_ILLEGAL_OPCODES       0001              (R )
+NUSIZ0                   0004                  
+NUSIZ1                   0005                  
+overscan                 f0b3              (R )
+pcolors                  f100              (R )
+PF0                      000d              (R )
+PF1                      000e              (R )
+PF2                      000f              (R )
+pf_0                     f10f              (R )
+pf_1                     f12b              (R )
+pf_2                     f147              (R )
+pf_count                 0081              (R )
+pf_index                 0080              (R )
+pfdone                   f0ab              (R )
+positiveindex            f055              (R )
+REFP0                    000b                  
+REFP1                    000c                  
+RESBL                    0014                  
+reset                    f000              (R )
+RESM0                    0012                  
+RESM1                    0013                  
+RESMP0                   0028                  
+RESMP1                   0029                  
+RESP0                    0010                  
+RESP1                    0011                  
+RSYNC                    0003                  
+SWACNT                   0281                  
+SWBCNT                   0283                  
+SWCHA                    0280                  
+SWCHB                    0282                  
+T1024T                   0297                  
+TIA_BASE_ADDRESS         0000              (R )
+TIA_BASE_READ_ADDRESS    0000              (R )
+TIA_BASE_WRITE_ADDRESS   0000              (R )
+TIM1T                    0294                  
+TIM64T                   0296                  
+TIM8T                    0295                  
+TIMINT                   0285                  
+VBLANK                   0001              (R )
+VDELBL                   0027                  
+VDELP0                   0025                  
+VDELP1                   0026                  
+VERSION_MACRO            006d                  
+VERSION_VCS              006a                  
+VSYNC                    0000              (R )
+WSYNC                    0002              (R )
+--- End of Symbol List.
