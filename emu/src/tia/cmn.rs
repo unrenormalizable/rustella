@@ -162,6 +162,8 @@ pub mod regs {
         (false, 0b_0000_0000, "????",   0b_0000_0000),  // = $3E   ---- ----
         (false, 0b_0000_0000, "????",   0b_0000_0000),  // = $3F   ---- ----
     ];
+
+    // Refer for read registers https://www.atarimax.com/freenet/freenet_material/12.AtariLibrary/2.MiscellaneousTextFiles/showarticle.php?129
 }
 
 pub const NTSC_SCANLINES: usize = 262;

@@ -9,7 +9,7 @@
 
 ## What?
 
-![image](https://github.com/user-attachments/assets/812f6e79-a023-4fff-8241-93f8d1af6d33)
+<img src="https://github.com/user-attachments/assets/812f6e79-a023-4fff-8241-93f8d1af6d33" alt="Atari" width="200"/>
 
 ## Why?
 
@@ -18,11 +18,36 @@ Why not?
 ## Development Principles
 
 - Clean room implementation
-  - Not allowed: Referring to any existing emulator code or design. 
-  - Allowed: Datasheets / tutorials / discussions on the web that is not emulator code / design.
-- In no_std, safe Rust.
+  - **Not allowed**: Referring to any existing emulator code or design. 
+  - **Allowed**: Datasheets / tutorials / discussions on the web that is not emulator code / design.
+- Emulation in no_std + safe Rust, WebAsm hostable.
+- Test driven development.
 - v1: Just sufficient to play the very basic games.
 - v1: Web front-end with hardware debugger.
+
+## Progress
+
+- CPU
+  - [x] Clock cycle accurate NMOS 6502 / 6507 emulation
+  - [x] Hardware debugger
+  - [X] Passing HCM & Klaus test suites
+  - [ ] Undocumented opcodes
+- RIOT
+  - [x] RAM + memory shadowing / mapping 
+  - [x] Timer
+  - [ ] Joysticks
+  - [ ] Sound
+  - [ ] Bank switching
+- TIA
+  - [x] Background + playfield
+  - [ ] Player sprites
+  - [ ] Missile sprites
+  - [ ] Ball sprite
+- TV
+  - [x] NTSC Webasm-in-React on browser
+  - [ ] PAL/SECAM
+- [ ] Run early Atari games
+- [ ] Run advanced Atari games 
 
 ## Specs
 
@@ -31,10 +56,6 @@ Why not?
 - Graphics: A custom chip named Stella and a graphics clock that run at 1.19 MHz
 - Storage Method: Carts
 - Input: 2 Joystick ports
-
-## v2+
-
-- Clock cycle accurate
 
 ## References
 
