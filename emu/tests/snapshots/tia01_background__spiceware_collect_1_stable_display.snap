@@ -1,5 +1,5 @@
 ---
-source: emu/tests/spiceware_collect_1_stable_display.rs
+source: emu/tests/tia01_background.rs
 expression: "common::serialize_tv_buffer(&tv.borrow().buffer())"
 ---
 [

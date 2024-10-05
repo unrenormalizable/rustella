@@ -11,19 +11,22 @@ use alloc::rc::Rc;
 use core::cell::RefCell;
 
 /// Refer:
-/// - module README.md
 /// - https://www.atarihq.com/danb/files/TIA_HW_Notes.txt
+/// - module README.md
 pub trait TIA: MemorySegment {
     fn tick(&mut self, cycles: usize);
 }
 
 pub struct InMemoryTIA<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> {
-    /// 0..PIXELS_PER_SCANLINE
-    clk: usize,
-    registers: [u8; cmn::TIA_MAX_ADDRESS + 1],
+    rdy: Line,
     tv: Rc<RefCell<dyn TV<SCANLINES, PIXELS_PER_SCANLINE>>>,
     tv_cfg: TVConfig<SCANLINES, PIXELS_PER_SCANLINE>,
-    rdy: Line,
+
+    /// 0..PIXELS_PER_SCANLINE
+    registers: [u8; cmn::TIA_MAX_ADDRESS + 1],
+    hsync_counter: usize,
+    player0_hpos_counter: usize,
+    player0_hpos_counter_for_next_scanline: Option<usize>,
 }
 
 #[allow(dead_code)]
@@ -33,31 +36,58 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
     pub fn new(rdy: Line, tv: Rc<RefCell<dyn TV<SCANLINES, PIXELS_PER_SCANLINE>>>) -> Self {
         let tv_cfg = *tv.borrow().config();
         Self {
-            clk: 0,
-            registers: [0x00; cmn::TIA_MAX_ADDRESS + 1],
+            rdy,
             tv,
             tv_cfg,
-            rdy,
+            registers: [0x00; cmn::TIA_MAX_ADDRESS + 1],
+            hsync_counter: 0,
+            player0_hpos_counter: 0,
+            player0_hpos_counter_for_next_scanline: None,
         }
     }
 
     fn one_tick(&mut self) {
-        if self.clk == 0 {
+        if self.hsync_counter == 0 {
             self.rdy.set(LineState::High);
+            self.player0_hpos_counter_for_next_scanline =
+                self.player0_hpos_counter_for_next_scanline.and_then(|x| {
+                    self.player0_hpos_counter = x;
+                    None
+                });
         }
 
         let color = if bits::tst_bits(self.registers[cmn::regs::VBLANK], bits::BIT_D1)
-            || self.clk < self.tv_cfg.hblank_pixels()
+            || self.is_on_hblank()
         {
             0x00
         } else {
-            pf::get_color(self.clk, &self.registers, &self.tv_cfg)
+            grp::get_color(self.player0_hpos_counter, &self.registers)
+                .or_else(|| pf::get_color(self.hsync_counter, &self.registers, &self.tv_cfg))
                 .unwrap_or(self.registers[cmn::regs::COLUBK])
         };
 
         self.tv.borrow_mut().render_pixel(color);
 
-        self.clk = (self.clk + 1) % self.tv_cfg.pixels_per_scanline();
+        if !self.is_on_hblank() {
+            self.player0_hpos_counter = (self.player0_hpos_counter + 1) % self.tv_cfg.draw_pixels();
+        }
+        // NOTE: This needs to be done last to signify start of next color clk.
+        self.hsync_counter = (self.hsync_counter + 1) % self.tv_cfg.pixels_per_scanline();
+    }
+
+    #[inline]
+    pub fn is_on_hblank(&self) -> bool {
+        self.hsync_counter < self.tv_cfg.hblank_pixels()
+    }
+
+    #[inline]
+    pub fn hsync_counter(&self) -> usize {
+        self.hsync_counter
+    }
+
+    #[inline]
+    pub fn player0_hpos_counter(&self) -> usize {
+        self.player0_hpos_counter
     }
 
     #[cfg(debug_assertions)]
@@ -110,15 +140,31 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> MemorySegment
         #[cfg(debug_assertions)]
         self.check_write_unsupported_register_flags(addr, val);
 
-        if let cmn::regs::WSYNC = addr {
-            self.rdy.set(LineState::Low);
-        }
-
-        if let cmn::regs::VSYNC = addr {
-            if bits::tst_bits(val, bits::BIT_D1) {
-                self.clk = 0;
-                self.tv.borrow_mut().vsync();
+        match addr {
+            cmn::regs::WSYNC => {
+                self.rdy.set(LineState::Low);
             }
+
+            cmn::regs::VSYNC => {
+                if bits::tst_bits(val, bits::BIT_D1) {
+                    self.hsync_counter = 0;
+                    self.tv.borrow_mut().vsync();
+                }
+            }
+
+            cmn::regs::RESP0 => {
+                if self.is_on_hblank() {
+                    self.player0_hpos_counter = self.tv_cfg.draw_pixels() - 3;
+                } else {
+                    self.player0_hpos_counter_for_next_scanline = Some(
+                        self.tv_cfg.draw_pixels()
+                            - (self.hsync_counter - self.tv_cfg.hblank_pixels() + 5)
+                                % self.tv_cfg.draw_pixels(),
+                    );
+                };
+            }
+
+            _ => {}
         }
 
         self.registers[addr] = val;
@@ -128,8 +174,10 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> MemorySegment
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tia::tv::*;
-    use core::cell::Cell;
+    use crate::{
+        cmn::{LineState, RefExtensions},
+        tia::tv::*,
+    };
     use test_case::test_case;
 
     const PIXELS_PER_SCANLINE: usize = 3;
@@ -143,15 +191,14 @@ mod tests {
     ///  1│x  │  
     ///  2│x  │  
     ///   └───┘            
-    type TestableTVConfig = TVConfig<SCANLINES, PIXELS_PER_SCANLINE>;
-
     type TestableTV = InMemoryTV<SCANLINES, PIXELS_PER_SCANLINE>;
+    type TestableTVConfig = TVConfig<SCANLINES, PIXELS_PER_SCANLINE>;
 
     #[test_case(0, 0, 3, LineState::High)]
     #[test_case(1, 1, 2, LineState::High)]
     #[test_case(2, 2, 1, LineState::Low)]
     fn test_wsync(scanline: usize, pixel: usize, ticks: usize, final_line_state: LineState) {
-        let rdy = Rc::new(Cell::new(LineState::Low));
+        let rdy = LineState::Low.rc_cell();
         let tv = TestableTV::new_testable(scanline, pixel, TestableTVConfig::default());
         let mut tia = InMemoryTIA::new(rdy.clone(), Rc::new(RefCell::new(tv)));
 
@@ -176,7 +223,7 @@ mod tests {
     ///  └───┘              
     #[test]
     fn render_solid_display() {
-        let rdy = Rc::new(Cell::new(LineState::Low));
+        let rdy = LineState::Low.rc_cell();
         let cfg = solid_display_config();
         let tv = Rc::new(RefCell::new(InMemoryTV::<5, 3>::new_testable(0, 0, cfg)));
         let mut tia = InMemoryTIA::new(rdy.clone(), tv.clone());
@@ -240,7 +287,7 @@ mod tests {
 
     #[test_case(1, 0)]
     fn test_vsync(scanline: usize, pixel: usize) {
-        let rdy = Rc::new(Cell::new(LineState::Low));
+        let rdy = LineState::Low.rc_cell();
         let cfg = TestableTVConfig::default();
         let tv = Rc::new(RefCell::new(TestableTV::new_testable(scanline, pixel, cfg)));
         let mut tia = InMemoryTIA::new(rdy.clone(), tv.clone());
@@ -262,7 +309,7 @@ mod tests {
 
     #[test]
     fn test_vblank() {
-        let rdy = Rc::new(Cell::new(LineState::Low));
+        let rdy = LineState::Low.rc_cell();
         let cfg = solid_display_config();
         let tv = Rc::new(RefCell::new(InMemoryTV::<5, 3>::new_testable(0, 0, cfg)));
         let mut tia = InMemoryTIA::new(rdy.clone(), tv.clone());
@@ -285,6 +332,82 @@ mod tests {
 
     fn solid_display_config() -> TVConfig<5, 3> {
         TVConfig::<5, 3>::new(1, 1, 2, 2, [0x00; 128])
+    }
+
+    #[test_case(0, 0; "Dormant during HBLANK - 0")]
+    #[test_case(1, 0; "Dormant during HBLANK - 1")]
+    #[test_case(67, 0; "Dormant during HBLANK - last")]
+    #[test_case(68, 0; "Start at visible")]
+    #[test_case(69, 1; "Increment at visible - 1")]
+    #[test_case(227, 159; "Increment at visible - 2")]
+    #[test_case(228, 0; "Wrap around - 1")]
+    #[test_case(228+67, 0; "Wrap around - 2")]
+    #[test_case(228+68, 0; "Wrap around - 3")]
+    #[test_case(228+69, 1; "Wrap around - 4")]
+    fn player0_hpos_counter_no_reset(color_clks_done: usize, expected: usize) {
+        let tv_cfg = cmn::ntsc_tv_config();
+        let tv = cmn::NtscTV::new_testable(3, 0, tv_cfg);
+        let mut tia = InMemoryTIA::new(LineState::Low.rc_cell(), tv.rc_refcell());
+
+        tia.tick(color_clks_done);
+        assert_eq!(
+            tia.hsync_counter(),
+            color_clks_done % tv_cfg.pixels_per_scanline()
+        );
+        assert_eq!(tia.player0_hpos_counter(), expected);
+    }
+
+    #[test_case(67, 157; "At HBLANK end")]
+    #[test_case(68, 155; "At visible start")]
+    #[test_case(0, 157; "Hand checked with stella - 01")]
+    #[test_case(3*3, 157; "Hand checked with stella - 02")]
+    #[test_case(21*3, 157; "Hand checked with stella - 03")]
+    #[test_case(22*3, 157; "Hand checked with stella - 04")]
+    #[test_case(23*3, 154; "Hand checked with stella - 05")]
+    #[test_case(24*3, 151; "Hand checked with stella - 06")]
+    #[test_case(74*3, 1; "Hand checked with stella - 07")]
+    #[test_case(75*3, 158; "Hand checked with stella - 08")]
+    #[test_case(76*3, 157; "Hand checked with stella - 09")]
+    #[test_case(77*3, 157; "Hand checked with stella - 10")]
+    #[test_case(78*3, 157; "Hand checked with stella - 11")]
+    #[test_case(79*3, 157; "Hand checked with stella - 12")]
+    #[test_case(98*3, 157; "Hand checked with stella - 13")]
+    #[test_case(99*3, 154; "Hand checked with stella - 14")]
+    #[test_case(100*3, 151; "Hand checked with stella - 15")]
+    #[test_case(150*3, 1; "Hand checked with stella - 16")]
+    #[test_case(151*3, 158; "Hand checked with stella - 17")]
+    #[test_case(152*3, 157; "Hand checked with stella - 18")]
+    #[test_case(153*3, 157; "Hand checked with stella - 19")]
+    #[test_case(154*3, 157; "Hand checked with stella - 20")]
+    #[test_case(155*3, 157; "Hand checked with stella - 21")]
+    #[test_case(174*3, 157; "Hand checked with stella - 22")]
+    #[test_case(175*3, 154; "Hand checked with stella - 23")]
+    #[test_case(176*3, 151; "Hand checked with stella - 24")]
+    /// NOTE: These tests cases have been hand checked with stella + online sources discussing course aligning player sprites.
+    fn player0_hpos_counter_with_reset(color_clks_done: usize, expected: usize) {
+        let rdy = LineState::Low.rc_cell();
+        let tv = cmn::NtscTV::new_testable(3, 0, cmn::ntsc_tv_config());
+        let mut tia = InMemoryTIA::new(rdy.clone(), tv.rc_refcell());
+
+        tia.write(cmn::regs::RESP0, 0x00);
+        tia.tick(color_clks_done);
+        let prev_p0_hpos = tia.player0_hpos_counter();
+        tia.write(cmn::regs::RESP0, 0x00);
+
+        assert_eq!(
+            tia.player0_hpos_counter(),
+            if tia.is_on_hblank() {
+                expected
+            } else {
+                prev_p0_hpos
+            }
+        );
+
+        tia.write(cmn::regs::WSYNC, 0x00);
+        while rdy.get() == LineState::Low {
+            tia.tick(1)
+        }
+        assert_eq!(tia.player0_hpos_counter(), expected);
     }
 }
 
@@ -446,6 +569,88 @@ mod pf {
 
             assert_eq!(left, display);
             assert_eq!(right, display_right);
+        }
+    }
+}
+
+mod grp {
+    use super::*;
+
+    // Player registers: https://youtu.be/GObPgosXPPs?list=PLbPt2qKXQzJ8-P3Qe9lDPtxwFSdbDbcvW&t=534
+    // COLUPn          => color
+    // GRPn
+    // RESPn -s-       => start drawing
+    // REFPn BIT3      => reflect player
+    // HMPn  xxxx----  => 8 px right, 8 px left
+    // HMCLR -s-       => clears hmotion for p,m,b
+    // HMOVE -s-       => apply fine tuning set in hmotion
+
+    pub static POSITION_MASK: &[u8; 8] = &[
+        bits::BIT_D0,
+        bits::BIT_D1,
+        bits::BIT_D2,
+        bits::BIT_D3,
+        bits::BIT_D4,
+        bits::BIT_D5,
+        bits::BIT_D6,
+        bits::BIT_D7,
+    ];
+
+    /// Refer:
+    /// - https://forums.atariage.com/topic/208473-resp0-while-pixel-position-is-negativelow/#comment-2692375
+    /// - https://forums.atariage.com/topic/271085-when-do-i-use-resp0-command-to-put-sprite-on-left-of-screen/#comment-3871580
+    pub fn get_color(
+        player0_hpos_counter: usize,
+        registers: &[u8; cmn::TIA_MAX_ADDRESS + 1],
+    ) -> Option<u8> {
+        if player0_hpos_counter > 7 {
+            return None;
+        }
+
+        let mask = POSITION_MASK[7 - player0_hpos_counter];
+        if bits::tst_bits(registers[cmn::regs::GRP0], mask) {
+            return Some(registers[cmn::regs::COLUP0]);
+        }
+
+        None
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use alloc::vec;
+        use alloc::vec::*;
+        use test_case::test_case;
+
+        #[test_case(0)]
+        #[test_case(0xFE)]
+        fn get_color_transcribes_player_hpos(color: u8) {
+            let mut regs: [u8; cmn::TIA_MAX_ADDRESS + 1] = [0x00; cmn::TIA_MAX_ADDRESS + 1];
+
+            regs[cmn::regs::COLUP0] = color;
+            regs[cmn::regs::GRP0] = 0b_10101111;
+
+            let col: Vec<_> = (159..)
+                .take(10)
+                .map(|x| x % 160)
+                .map(|hpos| get_color(hpos, &regs))
+                .collect();
+
+            assert_eq!(
+                col,
+                vec![
+                    None,
+                    Some(color),
+                    None,
+                    Some(color),
+                    None,
+                    Some(color),
+                    Some(color),
+                    Some(color),
+                    Some(color),
+                    None
+                ]
+            )
         }
     }
 }

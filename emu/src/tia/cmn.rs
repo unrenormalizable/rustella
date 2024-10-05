@@ -96,7 +96,7 @@ pub mod regs {
 
     #[rustfmt::skip]
     pub static IMPLEMENTED_REGISTERS: &[(bool, u8, &str, u8); super::TIA_MAX_ADDRESS + 1] = &[
-        // R     Valid Mask    Name     Supported Mask
+        // W     Valid Mask    Name     Supported Mask
         (true , 0b_0000_0010, "VSYNC",  0b_0000_0010),  // = $00   0000 00x0   Vertical Sync Set-Clear
         (true , 0b_1100_0010, "VBLANK", 0b_0000_0010),  // = $01   xx00 00x0   Vertical Blank Set-Clear
         (true , 0b_0000_0000, "WSYNC",  0b_0000_0000),  // = $02   ---- ----   Wait for Horizontal Blank
@@ -124,7 +124,7 @@ pub mod regs {
         (false, 0b_0001_1111, "AUDF1",  0b_0000_0000),  // = $18   000x xxxx   Audio Frequency 1
         (false, 0b_0000_1111, "AUDV0",  0b_0000_0000),  // = $19   0000 xxxx   Audio Volume 0
         (false, 0b_0000_1111, "AUDV1",  0b_0000_0000),  // = $1A   0000 xxxx   Audio Volume 1
-        (false, 0b_1111_1111, "GRP0",   0b_0000_0000),  // = $1B   xxxx xxxx   Graphics Register Player 0
+        (true,  0b_1111_1111, "GRP0",   0b_1111_1111),  // = $1B   xxxx xxxx   Graphics Register Player 0
         (false, 0b_1111_1111, "GRP1",   0b_0000_0000),  // = $1C   xxxx xxxx   Graphics Register Player 1
         (false, 0b_0000_0010, "ENAM0",  0b_0000_0000),  // = $1D   0000 00x0   Graphics Enable Missle 0
         (false, 0b_0000_0010, "ENAM1",  0b_0000_0000),  // = $1E   0000 00x0   Graphics Enable Missle 1

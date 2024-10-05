@@ -1,5 +1,5 @@
 ---
-source: emu/tests/spiceware_collect_2_timers.rs
+source: emu/tests/riot01_timers.rs
 expression: "common::serialize_tv_buffer(&tv.borrow().buffer())"
 ---
 [

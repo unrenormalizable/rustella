@@ -1,5 +1,5 @@
 ---
-source: emu/tests/spiceware_collect_3_score_timer_display.rs
+source: emu/tests/tia02_playfield.rs
 expression: "common::serialize_tv_buffer(&tv.borrow().buffer())"
 ---
 [

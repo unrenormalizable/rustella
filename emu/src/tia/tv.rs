@@ -242,6 +242,7 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
         self.hblank_pixels
     }
 
+    // TODO: change to visible
     #[inline]
     pub fn draw_pixels(&self) -> usize {
         self.draw_pixels
