@@ -7,6 +7,9 @@ use std::{cell::RefCell, fs, path::PathBuf, rc::Rc};
 /// Test suite from https://www.youtube.com/watch?v=GObPgosXPPs&list=PLbPt2qKXQzJ8-P3Qe9lDPtxwFSdbDbcvW&index=5
 #[test]
 fn single_static_player() {
+    log::set_logger(&win_dbg_logger::DEBUGGER_LOGGER).unwrap();
+    log::set_max_level(log::LevelFilter::Debug);
+
     let bin_path: PathBuf = [
         env!("CARGO_MANIFEST_DIR"),
         "tests",

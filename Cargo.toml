@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "emu",
-    "hw_dbg",
+    "hw-dbg",
     "web/emu-wasm",
 ]
 

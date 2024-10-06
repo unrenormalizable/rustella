@@ -10,6 +10,8 @@ use crate::{
 use alloc::rc::Rc;
 use core::cell::RefCell;
 
+// TODO: for debug pass PC to writes
+
 /// Refer:
 /// - https://www.atarihq.com/danb/files/TIA_HW_Notes.txt
 /// - module README.md
@@ -22,7 +24,6 @@ pub struct InMemoryTIA<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
     tv: Rc<RefCell<dyn TV<SCANLINES, PIXELS_PER_SCANLINE>>>,
     tv_cfg: TVConfig<SCANLINES, PIXELS_PER_SCANLINE>,
 
-    /// 0..PIXELS_PER_SCANLINE
     registers: [u8; cmn::TIA_MAX_ADDRESS + 1],
     hsync_counter: usize,
     player0_hpos_counter: usize,
@@ -69,7 +70,8 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
         self.tv.borrow_mut().render_pixel(color);
 
         if !self.is_on_hblank() {
-            self.player0_hpos_counter = (self.player0_hpos_counter + 1) % self.tv_cfg.draw_pixels();
+            self.player0_hpos_counter =
+                (self.player0_hpos_counter + 1) % self.tv_cfg.visible_pixels();
         }
         // NOTE: This needs to be done last to signify start of next color clk.
         self.hsync_counter = (self.hsync_counter + 1) % self.tv_cfg.pixels_per_scanline();
@@ -92,8 +94,9 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
 
     #[cfg(debug_assertions)]
     #[inline]
-    fn check_read_unsupported_register_flags(&self, _addr: usize) {
-        // TODO: Add detection of unsupported reads.
+    fn check_read_unsupported_register_flags(&self, addr: usize) {
+        let (_, _, name, _) = cmn::regs::IMPLEMENTED_REGISTERS[addr];
+        log::error!("Read for {name} ({addr:02X}) is not implemented yet.")
     }
 
     #[cfg(debug_assertions)]
@@ -101,15 +104,14 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
     fn check_write_unsupported_register_flags(&self, addr: usize, val: u8) {
         let (w, _, name, supported_write_mask) = cmn::regs::IMPLEMENTED_REGISTERS[addr];
 
-        assert!(
-            w || val == 0x00, // NOTE: CLEAN_START macro sets everything to 0x00.
-            "{name} ({addr:02X}) is not implemented yet, Value 0b{val:08b}."
-        );
+        // NOTE: CLEAN_START macro sets everything to 0x00, dont log for those.
+        if w || val == 0x00 {
+            log::error!("{name} ({addr:02X}) is not implemented yet, Value 0b{val:08b}.");
+        }
 
-        assert!(
-            val & !supported_write_mask == 0,
-            "{name} ({addr:02X}) for value 0b{val:08b} is not implemented yet. Supported bits 0b{supported_write_mask:08b}."
-        )
+        if val & !supported_write_mask == 0 {
+            log::error!("{name} ({addr:02X}) for value 0b{val:08b} is not implemented yet. Supported bits 0b{supported_write_mask:08b}.");
+        }
     }
 }
 
@@ -147,19 +149,20 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> MemorySegment
 
             cmn::regs::VSYNC => {
                 if bits::tst_bits(val, bits::BIT_D1) {
-                    self.hsync_counter = 0;
-                    self.tv.borrow_mut().vsync();
+                    self.tv.borrow_mut().vsync_start();
+                } else {
+                    self.tv.borrow_mut().vsync_end();
                 }
             }
 
             cmn::regs::RESP0 => {
                 if self.is_on_hblank() {
-                    self.player0_hpos_counter = self.tv_cfg.draw_pixels() - 3;
+                    self.player0_hpos_counter = self.tv_cfg.visible_pixels() - 3;
                 } else {
                     self.player0_hpos_counter_for_next_scanline = Some(
-                        self.tv_cfg.draw_pixels()
+                        self.tv_cfg.visible_pixels()
                             - (self.hsync_counter - self.tv_cfg.hblank_pixels() + 5)
-                                % self.tv_cfg.draw_pixels(),
+                                % self.tv_cfg.visible_pixels(),
                     );
                 };
             }
@@ -240,6 +243,7 @@ mod tests {
             tia.tick(1);
             assert_eq!(rdy.get(), LineState::High);
         });
+        tia.write(cmn::regs::VSYNC, bits::BIT_00);
 
         // VBLANK
         tia.write(cmn::regs::WSYNC, 0x00);
@@ -331,7 +335,7 @@ mod tests {
     }
 
     fn solid_display_config() -> TVConfig<5, 3> {
-        TVConfig::<5, 3>::new(1, 1, 2, 2, [0x00; 128])
+        TVConfig::<5, 3>::new(2, [0x00; 128])
     }
 
     #[test_case(0, 0; "Dormant during HBLANK - 0")]
@@ -451,7 +455,7 @@ mod pf {
             return None;
         }
 
-        let half_screen = tv_cfg.draw_pixels() / 2;
+        let half_screen = tv_cfg.visible_pixels() / 2;
         let pixels_per_playfield_pixel = half_screen / PLAYFIELD_WIDTH;
         let pixel = (clk - tv_cfg.hblank_pixels()) % half_screen;
         let first_half = (clk - tv_cfg.hblank_pixels()) / half_screen == 0;

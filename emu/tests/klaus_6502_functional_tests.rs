@@ -6,6 +6,9 @@ use std::{cell::Cell, fs, path::PathBuf, rc::Rc};
 /// Test suite from https://github.com/Klaus2m5/6502_65C02_functional_tests.
 #[test]
 fn klaus_6502_65c02_functional_tests_main() {
+    log::set_logger(&win_dbg_logger::DEBUGGER_LOGGER).unwrap();
+    log::set_max_level(log::LevelFilter::Debug);
+
     let bin_path: PathBuf = [
         env!("CARGO_MANIFEST_DIR"),
         "tests",

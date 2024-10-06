@@ -19,21 +19,15 @@ const fillRect = (ctx, x, y, w, h, color) => {
 const renderFrame = (setTotalFrames, colorMap, context) => (pixels) => {
   const imgData = context.createImageData(TV_WIDTH, TV_HEIGHT)
 
-  for (let x = 0; x < TV_WIDTH; x += 1) {
-    for (let y = 0; y < TV_HEIGHT; y += 1) {
-      const i = x * TV_WIDTH + y
-      const color = colorMap[pixels[i] / 2]
-      imgData.data[4 * i + 0] = (color >> 24) & 0xff
-      imgData.data[4 * i + 1] = (color >> 16) & 0xff
-      imgData.data[4 * i + 2] = (color >> 8) & 0xff
-      imgData.data[4 * i + 3] = 255
-    }
+  for (let i = 0; i < imgData.data.length; i += 4) {
+    const color = colorMap[pixels[Math.floor(i / 4)] / 2]
+    imgData.data[i + 0] = (color >> 24) & 0xff
+    imgData.data[i + 1] = (color >> 16) & 0xff
+    imgData.data[i + 2] = (color >> 8) & 0xff
+    imgData.data[i + 3] = 0xff
   }
 
   context.putImageData(imgData, 0, 0)
-  fillRect(context, 68, 0, 160, 3, 'rgba(255, 0, 0, 0.2)')
-  fillRect(context, 68, 3, 160, 37, 'rgba(0, 255, 0, 0.2)')
-  fillRect(context, 68, 232, 160, 30, 'rgba(0, 0, 255, 0.2)')
   fillRect(context, 0, 0, 68, 262, 'rgba(255, 255, 255, 0.2)')
   setTotalFrames((x) => x + 1)
 }

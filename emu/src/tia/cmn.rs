@@ -174,9 +174,6 @@ pub type NtscTIA = core::InMemoryTIA<NTSC_SCANLINES, NTSC_PIXELS_PER_SCANLINE>;
 #[rustfmt::skip]
 pub fn ntsc_tv_config() -> tv::TVConfig<NTSC_SCANLINES, NTSC_PIXELS_PER_SCANLINE> {
     tv::TVConfig::<NTSC_SCANLINES, NTSC_PIXELS_PER_SCANLINE>::new(
-        3,
-        37,
-        192,
         160,
         // From https://www.randomterrain.com/atari-2600-memories-tia-color-charts.html
         [

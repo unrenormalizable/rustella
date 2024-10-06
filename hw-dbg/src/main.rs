@@ -6,6 +6,10 @@ use rustella::{cmn, cmn::RefExtensions, cpu, riot};
 use std::{collections::HashSet, fs, path::PathBuf};
 
 fn main() {
+    let mut clog = colog::default_builder();
+    clog.filter(None, log::LevelFilter::Trace);
+    clog.init();
+
     let rdy = cmn::LineState::High.rc_cell();
     let bin_path: PathBuf = [
         env!("CARGO_MANIFEST_DIR"),

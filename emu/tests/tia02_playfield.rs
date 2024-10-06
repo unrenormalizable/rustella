@@ -7,6 +7,9 @@ use std::{cell::RefCell, fs, path::PathBuf, rc::Rc};
 /// Test suite from https://forums.atariage.com/blogs/entry/11118-step-3-score-timer-display/
 #[test]
 fn spiceware_collect_3_score_timer_display() {
+    log::set_logger(&win_dbg_logger::DEBUGGER_LOGGER).unwrap();
+    log::set_max_level(log::LevelFilter::Debug);
+
     let bin_path: PathBuf = [
         env!("CARGO_MANIFEST_DIR"),
         "tests",

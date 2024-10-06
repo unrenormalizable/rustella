@@ -7,6 +7,9 @@ use std::{cell::RefCell, fs, path::PathBuf, rc::Rc};
 /// Test suite from https://forums.atariage.com/blogs/entry/11109-step-1-generate-a-stable-display/
 #[test]
 fn spiceware_collect_1_stable_display() {
+    log::set_logger(&win_dbg_logger::DEBUGGER_LOGGER).unwrap();
+    log::set_max_level(log::LevelFilter::Debug);
+
     let bin_path: PathBuf = [
         env!("CARGO_MANIFEST_DIR"),
         "tests",

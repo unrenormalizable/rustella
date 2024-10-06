@@ -7,6 +7,7 @@ pub struct NtscWebTV {
     /// Number of times VSYNC has been called.
     curr_scanline: usize,
     curr_pixel: usize,
+    vsync_on: bool,
     video_buffer: [u8; tia::NTSC_PIXELS_PER_SCANLINE * tia::NTSC_SCANLINES],
     /// JS callback.
     render_frame_fn: JsValue,
@@ -20,6 +21,7 @@ impl NtscWebTV {
             curr_scanline: 0,
             curr_pixel: 0,
             config,
+            vsync_on: false,
             video_buffer: [0x00; tia::NTSC_PIXELS_PER_SCANLINE * tia::NTSC_SCANLINES],
             render_frame_fn,
         }
@@ -41,31 +43,48 @@ impl tia::TV<{ tia::NTSC_SCANLINES }, { tia::NTSC_PIXELS_PER_SCANLINE }> for Nts
             .unwrap();
     }
 
+    #[inline]
     fn current_scanline(&self) -> usize {
         self.curr_scanline
     }
 
+    #[inline]
     fn set_current_scanline(&mut self, scanline: usize) {
         self.curr_scanline = scanline
     }
 
+    #[inline]
     fn current_pixel(&self) -> usize {
         self.curr_pixel
     }
 
+    #[inline]
     fn set_current_pixel(&mut self, pixel: usize) {
         self.curr_pixel = pixel
     }
 
+    #[inline]
     fn write_buffer(&mut self, color: u8) {
         self.video_buffer
             [tia::NTSC_PIXELS_PER_SCANLINE * self.current_scanline() + self.current_pixel()] =
             color;
     }
 
+    #[inline]
     fn frame_counter(&self) -> u64 {
         0
     }
 
+    #[inline]
     fn set_frame_counter(&mut self, _frames: u64) {}
+
+    #[inline]
+    fn vsync_on(&self) -> bool {
+        self.vsync_on
+    }
+
+    #[inline]
+    fn set_vsync_on(&mut self, on: bool) {
+        self.vsync_on = on;
+    }
 }
