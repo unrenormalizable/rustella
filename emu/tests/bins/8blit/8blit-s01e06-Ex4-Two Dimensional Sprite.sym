@@ -2,7 +2,7 @@
 0.FREE_BYTES             0000                  
 0.POS                    00a0                  
 1.CLEAR_STACK            f006              (R )
-2.VSLP1                  f022              (R )
+2.VSLP1                  f02a              (R )
 AUDC0                    0015                  
 AUDC1                    0016                  
 AUDF0                    0017                  
@@ -10,10 +10,11 @@ AUDF1                    0018
 AUDV0                    0019                  
 AUDV1                    001a                  
 BKCOLOR                  009a              (R )
-COLP0                    000e              (R )
+COLP0                    00f4              (R )
+COLP1                    0072              (R )
 COLUBK                   0009              (R )
 COLUP0                   0006              (R )
-COLUP1                   0007                  
+COLUP1                   0007              (R )
 COLUPF                   0008                  
 CTRLPF                   000a                  
 CXBLPF                   0006                  
@@ -25,20 +26,20 @@ CXM1P                    0001
 CXP0FB                   0002                  
 CXP1FB                   0003                  
 CXPPMM                   0007                  
-Divide15                 f05d              (R )
-drawfield                f03a              (R )
+Divide15                 f06a              (R )
+drawfield                f042              (R )
 ENABL                    001f                  
 ENAM0                    001d                  
 ENAM1                    001e                  
 GRP0                     001b              (R )
-GRP1                     001c                  
+GRP1                     001c              (R )
 HMBL                     0024                  
 HMCLR                    002b                  
 HMM0                     0022                  
 HMM1                     0023                  
 HMOVE                    002a              (R )
 HMP0                     0020              (R )
-HMP1                     0021                  
+HMP1                     0021              (R )
 INPT0                    0008                  
 INPT1                    0009                  
 INPT2                    000a                  
@@ -47,22 +48,23 @@ INPT4                    000c
 INPT5                    000d                  
 INTIM                    0284                  
 irq                      fffa                  
-lvblank                  f02b              (R )
+lvblank                  f033              (R )
 MAX_VPOS                 00c0              (R )
 MIN_HPOS                 0021              (R )
 NO_ILLEGAL_OPCODES       0001              (R )
 NUSIZ0                   0004                  
 NUSIZ1                   0005                  
-overscan                 f055              (R )
+overscan                 f062              (R )
 p0_y                     00a1              (R )
 P0HEIGHT                 0020              (R )
-p0insprite               f044              (R )
+p0insprite               f04c              (R )
 PF0                      000d                  
 PF1                      000e                  
 PF2                      000f                  
-player0                  f109              (R )
+player0                  f118              (R )
 player0_x                0080              (R )
-pos_x                    f0fd              (R )
+player1                  f138              (R )
+pos_x                    f10a              (R )
 REFP0                    000b                  
 REFP1                    000c                  
 RESBL                    0014                  
@@ -72,10 +74,10 @@ RESM1                    0013
 RESMP0                   0028                  
 RESMP1                   0029                  
 RESP0                    0010              (R )
-RESP1                    0011                  
+RESP1                    0011              (R )
 RSYNC                    0003                  
-SimpleLoop               f103              (R )
-startframe               f020              (R )
+SimpleLoop               f110              (R )
+startframe               f028              (R )
 SWACNT                   0281                  
 SWBCNT                   0283                  
 SWCHA                    0280                  

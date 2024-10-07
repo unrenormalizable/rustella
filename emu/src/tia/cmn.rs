@@ -129,7 +129,7 @@ pub mod regs {
         (false, 0b_0000_0010, "ENAM0",  0b_0000_0000),  // = $1D   0000 00x0   Graphics Enable Missle 0
         (false, 0b_0000_0010, "ENAM1",  0b_0000_0000),  // = $1E   0000 00x0   Graphics Enable Missle 1
         (false, 0b_0000_0010, "ENABL",  0b_0000_0000),  // = $1F   0000 00x0   Graphics Enable Ball
-        (false, 0b_1111_0000, "HMP0",   0b_0000_0000),  // = $20   xxxx 0000   Horizontal Motion Player 0
+        (true,  0b_1111_0000, "HMP0",   0b_1111_0000),  // = $20   xxxx 0000   Horizontal Motion Player 0
         (false, 0b_1111_0000, "HMP1",   0b_0000_0000),  // = $21   xxxx 0000   Horizontal Motion Player 1
         (false, 0b_1111_0000, "HMM0",   0b_0000_0000),  // = $22   xxxx 0000   Horizontal Motion Missle 0
         (false, 0b_1111_0000, "HMM1",   0b_0000_0000),  // = $23   xxxx 0000   Horizontal Motion Missle 1

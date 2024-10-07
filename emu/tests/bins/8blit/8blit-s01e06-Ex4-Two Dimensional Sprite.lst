@@ -386,7 +386,7 @@
      11  0000 ????						; Subscribe to 8Blit - https://www.youtube.com/8blit?sub_confirmation=1
      12  0000 ????						; Follow on Facebook - https://www.facebook.com/8Blit
      13  0000 ????						; Follow on Instagram - https://www.instagram.com/8blit
-     14  0000 ????						; Visit the Website - https://www.8blit.com 
+     14  0000 ????						; Visit the Website - https://www.8blit.com
      15  0000 ????						;
      16  0000 ????						; Email - 8blit0@gmail.com
      17  0000 ????
@@ -397,19 +397,20 @@
      22  0000 ????	       00 c0	   MAX_VPOS   equ	#192
      23  0000 ????
      24  0000 ????	       00 9a	   BKCOLOR    equ	#$9A	; background colour (blue)
-     25  0000 ????	       00 0e	   COLP0      equ	#$0E	; player 0 sprite colour (white)
-     26  0000 ????
-     27 U00a1 ????				      seg.u	vars	; uninitialized segment
-     28 U0080					      org	$80
-     29 U0080
-     30 U0080		       00 00 00 00*player0_x  ds	#MIN_HPOS	; byte variable to hold our horizontal position
-     31 U00a1				   p0_y       ds		; byte
-     32 U00a1
+     25  0000 ????	       00 f4	   COLP0      equ	#$F4	; player 0 sprite colour (white)
+     26  0000 ????	       00 72	   COLP1      equ	#$72	; player 1 sprite colour (white)
+     27  0000 ????
+     28 U00a1 ????				      seg.u	vars	; uninitialized segment
+     29 U0080					      org	$80
+     30 U0080
+     31 U0080		       00 00 00 00*player0_x  ds	#MIN_HPOS	; byte variable to hold our horizontal position
+     32 U00a1				   p0_y       ds		; byte
      33 U00a1
-     34  10000 ????				       seg	main	; start of main segment
-     35  f000					      org	$F000
-     36  f000
+     34 U00a1
+     35  10000 ????				       seg	main	; start of main segment
+     36  f000					      org	$F000
      37  f000
+     38  f000
       0  f000				   reset      CLEAN_START		; macro included in macro.h file
       1  f000		       78		      sei
       2  f001		       d8		      cld
@@ -426,634 +427,675 @@
      13  f008		       48		      pha
      14  f009		       d0 fb		      bne	.CLEAR_STACK
      15  f00b
-     39  f00b
      40  f00b
-     41  f00b		       a9 9a		      lda	#BKCOLOR	; (2)
-     42  f00d		       85 09		      sta	COLUBK	; (3) set the PF color
-     43  f00f
-     44  f00f		       a9 0e		      lda	#COLP0	; (2)
-     45  f011		       85 06		      sta	COLUP0	; (3) set the player 1 sprite colour
-     46  f013
-     47  f013		       a9 50		      lda	#80	; (2) the scan line to start drawing the player 0 graphic
-     48  f015		       85 a1		      sta	p0_y	; (3) assign a to our vertical position memory location
+     41  f00b
+     42  f00b		       a9 9a		      lda	#BKCOLOR	; (2)
+     43  f00d		       85 09		      sta	COLUBK	; (3) set the PF color
+     44  f00f
+     45  f00f		       a9 f4		      lda	#COLP0	; (2)
+     46  f011		       85 06		      sta	COLUP0	; (3) set the player 0 sprite colour
+     47  f013		       a9 72		      lda	#COLP1	; (2)
+     48  f015		       85 07		      sta	COLUP1	; (3) set the player 1 sprite colour
      49  f017
-     50  f017		       86 80		      stx	player0_x	; (3)
-     51  f019		       20 fd f0 	      jsr	pos_x	; (6) set the initial course position of the player 0 graphic
-     52  f01c
-     53  f01c		       a2 f0		      ldx	#%11110000	; (2) set the horizontal movement player 0 (HMP0) register to adjust the position of
-     54  f01e		       86 20		      stx	HMP0	; (3) the player graphic to the right by 1 color clock (only uses the 4 high bits)
+     50  f017		       a9 50		      lda	#80	; (2) the scan line to start drawing the player 0 graphic
+     51  f019		       85 a1		      sta	p0_y	; (3) assign a to our vertical position memory location
+     52  f01b
+     53  f01b		       86 80		      stx	player0_x	; (3)
+     54  f01d		       20 0a f1 	      jsr	pos_x	; (6) set the initial course position of the player 0 graphic
      55  f020
-     56  f020							; 0111 = left 7
-     57  f020							; 0110 = left 6
-     58  f020							; 0101 = left 5
-     59  f020							; 0100 = left 4
-     60  f020							; 0011 = left 3
-     61  f020							; 0010 = left 2
-     62  f020							; 0001 = left 1
-     63  f020							; 0000 = No motion
-     64  f020							; 1111 = right 1
-     65  f020							; 1110 = right 2
-     66  f020							; 1101 = right 3
-     67  f020							; 1100 = right 4
-     68  f020							; 1011 = right 5
-     69  f020							; 1010 = right 6
-     70  f020							; 1001 = right 7
-     71  f020							; 1000 = right 8
-     72  f020
-     73  f020							; ---- Begin main loop
-     74  f020
-      0  f020				   startframe VERTICAL_SYNC		; macro included in macro.h file
-      1  f020		       a9 0e		      lda	#%1110
-      2  f022		       85 02	   .VSLP1     sta	WSYNC
-      3  f024		       85 00		      sta	VSYNC
-      4  f026		       4a		      lsr
-      5  f027		       d0 f9		      bne	.VSLP1
-     76  f029
-     77  f029							; ---- 37 scanlines vertical blank (8,436 color clocks, 2,812 machine cycles)
-     78  f029
-     79  f029		       a2 24		      ldx	#36	; (2)
-     80  f02b		       85 02	   lvblank    sta	WSYNC	; (3) each scanline is 228 color clocks, 76 machine cycles
-     81  f02d		       ca		      dex		; (2) decrement x by 1
-     82  f02e		       d0 fb		      bne	lvblank	; (2/3) branch if not equal x != 37
-     83  f030
-     84  f030
-     85  f030							; 76543210
-     86  f030		       a9 00		      lda	#%00000000	; (2) set D1 to 0 to end VBLANK
-     87  f032		       85 02		      sta	WSYNC	; (3)
-     88  f034		       85 01		      sta	VBLANK	; (3) turn on the beam
-     89  f036
-     90  f036		       85 2a		      sta	HMOVE	; (3) horizontal move. this will move ALL the player, missle, and ball graphics at the same time
-     91  f038							; HMOVE needs to execute during horizontal blanking so it should be done immediatly following
-     92  f038							; a WSYNC. Additionally, any of the horizontal movement registers should not be modified within at least
-     93  f038							; 24 machine cycles after an HMOVE.
-     94  f038
-     95  f038							; ---- 192 lines of drawfield		   Each scanline
-     96  f038							; (68 color clocks, 22 machine cycles) HBLANK
-     97  f038							; (160 color clocks, 53 machine cycles) + 1 Playfield
-     98  f038
-     99  f038		       a2 c0		      ldx	#MAX_VPOS	; (2)
-    100  f03a		       8a	   drawfield  txa		; (2) transfer x to a
-    101  f03b		       38		      sec		; (2) set carry flag
-    102  f03c		       e5 a1		      sbc	p0_y	; (2) subtrack memory from accumulator
-    103  f03e		       c9 20		      cmp	#P0HEIGHT	; (2) have we already drawn all the lines of the graphic?
-    104  f040		       90 02		      bcc	p0insprite	; (2/3)
-    105  f042		       a9 00		      lda	#0	; (2)
-    106  f044				   p0insprite
-    107  f044		       a8		      tay		; (2)
-    108  f045		       b9 09 f1 	      lda	player0,y	; (4) load the byte at index y starting from the memory location of player0
-    109  f048							; this will grab the appropriate line of the graphic for the current scanline
-    110  f048		       85 02		      sta	WSYNC	; (3)
-    111  f04a		       85 1b		      sta	GRP0	; (3)
-    112  f04c		       ca		      dex		; (2)
-    113  f04d		       d0 eb		      bne	drawfield	; (2/3)
-    114  f04f
-    115  f04f							; ---- Overscan (6,840 color clocks, 2,280 machine cycles)
-    116  f04f
-    117  f04f							; 76543210
-    118  f04f		       a9 02		      lda	#%00000010	; set D1 = 1 to initiate VBLANK
-    119  f051		       85 01		      sta	VBLANK	; turn off the beam
-    120  f053		       a2 21		      ldx	#MIN_HPOS	; (2)
-    121  f055		       85 02	   overscan   sta	WSYNC	; (3)
-    122  f057		       ca		      dex		; (2)
-    123  f058		       d0 fb		      bne	overscan	; (2/3)
-    124  f05a
-    125  f05a		       4c 20 f0 	      jmp	startframe	; (3) jump back up to start the next frame
-    126  f05d
-    127  f05d				   Divide15		; the 6502/6507 has neither a multiplication nor a division instruction so here
-    128  f05d				   .POS       SET	0	; we're building a list of values for divisions of 15 and which course position
-    129  f05d					      REPEAT	160
-    130  f05d		       01		      .byte.b	(.POS / 15) + 1
-    131  f05d				   .POS       SET	.POS + 1
-    129  f05d					      REPEND
-    130  f05e		       01		      .byte.b	(.POS / 15) + 1
-    131  f05e				   .POS       SET	.POS + 1
-    129  f05e					      REPEND
-    130  f05f		       01		      .byte.b	(.POS / 15) + 1
-    131  f05f				   .POS       SET	.POS + 1
-    129  f05f					      REPEND
-    130  f060		       01		      .byte.b	(.POS / 15) + 1
-    131  f060				   .POS       SET	.POS + 1
-    129  f060					      REPEND
-    130  f061		       01		      .byte.b	(.POS / 15) + 1
-    131  f061				   .POS       SET	.POS + 1
-    129  f061					      REPEND
-    130  f062		       01		      .byte.b	(.POS / 15) + 1
-    131  f062				   .POS       SET	.POS + 1
-    129  f062					      REPEND
-    130  f063		       01		      .byte.b	(.POS / 15) + 1
-    131  f063				   .POS       SET	.POS + 1
-    129  f063					      REPEND
-    130  f064		       01		      .byte.b	(.POS / 15) + 1
-    131  f064				   .POS       SET	.POS + 1
-    129  f064					      REPEND
-    130  f065		       01		      .byte.b	(.POS / 15) + 1
-    131  f065				   .POS       SET	.POS + 1
-    129  f065					      REPEND
-    130  f066		       01		      .byte.b	(.POS / 15) + 1
-    131  f066				   .POS       SET	.POS + 1
-    129  f066					      REPEND
-    130  f067		       01		      .byte.b	(.POS / 15) + 1
-    131  f067				   .POS       SET	.POS + 1
-    129  f067					      REPEND
-    130  f068		       01		      .byte.b	(.POS / 15) + 1
-    131  f068				   .POS       SET	.POS + 1
-    129  f068					      REPEND
-    130  f069		       01		      .byte.b	(.POS / 15) + 1
-    131  f069				   .POS       SET	.POS + 1
-    129  f069					      REPEND
-    130  f06a		       01		      .byte.b	(.POS / 15) + 1
-    131  f06a				   .POS       SET	.POS + 1
-    129  f06a					      REPEND
-    130  f06b		       01		      .byte.b	(.POS / 15) + 1
-    131  f06b				   .POS       SET	.POS + 1
-    129  f06b					      REPEND
-    130  f06c		       02		      .byte.b	(.POS / 15) + 1
-    131  f06c				   .POS       SET	.POS + 1
-    129  f06c					      REPEND
-    130  f06d		       02		      .byte.b	(.POS / 15) + 1
-    131  f06d				   .POS       SET	.POS + 1
-    129  f06d					      REPEND
-    130  f06e		       02		      .byte.b	(.POS / 15) + 1
-    131  f06e				   .POS       SET	.POS + 1
-    129  f06e					      REPEND
-    130  f06f		       02		      .byte.b	(.POS / 15) + 1
-    131  f06f				   .POS       SET	.POS + 1
-    129  f06f					      REPEND
-    130  f070		       02		      .byte.b	(.POS / 15) + 1
-    131  f070				   .POS       SET	.POS + 1
-    129  f070					      REPEND
-    130  f071		       02		      .byte.b	(.POS / 15) + 1
-    131  f071				   .POS       SET	.POS + 1
-    129  f071					      REPEND
-    130  f072		       02		      .byte.b	(.POS / 15) + 1
-    131  f072				   .POS       SET	.POS + 1
-    129  f072					      REPEND
-    130  f073		       02		      .byte.b	(.POS / 15) + 1
-    131  f073				   .POS       SET	.POS + 1
-    129  f073					      REPEND
-    130  f074		       02		      .byte.b	(.POS / 15) + 1
-    131  f074				   .POS       SET	.POS + 1
-    129  f074					      REPEND
-    130  f075		       02		      .byte.b	(.POS / 15) + 1
-    131  f075				   .POS       SET	.POS + 1
-    129  f075					      REPEND
-    130  f076		       02		      .byte.b	(.POS / 15) + 1
-    131  f076				   .POS       SET	.POS + 1
-    129  f076					      REPEND
-    130  f077		       02		      .byte.b	(.POS / 15) + 1
-    131  f077				   .POS       SET	.POS + 1
-    129  f077					      REPEND
-    130  f078		       02		      .byte.b	(.POS / 15) + 1
-    131  f078				   .POS       SET	.POS + 1
-    129  f078					      REPEND
-    130  f079		       02		      .byte.b	(.POS / 15) + 1
-    131  f079				   .POS       SET	.POS + 1
-    129  f079					      REPEND
-    130  f07a		       02		      .byte.b	(.POS / 15) + 1
-    131  f07a				   .POS       SET	.POS + 1
-    129  f07a					      REPEND
-    130  f07b		       03		      .byte.b	(.POS / 15) + 1
-    131  f07b				   .POS       SET	.POS + 1
-    129  f07b					      REPEND
-    130  f07c		       03		      .byte.b	(.POS / 15) + 1
-    131  f07c				   .POS       SET	.POS + 1
-    129  f07c					      REPEND
-    130  f07d		       03		      .byte.b	(.POS / 15) + 1
-    131  f07d				   .POS       SET	.POS + 1
-    129  f07d					      REPEND
-    130  f07e		       03		      .byte.b	(.POS / 15) + 1
-    131  f07e				   .POS       SET	.POS + 1
-    129  f07e					      REPEND
-    130  f07f		       03		      .byte.b	(.POS / 15) + 1
-    131  f07f				   .POS       SET	.POS + 1
-    129  f07f					      REPEND
-    130  f080		       03		      .byte.b	(.POS / 15) + 1
-    131  f080				   .POS       SET	.POS + 1
-    129  f080					      REPEND
-    130  f081		       03		      .byte.b	(.POS / 15) + 1
-    131  f081				   .POS       SET	.POS + 1
-    129  f081					      REPEND
-    130  f082		       03		      .byte.b	(.POS / 15) + 1
-    131  f082				   .POS       SET	.POS + 1
-    129  f082					      REPEND
-    130  f083		       03		      .byte.b	(.POS / 15) + 1
-    131  f083				   .POS       SET	.POS + 1
-    129  f083					      REPEND
-    130  f084		       03		      .byte.b	(.POS / 15) + 1
-    131  f084				   .POS       SET	.POS + 1
-    129  f084					      REPEND
-    130  f085		       03		      .byte.b	(.POS / 15) + 1
-    131  f085				   .POS       SET	.POS + 1
-    129  f085					      REPEND
-    130  f086		       03		      .byte.b	(.POS / 15) + 1
-    131  f086				   .POS       SET	.POS + 1
-    129  f086					      REPEND
-    130  f087		       03		      .byte.b	(.POS / 15) + 1
-    131  f087				   .POS       SET	.POS + 1
-    129  f087					      REPEND
-    130  f088		       03		      .byte.b	(.POS / 15) + 1
-    131  f088				   .POS       SET	.POS + 1
-    129  f088					      REPEND
-    130  f089		       03		      .byte.b	(.POS / 15) + 1
-    131  f089				   .POS       SET	.POS + 1
-    129  f089					      REPEND
-    130  f08a		       04		      .byte.b	(.POS / 15) + 1
-    131  f08a				   .POS       SET	.POS + 1
-    129  f08a					      REPEND
-    130  f08b		       04		      .byte.b	(.POS / 15) + 1
-    131  f08b				   .POS       SET	.POS + 1
-    129  f08b					      REPEND
-    130  f08c		       04		      .byte.b	(.POS / 15) + 1
-    131  f08c				   .POS       SET	.POS + 1
-    129  f08c					      REPEND
-    130  f08d		       04		      .byte.b	(.POS / 15) + 1
-    131  f08d				   .POS       SET	.POS + 1
-    129  f08d					      REPEND
-    130  f08e		       04		      .byte.b	(.POS / 15) + 1
-    131  f08e				   .POS       SET	.POS + 1
-    129  f08e					      REPEND
-    130  f08f		       04		      .byte.b	(.POS / 15) + 1
-    131  f08f				   .POS       SET	.POS + 1
-    129  f08f					      REPEND
-    130  f090		       04		      .byte.b	(.POS / 15) + 1
-    131  f090				   .POS       SET	.POS + 1
-    129  f090					      REPEND
-    130  f091		       04		      .byte.b	(.POS / 15) + 1
-    131  f091				   .POS       SET	.POS + 1
-    129  f091					      REPEND
-    130  f092		       04		      .byte.b	(.POS / 15) + 1
-    131  f092				   .POS       SET	.POS + 1
-    129  f092					      REPEND
-    130  f093		       04		      .byte.b	(.POS / 15) + 1
-    131  f093				   .POS       SET	.POS + 1
-    129  f093					      REPEND
-    130  f094		       04		      .byte.b	(.POS / 15) + 1
-    131  f094				   .POS       SET	.POS + 1
-    129  f094					      REPEND
-    130  f095		       04		      .byte.b	(.POS / 15) + 1
-    131  f095				   .POS       SET	.POS + 1
-    129  f095					      REPEND
-    130  f096		       04		      .byte.b	(.POS / 15) + 1
-    131  f096				   .POS       SET	.POS + 1
-    129  f096					      REPEND
-    130  f097		       04		      .byte.b	(.POS / 15) + 1
-    131  f097				   .POS       SET	.POS + 1
-    129  f097					      REPEND
-    130  f098		       04		      .byte.b	(.POS / 15) + 1
-    131  f098				   .POS       SET	.POS + 1
-    129  f098					      REPEND
-    130  f099		       05		      .byte.b	(.POS / 15) + 1
-    131  f099				   .POS       SET	.POS + 1
-    129  f099					      REPEND
-    130  f09a		       05		      .byte.b	(.POS / 15) + 1
-    131  f09a				   .POS       SET	.POS + 1
-    129  f09a					      REPEND
-    130  f09b		       05		      .byte.b	(.POS / 15) + 1
-    131  f09b				   .POS       SET	.POS + 1
-    129  f09b					      REPEND
-    130  f09c		       05		      .byte.b	(.POS / 15) + 1
-    131  f09c				   .POS       SET	.POS + 1
-    129  f09c					      REPEND
-    130  f09d		       05		      .byte.b	(.POS / 15) + 1
-    131  f09d				   .POS       SET	.POS + 1
-    129  f09d					      REPEND
-    130  f09e		       05		      .byte.b	(.POS / 15) + 1
-    131  f09e				   .POS       SET	.POS + 1
-    129  f09e					      REPEND
-    130  f09f		       05		      .byte.b	(.POS / 15) + 1
-    131  f09f				   .POS       SET	.POS + 1
-    129  f09f					      REPEND
-    130  f0a0		       05		      .byte.b	(.POS / 15) + 1
-    131  f0a0				   .POS       SET	.POS + 1
-    129  f0a0					      REPEND
-    130  f0a1		       05		      .byte.b	(.POS / 15) + 1
-    131  f0a1				   .POS       SET	.POS + 1
-    129  f0a1					      REPEND
-    130  f0a2		       05		      .byte.b	(.POS / 15) + 1
-    131  f0a2				   .POS       SET	.POS + 1
-    129  f0a2					      REPEND
-    130  f0a3		       05		      .byte.b	(.POS / 15) + 1
-    131  f0a3				   .POS       SET	.POS + 1
-    129  f0a3					      REPEND
-    130  f0a4		       05		      .byte.b	(.POS / 15) + 1
-    131  f0a4				   .POS       SET	.POS + 1
-    129  f0a4					      REPEND
-    130  f0a5		       05		      .byte.b	(.POS / 15) + 1
-    131  f0a5				   .POS       SET	.POS + 1
-    129  f0a5					      REPEND
-    130  f0a6		       05		      .byte.b	(.POS / 15) + 1
-    131  f0a6				   .POS       SET	.POS + 1
-    129  f0a6					      REPEND
-    130  f0a7		       05		      .byte.b	(.POS / 15) + 1
-    131  f0a7				   .POS       SET	.POS + 1
-    129  f0a7					      REPEND
-    130  f0a8		       06		      .byte.b	(.POS / 15) + 1
-    131  f0a8				   .POS       SET	.POS + 1
-    129  f0a8					      REPEND
-    130  f0a9		       06		      .byte.b	(.POS / 15) + 1
-    131  f0a9				   .POS       SET	.POS + 1
-    129  f0a9					      REPEND
-    130  f0aa		       06		      .byte.b	(.POS / 15) + 1
-    131  f0aa				   .POS       SET	.POS + 1
-    129  f0aa					      REPEND
-    130  f0ab		       06		      .byte.b	(.POS / 15) + 1
-    131  f0ab				   .POS       SET	.POS + 1
-    129  f0ab					      REPEND
-    130  f0ac		       06		      .byte.b	(.POS / 15) + 1
-    131  f0ac				   .POS       SET	.POS + 1
-    129  f0ac					      REPEND
-    130  f0ad		       06		      .byte.b	(.POS / 15) + 1
-    131  f0ad				   .POS       SET	.POS + 1
-    129  f0ad					      REPEND
-    130  f0ae		       06		      .byte.b	(.POS / 15) + 1
-    131  f0ae				   .POS       SET	.POS + 1
-    129  f0ae					      REPEND
-    130  f0af		       06		      .byte.b	(.POS / 15) + 1
-    131  f0af				   .POS       SET	.POS + 1
-    129  f0af					      REPEND
-    130  f0b0		       06		      .byte.b	(.POS / 15) + 1
-    131  f0b0				   .POS       SET	.POS + 1
-    129  f0b0					      REPEND
-    130  f0b1		       06		      .byte.b	(.POS / 15) + 1
-    131  f0b1				   .POS       SET	.POS + 1
-    129  f0b1					      REPEND
-    130  f0b2		       06		      .byte.b	(.POS / 15) + 1
-    131  f0b2				   .POS       SET	.POS + 1
-    129  f0b2					      REPEND
-    130  f0b3		       06		      .byte.b	(.POS / 15) + 1
-    131  f0b3				   .POS       SET	.POS + 1
-    129  f0b3					      REPEND
-    130  f0b4		       06		      .byte.b	(.POS / 15) + 1
-    131  f0b4				   .POS       SET	.POS + 1
-    129  f0b4					      REPEND
-    130  f0b5		       06		      .byte.b	(.POS / 15) + 1
-    131  f0b5				   .POS       SET	.POS + 1
-    129  f0b5					      REPEND
-    130  f0b6		       06		      .byte.b	(.POS / 15) + 1
-    131  f0b6				   .POS       SET	.POS + 1
-    129  f0b6					      REPEND
-    130  f0b7		       07		      .byte.b	(.POS / 15) + 1
-    131  f0b7				   .POS       SET	.POS + 1
-    129  f0b7					      REPEND
-    130  f0b8		       07		      .byte.b	(.POS / 15) + 1
-    131  f0b8				   .POS       SET	.POS + 1
-    129  f0b8					      REPEND
-    130  f0b9		       07		      .byte.b	(.POS / 15) + 1
-    131  f0b9				   .POS       SET	.POS + 1
-    129  f0b9					      REPEND
-    130  f0ba		       07		      .byte.b	(.POS / 15) + 1
-    131  f0ba				   .POS       SET	.POS + 1
-    129  f0ba					      REPEND
-    130  f0bb		       07		      .byte.b	(.POS / 15) + 1
-    131  f0bb				   .POS       SET	.POS + 1
-    129  f0bb					      REPEND
-    130  f0bc		       07		      .byte.b	(.POS / 15) + 1
-    131  f0bc				   .POS       SET	.POS + 1
-    129  f0bc					      REPEND
-    130  f0bd		       07		      .byte.b	(.POS / 15) + 1
-    131  f0bd				   .POS       SET	.POS + 1
-    129  f0bd					      REPEND
-    130  f0be		       07		      .byte.b	(.POS / 15) + 1
-    131  f0be				   .POS       SET	.POS + 1
-    129  f0be					      REPEND
-    130  f0bf		       07		      .byte.b	(.POS / 15) + 1
-    131  f0bf				   .POS       SET	.POS + 1
-    129  f0bf					      REPEND
-    130  f0c0		       07		      .byte.b	(.POS / 15) + 1
-    131  f0c0				   .POS       SET	.POS + 1
-    129  f0c0					      REPEND
-    130  f0c1		       07		      .byte.b	(.POS / 15) + 1
-    131  f0c1				   .POS       SET	.POS + 1
-    129  f0c1					      REPEND
-    130  f0c2		       07		      .byte.b	(.POS / 15) + 1
-    131  f0c2				   .POS       SET	.POS + 1
-    129  f0c2					      REPEND
-    130  f0c3		       07		      .byte.b	(.POS / 15) + 1
-    131  f0c3				   .POS       SET	.POS + 1
-    129  f0c3					      REPEND
-    130  f0c4		       07		      .byte.b	(.POS / 15) + 1
-    131  f0c4				   .POS       SET	.POS + 1
-    129  f0c4					      REPEND
-    130  f0c5		       07		      .byte.b	(.POS / 15) + 1
-    131  f0c5				   .POS       SET	.POS + 1
-    129  f0c5					      REPEND
-    130  f0c6		       08		      .byte.b	(.POS / 15) + 1
-    131  f0c6				   .POS       SET	.POS + 1
-    129  f0c6					      REPEND
-    130  f0c7		       08		      .byte.b	(.POS / 15) + 1
-    131  f0c7				   .POS       SET	.POS + 1
-    129  f0c7					      REPEND
-    130  f0c8		       08		      .byte.b	(.POS / 15) + 1
-    131  f0c8				   .POS       SET	.POS + 1
-    129  f0c8					      REPEND
-    130  f0c9		       08		      .byte.b	(.POS / 15) + 1
-    131  f0c9				   .POS       SET	.POS + 1
-    129  f0c9					      REPEND
-    130  f0ca		       08		      .byte.b	(.POS / 15) + 1
-    131  f0ca				   .POS       SET	.POS + 1
-    129  f0ca					      REPEND
-    130  f0cb		       08		      .byte.b	(.POS / 15) + 1
-    131  f0cb				   .POS       SET	.POS + 1
-    129  f0cb					      REPEND
-    130  f0cc		       08		      .byte.b	(.POS / 15) + 1
-    131  f0cc				   .POS       SET	.POS + 1
-    129  f0cc					      REPEND
-    130  f0cd		       08		      .byte.b	(.POS / 15) + 1
-    131  f0cd				   .POS       SET	.POS + 1
-    129  f0cd					      REPEND
-    130  f0ce		       08		      .byte.b	(.POS / 15) + 1
-    131  f0ce				   .POS       SET	.POS + 1
-    129  f0ce					      REPEND
-    130  f0cf		       08		      .byte.b	(.POS / 15) + 1
-    131  f0cf				   .POS       SET	.POS + 1
-    129  f0cf					      REPEND
-    130  f0d0		       08		      .byte.b	(.POS / 15) + 1
-    131  f0d0				   .POS       SET	.POS + 1
-    129  f0d0					      REPEND
-    130  f0d1		       08		      .byte.b	(.POS / 15) + 1
-    131  f0d1				   .POS       SET	.POS + 1
-    129  f0d1					      REPEND
-    130  f0d2		       08		      .byte.b	(.POS / 15) + 1
-    131  f0d2				   .POS       SET	.POS + 1
-    129  f0d2					      REPEND
-    130  f0d3		       08		      .byte.b	(.POS / 15) + 1
-    131  f0d3				   .POS       SET	.POS + 1
-    129  f0d3					      REPEND
-    130  f0d4		       08		      .byte.b	(.POS / 15) + 1
-    131  f0d4				   .POS       SET	.POS + 1
-    129  f0d4					      REPEND
-    130  f0d5		       09		      .byte.b	(.POS / 15) + 1
-    131  f0d5				   .POS       SET	.POS + 1
-    129  f0d5					      REPEND
-    130  f0d6		       09		      .byte.b	(.POS / 15) + 1
-    131  f0d6				   .POS       SET	.POS + 1
-    129  f0d6					      REPEND
-    130  f0d7		       09		      .byte.b	(.POS / 15) + 1
-    131  f0d7				   .POS       SET	.POS + 1
-    129  f0d7					      REPEND
-    130  f0d8		       09		      .byte.b	(.POS / 15) + 1
-    131  f0d8				   .POS       SET	.POS + 1
-    129  f0d8					      REPEND
-    130  f0d9		       09		      .byte.b	(.POS / 15) + 1
-    131  f0d9				   .POS       SET	.POS + 1
-    129  f0d9					      REPEND
-    130  f0da		       09		      .byte.b	(.POS / 15) + 1
-    131  f0da				   .POS       SET	.POS + 1
-    129  f0da					      REPEND
-    130  f0db		       09		      .byte.b	(.POS / 15) + 1
-    131  f0db				   .POS       SET	.POS + 1
-    129  f0db					      REPEND
-    130  f0dc		       09		      .byte.b	(.POS / 15) + 1
-    131  f0dc				   .POS       SET	.POS + 1
-    129  f0dc					      REPEND
-    130  f0dd		       09		      .byte.b	(.POS / 15) + 1
-    131  f0dd				   .POS       SET	.POS + 1
-    129  f0dd					      REPEND
-    130  f0de		       09		      .byte.b	(.POS / 15) + 1
-    131  f0de				   .POS       SET	.POS + 1
-    129  f0de					      REPEND
-    130  f0df		       09		      .byte.b	(.POS / 15) + 1
-    131  f0df				   .POS       SET	.POS + 1
-    129  f0df					      REPEND
-    130  f0e0		       09		      .byte.b	(.POS / 15) + 1
-    131  f0e0				   .POS       SET	.POS + 1
-    129  f0e0					      REPEND
-    130  f0e1		       09		      .byte.b	(.POS / 15) + 1
-    131  f0e1				   .POS       SET	.POS + 1
-    129  f0e1					      REPEND
-    130  f0e2		       09		      .byte.b	(.POS / 15) + 1
-    131  f0e2				   .POS       SET	.POS + 1
-    129  f0e2					      REPEND
-    130  f0e3		       09		      .byte.b	(.POS / 15) + 1
-    131  f0e3				   .POS       SET	.POS + 1
-    129  f0e3					      REPEND
-    130  f0e4		       0a		      .byte.b	(.POS / 15) + 1
-    131  f0e4				   .POS       SET	.POS + 1
-    129  f0e4					      REPEND
-    130  f0e5		       0a		      .byte.b	(.POS / 15) + 1
-    131  f0e5				   .POS       SET	.POS + 1
-    129  f0e5					      REPEND
-    130  f0e6		       0a		      .byte.b	(.POS / 15) + 1
-    131  f0e6				   .POS       SET	.POS + 1
-    129  f0e6					      REPEND
-    130  f0e7		       0a		      .byte.b	(.POS / 15) + 1
-    131  f0e7				   .POS       SET	.POS + 1
-    129  f0e7					      REPEND
-    130  f0e8		       0a		      .byte.b	(.POS / 15) + 1
-    131  f0e8				   .POS       SET	.POS + 1
-    129  f0e8					      REPEND
-    130  f0e9		       0a		      .byte.b	(.POS / 15) + 1
-    131  f0e9				   .POS       SET	.POS + 1
-    129  f0e9					      REPEND
-    130  f0ea		       0a		      .byte.b	(.POS / 15) + 1
-    131  f0ea				   .POS       SET	.POS + 1
-    129  f0ea					      REPEND
-    130  f0eb		       0a		      .byte.b	(.POS / 15) + 1
-    131  f0eb				   .POS       SET	.POS + 1
-    129  f0eb					      REPEND
-    130  f0ec		       0a		      .byte.b	(.POS / 15) + 1
-    131  f0ec				   .POS       SET	.POS + 1
-    129  f0ec					      REPEND
-    130  f0ed		       0a		      .byte.b	(.POS / 15) + 1
-    131  f0ed				   .POS       SET	.POS + 1
-    129  f0ed					      REPEND
-    130  f0ee		       0a		      .byte.b	(.POS / 15) + 1
-    131  f0ee				   .POS       SET	.POS + 1
-    129  f0ee					      REPEND
-    130  f0ef		       0a		      .byte.b	(.POS / 15) + 1
-    131  f0ef				   .POS       SET	.POS + 1
-    129  f0ef					      REPEND
-    130  f0f0		       0a		      .byte.b	(.POS / 15) + 1
-    131  f0f0				   .POS       SET	.POS + 1
-    129  f0f0					      REPEND
-    130  f0f1		       0a		      .byte.b	(.POS / 15) + 1
-    131  f0f1				   .POS       SET	.POS + 1
-    129  f0f1					      REPEND
-    130  f0f2		       0a		      .byte.b	(.POS / 15) + 1
-    131  f0f2				   .POS       SET	.POS + 1
-    129  f0f2					      REPEND
-    130  f0f3		       0b		      .byte.b	(.POS / 15) + 1
-    131  f0f3				   .POS       SET	.POS + 1
-    129  f0f3					      REPEND
-    130  f0f4		       0b		      .byte.b	(.POS / 15) + 1
-    131  f0f4				   .POS       SET	.POS + 1
-    129  f0f4					      REPEND
-    130  f0f5		       0b		      .byte.b	(.POS / 15) + 1
-    131  f0f5				   .POS       SET	.POS + 1
-    129  f0f5					      REPEND
-    130  f0f6		       0b		      .byte.b	(.POS / 15) + 1
-    131  f0f6				   .POS       SET	.POS + 1
-    129  f0f6					      REPEND
-    130  f0f7		       0b		      .byte.b	(.POS / 15) + 1
-    131  f0f7				   .POS       SET	.POS + 1
-    129  f0f7					      REPEND
-    130  f0f8		       0b		      .byte.b	(.POS / 15) + 1
-    131  f0f8				   .POS       SET	.POS + 1
-    129  f0f8					      REPEND
-    130  f0f9		       0b		      .byte.b	(.POS / 15) + 1
-    131  f0f9				   .POS       SET	.POS + 1
-    129  f0f9					      REPEND
-    130  f0fa		       0b		      .byte.b	(.POS / 15) + 1
-    131  f0fa				   .POS       SET	.POS + 1
-    129  f0fa					      REPEND
-    130  f0fb		       0b		      .byte.b	(.POS / 15) + 1
-    131  f0fb				   .POS       SET	.POS + 1
-    129  f0fb					      REPEND
-    130  f0fc		       0b		      .byte.b	(.POS / 15) + 1
-    131  f0fc				   .POS       SET	.POS + 1
-    132  f0fd					      REPEND
-    133  f0fd
-    134  f0fd				   pos_x		; (3) subroutine to position the sprite, pass the HPOS in X register.
-    135  f0fd		       bd 5d f0 	      lda	Divide15,x	; (2) load the value location at the xth byte in the Divide15 table
-    136  f100		       aa		      tax		; (2) Transfer the accumulator to the x register
-    137  f101		       85 02		      sta	WSYNC
-    138  f103
-    139  f103							; ---- this loop takes 5 machine cycles each iteration, that's 15 color clocks.
-    140  f103
-    141  f103		       ca	   SimpleLoop dex		; (2) decrement x
-    142  f104		       d0 fd		      bne	SimpleLoop	; (2/3) branch if not equal
-    143  f106		       85 10		      sta	RESP0	; (3) strobe the RESP0 register to set the course position
-    144  f108
-    145  f108		       60		      rts		; (6) return to caller
-    146  f109
-    147  f109		       00	   player0    .byte.b	%00000000	; 8BLIT bitmap, one byte per line, reverse order
-    148  f10a		       40		      .byte.b	%01000000
-    149  f10b		       40		      .byte.b	%01000000
-    150  f10c		       40		      .byte.b	%01000000
-    151  f10d		       40		      .byte.b	%01000000
-    152  f10e		       e0		      .byte.b	%11100000
-    153  f10f		       00		      .byte.b	%00000000
-    154  f110		       e0		      .byte.b	%11100000
-    155  f111		       40		      .byte.b	%01000000
-    156  f112		       40		      .byte.b	%01000000
-    157  f113		       40		      .byte.b	%01000000
-    158  f114		       e0		      .byte.b	%11100000
-    159  f115		       00		      .byte.b	%00000000
-    160  f116		       e0		      .byte.b	%11100000
-    161  f117		       80		      .byte.b	%10000000
-    162  f118		       80		      .byte.b	%10000000
-    163  f119		       80		      .byte.b	%10000000
-    164  f11a		       80		      .byte.b	%10000000
-    165  f11b		       00		      .byte.b	%00000000
-    166  f11c		       c0		      .byte.b	%11000000
-    167  f11d		       a0		      .byte.b	%10100000
-    168  f11e		       a0		      .byte.b	%10100000
-    169  f11f		       c0		      .byte.b	%11000000
-    170  f120		       a0		      .byte.b	%10100000
-    171  f121		       c0		      .byte.b	%11000000
-    172  f122		       00		      .byte.b	%00000000
-    173  f123		       e0		      .byte.b	%11100000
-    174  f124		       a0		      .byte.b	%10100000
-    175  f125		       a0		      .byte.b	%10100000
-    176  f126		       e0		      .byte.b	%11100000
-    177  f127		       a0		      .byte.b	%10100000
-    178  f128		       e0		      .byte.b	%11100000
-    179  f129
-    180  fffa					      org	$FFFA
-    181  fffa
-    182  fffa				   irq
-    183  fffa		       00 f0		      .word.w	reset	; NMI	($FFFA)
-    184  fffc		       00 f0		      .word.w	reset	; RESET ($FFFC)
-    185  fffe		       00 f0		      .word.w	reset	; IRQ ($FFFE)
-    186  10000
-    187  10000
+     56  f020		       a2 f0		      ldx	#%11110000	; (2) set the horizontal movement player 0 (HMP0) register to adjust the position of
+     57  f022		       86 20		      stx	HMP0	; (3) the player graphic to the right by 1 color clock (only uses the 4 high bits)
+     58  f024		       a2 10		      ldx	#%00010000	; (2) set the horizontal movement player 1 (HMP1) register to adjust the position of
+     59  f026		       86 21		      stx	HMP1	; (3) the player graphic to the right by 1 color clock (only uses the 4 high bits)
+     60  f028
+     61  f028							; 0111 = left 7
+     62  f028							; 0110 = left 6
+     63  f028							; 0101 = left 5
+     64  f028							; 0100 = left 4
+     65  f028							; 0011 = left 3
+     66  f028							; 0010 = left 2
+     67  f028							; 0001 = left 1
+     68  f028							; 0000 = No motion
+     69  f028							; 1111 = right 1
+     70  f028							; 1110 = right 2
+     71  f028							; 1101 = right 3
+     72  f028							; 1100 = right 4
+     73  f028							; 1011 = right 5
+     74  f028							; 1010 = right 6
+     75  f028							; 1001 = right 7
+     76  f028							; 1000 = right 8
+     77  f028
+     78  f028							; ---- Begin main loop
+     79  f028
+      0  f028				   startframe VERTICAL_SYNC		; macro included in macro.h file
+      1  f028		       a9 0e		      lda	#%1110
+      2  f02a		       85 02	   .VSLP1     sta	WSYNC
+      3  f02c		       85 00		      sta	VSYNC
+      4  f02e		       4a		      lsr
+      5  f02f		       d0 f9		      bne	.VSLP1
+     81  f031
+     82  f031							; ---- 37 scanlines vertical blank (8,436 color clocks, 2,812 machine cycles)
+     83  f031
+     84  f031		       a2 24		      ldx	#36	; (2)
+     85  f033		       85 02	   lvblank    sta	WSYNC	; (3) each scanline is 228 color clocks, 76 machine cycles
+     86  f035		       ca		      dex		; (2) decrement x by 1
+     87  f036		       d0 fb		      bne	lvblank	; (2/3) branch if not equal x != 37
+     88  f038
+     89  f038
+     90  f038							; 76543210
+     91  f038		       a9 00		      lda	#%00000000	; (2) set D1 to 0 to end VBLANK
+     92  f03a		       85 02		      sta	WSYNC	; (3)
+     93  f03c		       85 01		      sta	VBLANK	; (3) turn on the beam
+     94  f03e
+     95  f03e		       85 2a		      sta	HMOVE	; (3) horizontal move. this will move ALL the player, missle, and ball graphics at the same time
+     96  f040							; HMOVE needs to execute during horizontal blanking so it should be done immediatly following
+     97  f040							; a WSYNC. Additionally, any of the horizontal movement registers should not be modified within at least
+     98  f040							; 24 machine cycles after an HMOVE.
+     99  f040
+    100  f040							; ---- 192 lines of drawfield		   Each scanline
+    101  f040							; (68 color clocks, 22 machine cycles) HBLANK
+    102  f040							; (160 color clocks, 53 machine cycles) + 1 Playfield
+    103  f040
+    104  f040		       a2 c0		      ldx	#MAX_VPOS	; (2)
+    105  f042		       8a	   drawfield  txa		; (2) transfer x to a
+    106  f043		       38		      sec		; (2) set carry flag
+    107  f044		       e5 a1		      sbc	p0_y	; (2) subtrack memory from accumulator
+    108  f046		       c9 20		      cmp	#P0HEIGHT	; (2) have we already drawn all the lines of the graphic?
+    109  f048		       90 02		      bcc	p0insprite	; (2/3)
+    110  f04a		       a9 00		      lda	#0	; (2)
+    111  f04c				   p0insprite
+    112  f04c		       a8		      tay		; (2)
+    113  f04d		       b9 38 f1 	      lda	player1,y	; (4) load the byte at index y starting from the memory location of player1
+    114  f050							; this will grab the appropriate line of the graphic for the current scanline
+    115  f050		       85 1b		      sta	GRP0	; (3)
+    116  f052		       b9 18 f1 	      lda	player0,y	; (4) load the byte at index y starting from the memory location of player0
+    117  f055							; this will grab the appropriate line of the graphic for the current scanline
+    118  f055		       85 1c		      sta	GRP1	; (3)
+    119  f057		       85 02		      sta	WSYNC	; (3)
+    120  f059		       ca		      dex		; (2)
+    121  f05a		       d0 e6		      bne	drawfield	; (2/3)
+    122  f05c
+    123  f05c							; ---- Overscan (6,840 color clocks, 2,280 machine cycles)
+    124  f05c
+    125  f05c							; 76543210
+    126  f05c		       a9 02		      lda	#%00000010	; set D1 = 1 to initiate VBLANK
+    127  f05e		       85 01		      sta	VBLANK	; turn off the beam
+    128  f060		       a2 21		      ldx	#MIN_HPOS	; (2)
+    129  f062		       85 02	   overscan   sta	WSYNC	; (3)
+    130  f064		       ca		      dex		; (2)
+    131  f065		       d0 fb		      bne	overscan	; (2/3)
+    132  f067
+    133  f067		       4c 28 f0 	      jmp	startframe	; (3) jump back up to start the next frame
+    134  f06a
+    135  f06a				   Divide15		; the 6502/6507 has neither a multiplication nor a division instruction so here
+    136  f06a				   .POS       SET	0	; we're building a list of values for divisions of 15 and which course position
+    137  f06a					      REPEAT	160
+    138  f06a		       01		      .byte.b	(.POS / 15) + 1
+    139  f06a				   .POS       SET	.POS + 1
+    137  f06a					      REPEND
+    138  f06b		       01		      .byte.b	(.POS / 15) + 1
+    139  f06b				   .POS       SET	.POS + 1
+    137  f06b					      REPEND
+    138  f06c		       01		      .byte.b	(.POS / 15) + 1
+    139  f06c				   .POS       SET	.POS + 1
+    137  f06c					      REPEND
+    138  f06d		       01		      .byte.b	(.POS / 15) + 1
+    139  f06d				   .POS       SET	.POS + 1
+    137  f06d					      REPEND
+    138  f06e		       01		      .byte.b	(.POS / 15) + 1
+    139  f06e				   .POS       SET	.POS + 1
+    137  f06e					      REPEND
+    138  f06f		       01		      .byte.b	(.POS / 15) + 1
+    139  f06f				   .POS       SET	.POS + 1
+    137  f06f					      REPEND
+    138  f070		       01		      .byte.b	(.POS / 15) + 1
+    139  f070				   .POS       SET	.POS + 1
+    137  f070					      REPEND
+    138  f071		       01		      .byte.b	(.POS / 15) + 1
+    139  f071				   .POS       SET	.POS + 1
+    137  f071					      REPEND
+    138  f072		       01		      .byte.b	(.POS / 15) + 1
+    139  f072				   .POS       SET	.POS + 1
+    137  f072					      REPEND
+    138  f073		       01		      .byte.b	(.POS / 15) + 1
+    139  f073				   .POS       SET	.POS + 1
+    137  f073					      REPEND
+    138  f074		       01		      .byte.b	(.POS / 15) + 1
+    139  f074				   .POS       SET	.POS + 1
+    137  f074					      REPEND
+    138  f075		       01		      .byte.b	(.POS / 15) + 1
+    139  f075				   .POS       SET	.POS + 1
+    137  f075					      REPEND
+    138  f076		       01		      .byte.b	(.POS / 15) + 1
+    139  f076				   .POS       SET	.POS + 1
+    137  f076					      REPEND
+    138  f077		       01		      .byte.b	(.POS / 15) + 1
+    139  f077				   .POS       SET	.POS + 1
+    137  f077					      REPEND
+    138  f078		       01		      .byte.b	(.POS / 15) + 1
+    139  f078				   .POS       SET	.POS + 1
+    137  f078					      REPEND
+    138  f079		       02		      .byte.b	(.POS / 15) + 1
+    139  f079				   .POS       SET	.POS + 1
+    137  f079					      REPEND
+    138  f07a		       02		      .byte.b	(.POS / 15) + 1
+    139  f07a				   .POS       SET	.POS + 1
+    137  f07a					      REPEND
+    138  f07b		       02		      .byte.b	(.POS / 15) + 1
+    139  f07b				   .POS       SET	.POS + 1
+    137  f07b					      REPEND
+    138  f07c		       02		      .byte.b	(.POS / 15) + 1
+    139  f07c				   .POS       SET	.POS + 1
+    137  f07c					      REPEND
+    138  f07d		       02		      .byte.b	(.POS / 15) + 1
+    139  f07d				   .POS       SET	.POS + 1
+    137  f07d					      REPEND
+    138  f07e		       02		      .byte.b	(.POS / 15) + 1
+    139  f07e				   .POS       SET	.POS + 1
+    137  f07e					      REPEND
+    138  f07f		       02		      .byte.b	(.POS / 15) + 1
+    139  f07f				   .POS       SET	.POS + 1
+    137  f07f					      REPEND
+    138  f080		       02		      .byte.b	(.POS / 15) + 1
+    139  f080				   .POS       SET	.POS + 1
+    137  f080					      REPEND
+    138  f081		       02		      .byte.b	(.POS / 15) + 1
+    139  f081				   .POS       SET	.POS + 1
+    137  f081					      REPEND
+    138  f082		       02		      .byte.b	(.POS / 15) + 1
+    139  f082				   .POS       SET	.POS + 1
+    137  f082					      REPEND
+    138  f083		       02		      .byte.b	(.POS / 15) + 1
+    139  f083				   .POS       SET	.POS + 1
+    137  f083					      REPEND
+    138  f084		       02		      .byte.b	(.POS / 15) + 1
+    139  f084				   .POS       SET	.POS + 1
+    137  f084					      REPEND
+    138  f085		       02		      .byte.b	(.POS / 15) + 1
+    139  f085				   .POS       SET	.POS + 1
+    137  f085					      REPEND
+    138  f086		       02		      .byte.b	(.POS / 15) + 1
+    139  f086				   .POS       SET	.POS + 1
+    137  f086					      REPEND
+    138  f087		       02		      .byte.b	(.POS / 15) + 1
+    139  f087				   .POS       SET	.POS + 1
+    137  f087					      REPEND
+    138  f088		       03		      .byte.b	(.POS / 15) + 1
+    139  f088				   .POS       SET	.POS + 1
+    137  f088					      REPEND
+    138  f089		       03		      .byte.b	(.POS / 15) + 1
+    139  f089				   .POS       SET	.POS + 1
+    137  f089					      REPEND
+    138  f08a		       03		      .byte.b	(.POS / 15) + 1
+    139  f08a				   .POS       SET	.POS + 1
+    137  f08a					      REPEND
+    138  f08b		       03		      .byte.b	(.POS / 15) + 1
+    139  f08b				   .POS       SET	.POS + 1
+    137  f08b					      REPEND
+    138  f08c		       03		      .byte.b	(.POS / 15) + 1
+    139  f08c				   .POS       SET	.POS + 1
+    137  f08c					      REPEND
+    138  f08d		       03		      .byte.b	(.POS / 15) + 1
+    139  f08d				   .POS       SET	.POS + 1
+    137  f08d					      REPEND
+    138  f08e		       03		      .byte.b	(.POS / 15) + 1
+    139  f08e				   .POS       SET	.POS + 1
+    137  f08e					      REPEND
+    138  f08f		       03		      .byte.b	(.POS / 15) + 1
+    139  f08f				   .POS       SET	.POS + 1
+    137  f08f					      REPEND
+    138  f090		       03		      .byte.b	(.POS / 15) + 1
+    139  f090				   .POS       SET	.POS + 1
+    137  f090					      REPEND
+    138  f091		       03		      .byte.b	(.POS / 15) + 1
+    139  f091				   .POS       SET	.POS + 1
+    137  f091					      REPEND
+    138  f092		       03		      .byte.b	(.POS / 15) + 1
+    139  f092				   .POS       SET	.POS + 1
+    137  f092					      REPEND
+    138  f093		       03		      .byte.b	(.POS / 15) + 1
+    139  f093				   .POS       SET	.POS + 1
+    137  f093					      REPEND
+    138  f094		       03		      .byte.b	(.POS / 15) + 1
+    139  f094				   .POS       SET	.POS + 1
+    137  f094					      REPEND
+    138  f095		       03		      .byte.b	(.POS / 15) + 1
+    139  f095				   .POS       SET	.POS + 1
+    137  f095					      REPEND
+    138  f096		       03		      .byte.b	(.POS / 15) + 1
+    139  f096				   .POS       SET	.POS + 1
+    137  f096					      REPEND
+    138  f097		       04		      .byte.b	(.POS / 15) + 1
+    139  f097				   .POS       SET	.POS + 1
+    137  f097					      REPEND
+    138  f098		       04		      .byte.b	(.POS / 15) + 1
+    139  f098				   .POS       SET	.POS + 1
+    137  f098					      REPEND
+    138  f099		       04		      .byte.b	(.POS / 15) + 1
+    139  f099				   .POS       SET	.POS + 1
+    137  f099					      REPEND
+    138  f09a		       04		      .byte.b	(.POS / 15) + 1
+    139  f09a				   .POS       SET	.POS + 1
+    137  f09a					      REPEND
+    138  f09b		       04		      .byte.b	(.POS / 15) + 1
+    139  f09b				   .POS       SET	.POS + 1
+    137  f09b					      REPEND
+    138  f09c		       04		      .byte.b	(.POS / 15) + 1
+    139  f09c				   .POS       SET	.POS + 1
+    137  f09c					      REPEND
+    138  f09d		       04		      .byte.b	(.POS / 15) + 1
+    139  f09d				   .POS       SET	.POS + 1
+    137  f09d					      REPEND
+    138  f09e		       04		      .byte.b	(.POS / 15) + 1
+    139  f09e				   .POS       SET	.POS + 1
+    137  f09e					      REPEND
+    138  f09f		       04		      .byte.b	(.POS / 15) + 1
+    139  f09f				   .POS       SET	.POS + 1
+    137  f09f					      REPEND
+    138  f0a0		       04		      .byte.b	(.POS / 15) + 1
+    139  f0a0				   .POS       SET	.POS + 1
+    137  f0a0					      REPEND
+    138  f0a1		       04		      .byte.b	(.POS / 15) + 1
+    139  f0a1				   .POS       SET	.POS + 1
+    137  f0a1					      REPEND
+    138  f0a2		       04		      .byte.b	(.POS / 15) + 1
+    139  f0a2				   .POS       SET	.POS + 1
+    137  f0a2					      REPEND
+    138  f0a3		       04		      .byte.b	(.POS / 15) + 1
+    139  f0a3				   .POS       SET	.POS + 1
+    137  f0a3					      REPEND
+    138  f0a4		       04		      .byte.b	(.POS / 15) + 1
+    139  f0a4				   .POS       SET	.POS + 1
+    137  f0a4					      REPEND
+    138  f0a5		       04		      .byte.b	(.POS / 15) + 1
+    139  f0a5				   .POS       SET	.POS + 1
+    137  f0a5					      REPEND
+    138  f0a6		       05		      .byte.b	(.POS / 15) + 1
+    139  f0a6				   .POS       SET	.POS + 1
+    137  f0a6					      REPEND
+    138  f0a7		       05		      .byte.b	(.POS / 15) + 1
+    139  f0a7				   .POS       SET	.POS + 1
+    137  f0a7					      REPEND
+    138  f0a8		       05		      .byte.b	(.POS / 15) + 1
+    139  f0a8				   .POS       SET	.POS + 1
+    137  f0a8					      REPEND
+    138  f0a9		       05		      .byte.b	(.POS / 15) + 1
+    139  f0a9				   .POS       SET	.POS + 1
+    137  f0a9					      REPEND
+    138  f0aa		       05		      .byte.b	(.POS / 15) + 1
+    139  f0aa				   .POS       SET	.POS + 1
+    137  f0aa					      REPEND
+    138  f0ab		       05		      .byte.b	(.POS / 15) + 1
+    139  f0ab				   .POS       SET	.POS + 1
+    137  f0ab					      REPEND
+    138  f0ac		       05		      .byte.b	(.POS / 15) + 1
+    139  f0ac				   .POS       SET	.POS + 1
+    137  f0ac					      REPEND
+    138  f0ad		       05		      .byte.b	(.POS / 15) + 1
+    139  f0ad				   .POS       SET	.POS + 1
+    137  f0ad					      REPEND
+    138  f0ae		       05		      .byte.b	(.POS / 15) + 1
+    139  f0ae				   .POS       SET	.POS + 1
+    137  f0ae					      REPEND
+    138  f0af		       05		      .byte.b	(.POS / 15) + 1
+    139  f0af				   .POS       SET	.POS + 1
+    137  f0af					      REPEND
+    138  f0b0		       05		      .byte.b	(.POS / 15) + 1
+    139  f0b0				   .POS       SET	.POS + 1
+    137  f0b0					      REPEND
+    138  f0b1		       05		      .byte.b	(.POS / 15) + 1
+    139  f0b1				   .POS       SET	.POS + 1
+    137  f0b1					      REPEND
+    138  f0b2		       05		      .byte.b	(.POS / 15) + 1
+    139  f0b2				   .POS       SET	.POS + 1
+    137  f0b2					      REPEND
+    138  f0b3		       05		      .byte.b	(.POS / 15) + 1
+    139  f0b3				   .POS       SET	.POS + 1
+    137  f0b3					      REPEND
+    138  f0b4		       05		      .byte.b	(.POS / 15) + 1
+    139  f0b4				   .POS       SET	.POS + 1
+    137  f0b4					      REPEND
+    138  f0b5		       06		      .byte.b	(.POS / 15) + 1
+    139  f0b5				   .POS       SET	.POS + 1
+    137  f0b5					      REPEND
+    138  f0b6		       06		      .byte.b	(.POS / 15) + 1
+    139  f0b6				   .POS       SET	.POS + 1
+    137  f0b6					      REPEND
+    138  f0b7		       06		      .byte.b	(.POS / 15) + 1
+    139  f0b7				   .POS       SET	.POS + 1
+    137  f0b7					      REPEND
+    138  f0b8		       06		      .byte.b	(.POS / 15) + 1
+    139  f0b8				   .POS       SET	.POS + 1
+    137  f0b8					      REPEND
+    138  f0b9		       06		      .byte.b	(.POS / 15) + 1
+    139  f0b9				   .POS       SET	.POS + 1
+    137  f0b9					      REPEND
+    138  f0ba		       06		      .byte.b	(.POS / 15) + 1
+    139  f0ba				   .POS       SET	.POS + 1
+    137  f0ba					      REPEND
+    138  f0bb		       06		      .byte.b	(.POS / 15) + 1
+    139  f0bb				   .POS       SET	.POS + 1
+    137  f0bb					      REPEND
+    138  f0bc		       06		      .byte.b	(.POS / 15) + 1
+    139  f0bc				   .POS       SET	.POS + 1
+    137  f0bc					      REPEND
+    138  f0bd		       06		      .byte.b	(.POS / 15) + 1
+    139  f0bd				   .POS       SET	.POS + 1
+    137  f0bd					      REPEND
+    138  f0be		       06		      .byte.b	(.POS / 15) + 1
+    139  f0be				   .POS       SET	.POS + 1
+    137  f0be					      REPEND
+    138  f0bf		       06		      .byte.b	(.POS / 15) + 1
+    139  f0bf				   .POS       SET	.POS + 1
+    137  f0bf					      REPEND
+    138  f0c0		       06		      .byte.b	(.POS / 15) + 1
+    139  f0c0				   .POS       SET	.POS + 1
+    137  f0c0					      REPEND
+    138  f0c1		       06		      .byte.b	(.POS / 15) + 1
+    139  f0c1				   .POS       SET	.POS + 1
+    137  f0c1					      REPEND
+    138  f0c2		       06		      .byte.b	(.POS / 15) + 1
+    139  f0c2				   .POS       SET	.POS + 1
+    137  f0c2					      REPEND
+    138  f0c3		       06		      .byte.b	(.POS / 15) + 1
+    139  f0c3				   .POS       SET	.POS + 1
+    137  f0c3					      REPEND
+    138  f0c4		       07		      .byte.b	(.POS / 15) + 1
+    139  f0c4				   .POS       SET	.POS + 1
+    137  f0c4					      REPEND
+    138  f0c5		       07		      .byte.b	(.POS / 15) + 1
+    139  f0c5				   .POS       SET	.POS + 1
+    137  f0c5					      REPEND
+    138  f0c6		       07		      .byte.b	(.POS / 15) + 1
+    139  f0c6				   .POS       SET	.POS + 1
+    137  f0c6					      REPEND
+    138  f0c7		       07		      .byte.b	(.POS / 15) + 1
+    139  f0c7				   .POS       SET	.POS + 1
+    137  f0c7					      REPEND
+    138  f0c8		       07		      .byte.b	(.POS / 15) + 1
+    139  f0c8				   .POS       SET	.POS + 1
+    137  f0c8					      REPEND
+    138  f0c9		       07		      .byte.b	(.POS / 15) + 1
+    139  f0c9				   .POS       SET	.POS + 1
+    137  f0c9					      REPEND
+    138  f0ca		       07		      .byte.b	(.POS / 15) + 1
+    139  f0ca				   .POS       SET	.POS + 1
+    137  f0ca					      REPEND
+    138  f0cb		       07		      .byte.b	(.POS / 15) + 1
+    139  f0cb				   .POS       SET	.POS + 1
+    137  f0cb					      REPEND
+    138  f0cc		       07		      .byte.b	(.POS / 15) + 1
+    139  f0cc				   .POS       SET	.POS + 1
+    137  f0cc					      REPEND
+    138  f0cd		       07		      .byte.b	(.POS / 15) + 1
+    139  f0cd				   .POS       SET	.POS + 1
+    137  f0cd					      REPEND
+    138  f0ce		       07		      .byte.b	(.POS / 15) + 1
+    139  f0ce				   .POS       SET	.POS + 1
+    137  f0ce					      REPEND
+    138  f0cf		       07		      .byte.b	(.POS / 15) + 1
+    139  f0cf				   .POS       SET	.POS + 1
+    137  f0cf					      REPEND
+    138  f0d0		       07		      .byte.b	(.POS / 15) + 1
+    139  f0d0				   .POS       SET	.POS + 1
+    137  f0d0					      REPEND
+    138  f0d1		       07		      .byte.b	(.POS / 15) + 1
+    139  f0d1				   .POS       SET	.POS + 1
+    137  f0d1					      REPEND
+    138  f0d2		       07		      .byte.b	(.POS / 15) + 1
+    139  f0d2				   .POS       SET	.POS + 1
+    137  f0d2					      REPEND
+    138  f0d3		       08		      .byte.b	(.POS / 15) + 1
+    139  f0d3				   .POS       SET	.POS + 1
+    137  f0d3					      REPEND
+    138  f0d4		       08		      .byte.b	(.POS / 15) + 1
+    139  f0d4				   .POS       SET	.POS + 1
+    137  f0d4					      REPEND
+    138  f0d5		       08		      .byte.b	(.POS / 15) + 1
+    139  f0d5				   .POS       SET	.POS + 1
+    137  f0d5					      REPEND
+    138  f0d6		       08		      .byte.b	(.POS / 15) + 1
+    139  f0d6				   .POS       SET	.POS + 1
+    137  f0d6					      REPEND
+    138  f0d7		       08		      .byte.b	(.POS / 15) + 1
+    139  f0d7				   .POS       SET	.POS + 1
+    137  f0d7					      REPEND
+    138  f0d8		       08		      .byte.b	(.POS / 15) + 1
+    139  f0d8				   .POS       SET	.POS + 1
+    137  f0d8					      REPEND
+    138  f0d9		       08		      .byte.b	(.POS / 15) + 1
+    139  f0d9				   .POS       SET	.POS + 1
+    137  f0d9					      REPEND
+    138  f0da		       08		      .byte.b	(.POS / 15) + 1
+    139  f0da				   .POS       SET	.POS + 1
+    137  f0da					      REPEND
+    138  f0db		       08		      .byte.b	(.POS / 15) + 1
+    139  f0db				   .POS       SET	.POS + 1
+    137  f0db					      REPEND
+    138  f0dc		       08		      .byte.b	(.POS / 15) + 1
+    139  f0dc				   .POS       SET	.POS + 1
+    137  f0dc					      REPEND
+    138  f0dd		       08		      .byte.b	(.POS / 15) + 1
+    139  f0dd				   .POS       SET	.POS + 1
+    137  f0dd					      REPEND
+    138  f0de		       08		      .byte.b	(.POS / 15) + 1
+    139  f0de				   .POS       SET	.POS + 1
+    137  f0de					      REPEND
+    138  f0df		       08		      .byte.b	(.POS / 15) + 1
+    139  f0df				   .POS       SET	.POS + 1
+    137  f0df					      REPEND
+    138  f0e0		       08		      .byte.b	(.POS / 15) + 1
+    139  f0e0				   .POS       SET	.POS + 1
+    137  f0e0					      REPEND
+    138  f0e1		       08		      .byte.b	(.POS / 15) + 1
+    139  f0e1				   .POS       SET	.POS + 1
+    137  f0e1					      REPEND
+    138  f0e2		       09		      .byte.b	(.POS / 15) + 1
+    139  f0e2				   .POS       SET	.POS + 1
+    137  f0e2					      REPEND
+    138  f0e3		       09		      .byte.b	(.POS / 15) + 1
+    139  f0e3				   .POS       SET	.POS + 1
+    137  f0e3					      REPEND
+    138  f0e4		       09		      .byte.b	(.POS / 15) + 1
+    139  f0e4				   .POS       SET	.POS + 1
+    137  f0e4					      REPEND
+    138  f0e5		       09		      .byte.b	(.POS / 15) + 1
+    139  f0e5				   .POS       SET	.POS + 1
+    137  f0e5					      REPEND
+    138  f0e6		       09		      .byte.b	(.POS / 15) + 1
+    139  f0e6				   .POS       SET	.POS + 1
+    137  f0e6					      REPEND
+    138  f0e7		       09		      .byte.b	(.POS / 15) + 1
+    139  f0e7				   .POS       SET	.POS + 1
+    137  f0e7					      REPEND
+    138  f0e8		       09		      .byte.b	(.POS / 15) + 1
+    139  f0e8				   .POS       SET	.POS + 1
+    137  f0e8					      REPEND
+    138  f0e9		       09		      .byte.b	(.POS / 15) + 1
+    139  f0e9				   .POS       SET	.POS + 1
+    137  f0e9					      REPEND
+    138  f0ea		       09		      .byte.b	(.POS / 15) + 1
+    139  f0ea				   .POS       SET	.POS + 1
+    137  f0ea					      REPEND
+    138  f0eb		       09		      .byte.b	(.POS / 15) + 1
+    139  f0eb				   .POS       SET	.POS + 1
+    137  f0eb					      REPEND
+    138  f0ec		       09		      .byte.b	(.POS / 15) + 1
+    139  f0ec				   .POS       SET	.POS + 1
+    137  f0ec					      REPEND
+    138  f0ed		       09		      .byte.b	(.POS / 15) + 1
+    139  f0ed				   .POS       SET	.POS + 1
+    137  f0ed					      REPEND
+    138  f0ee		       09		      .byte.b	(.POS / 15) + 1
+    139  f0ee				   .POS       SET	.POS + 1
+    137  f0ee					      REPEND
+    138  f0ef		       09		      .byte.b	(.POS / 15) + 1
+    139  f0ef				   .POS       SET	.POS + 1
+    137  f0ef					      REPEND
+    138  f0f0		       09		      .byte.b	(.POS / 15) + 1
+    139  f0f0				   .POS       SET	.POS + 1
+    137  f0f0					      REPEND
+    138  f0f1		       0a		      .byte.b	(.POS / 15) + 1
+    139  f0f1				   .POS       SET	.POS + 1
+    137  f0f1					      REPEND
+    138  f0f2		       0a		      .byte.b	(.POS / 15) + 1
+    139  f0f2				   .POS       SET	.POS + 1
+    137  f0f2					      REPEND
+    138  f0f3		       0a		      .byte.b	(.POS / 15) + 1
+    139  f0f3				   .POS       SET	.POS + 1
+    137  f0f3					      REPEND
+    138  f0f4		       0a		      .byte.b	(.POS / 15) + 1
+    139  f0f4				   .POS       SET	.POS + 1
+    137  f0f4					      REPEND
+    138  f0f5		       0a		      .byte.b	(.POS / 15) + 1
+    139  f0f5				   .POS       SET	.POS + 1
+    137  f0f5					      REPEND
+    138  f0f6		       0a		      .byte.b	(.POS / 15) + 1
+    139  f0f6				   .POS       SET	.POS + 1
+    137  f0f6					      REPEND
+    138  f0f7		       0a		      .byte.b	(.POS / 15) + 1
+    139  f0f7				   .POS       SET	.POS + 1
+    137  f0f7					      REPEND
+    138  f0f8		       0a		      .byte.b	(.POS / 15) + 1
+    139  f0f8				   .POS       SET	.POS + 1
+    137  f0f8					      REPEND
+    138  f0f9		       0a		      .byte.b	(.POS / 15) + 1
+    139  f0f9				   .POS       SET	.POS + 1
+    137  f0f9					      REPEND
+    138  f0fa		       0a		      .byte.b	(.POS / 15) + 1
+    139  f0fa				   .POS       SET	.POS + 1
+    137  f0fa					      REPEND
+    138  f0fb		       0a		      .byte.b	(.POS / 15) + 1
+    139  f0fb				   .POS       SET	.POS + 1
+    137  f0fb					      REPEND
+    138  f0fc		       0a		      .byte.b	(.POS / 15) + 1
+    139  f0fc				   .POS       SET	.POS + 1
+    137  f0fc					      REPEND
+    138  f0fd		       0a		      .byte.b	(.POS / 15) + 1
+    139  f0fd				   .POS       SET	.POS + 1
+    137  f0fd					      REPEND
+    138  f0fe		       0a		      .byte.b	(.POS / 15) + 1
+    139  f0fe				   .POS       SET	.POS + 1
+    137  f0fe					      REPEND
+    138  f0ff		       0a		      .byte.b	(.POS / 15) + 1
+    139  f0ff				   .POS       SET	.POS + 1
+    137  f0ff					      REPEND
+    138  f100		       0b		      .byte.b	(.POS / 15) + 1
+    139  f100				   .POS       SET	.POS + 1
+    137  f100					      REPEND
+    138  f101		       0b		      .byte.b	(.POS / 15) + 1
+    139  f101				   .POS       SET	.POS + 1
+    137  f101					      REPEND
+    138  f102		       0b		      .byte.b	(.POS / 15) + 1
+    139  f102				   .POS       SET	.POS + 1
+    137  f102					      REPEND
+    138  f103		       0b		      .byte.b	(.POS / 15) + 1
+    139  f103				   .POS       SET	.POS + 1
+    137  f103					      REPEND
+    138  f104		       0b		      .byte.b	(.POS / 15) + 1
+    139  f104				   .POS       SET	.POS + 1
+    137  f104					      REPEND
+    138  f105		       0b		      .byte.b	(.POS / 15) + 1
+    139  f105				   .POS       SET	.POS + 1
+    137  f105					      REPEND
+    138  f106		       0b		      .byte.b	(.POS / 15) + 1
+    139  f106				   .POS       SET	.POS + 1
+    137  f106					      REPEND
+    138  f107		       0b		      .byte.b	(.POS / 15) + 1
+    139  f107				   .POS       SET	.POS + 1
+    137  f107					      REPEND
+    138  f108		       0b		      .byte.b	(.POS / 15) + 1
+    139  f108				   .POS       SET	.POS + 1
+    137  f108					      REPEND
+    138  f109		       0b		      .byte.b	(.POS / 15) + 1
+    139  f109				   .POS       SET	.POS + 1
+    140  f10a					      REPEND
+    141  f10a
+    142  f10a				   pos_x		; (3) subroutine to position the sprite, pass the HPOS in X register.
+    143  f10a		       bd 6a f0 	      lda	Divide15,x	; (2) load the value location at the xth byte in the Divide15 table
+    144  f10d		       aa		      tax		; (2) Transfer the accumulator to the x register
+    145  f10e		       85 02		      sta	WSYNC
+    146  f110
+    147  f110							; ---- this loop takes 5 machine cycles each iteration, that's 15 color clocks.
+    148  f110
+    149  f110		       ca	   SimpleLoop dex		; (2) decrement x
+    150  f111		       d0 fd		      bne	SimpleLoop	; (2/3) branch if not equal
+    151  f113		       85 10		      sta	RESP0	; (3) strobe the RESP0 register to set the course position
+    152  f115		       85 11		      sta	RESP1	; (3) strobe the RESP1 register to set the course position
+    153  f117
+    154  f117		       60		      rts		; (6) return to caller
+    155  f118
+    156  f118		       00	   player0    .byte.b	%00000000
+    157  f119		       f8		      .byte.b	%11111000	; 8BLIT bitmap, one byte per line, reverse order
+    158  f11a		       cc		      .byte.b	%11001100
+    159  f11b		       cc		      .byte.b	%11001100
+    160  f11c		       cc		      .byte.b	%11001100
+    161  f11d		       cc		      .byte.b	%11001100
+    162  f11e		       f8		      .byte.b	%11111000
+    163  f11f		       00		      .byte.b	%00000000	; ----
+    164  f120		       fc		      .byte.b	%11111100
+    165  f121		       c0		      .byte.b	%11000000
+    166  f122		       c0		      .byte.b	%11000000
+    167  f123		       c0		      .byte.b	%11000000
+    168  f124		       c0		      .byte.b	%11000000
+    169  f125		       c0		      .byte.b	%11000000	; ----
+    170  f126		       00		      .byte.b	%00000000
+    171  f127		       cc		      .byte.b	%11001100
+    172  f128		       f0		      .byte.b	%11110000
+    173  f129		       fc		      .byte.b	%11111100
+    174  f12a		       cc		      .byte.b	%11001100
+    175  f12b		       fc		      .byte.b	%11111100	; ----
+    176  f12c		       00		      .byte.b	%00000000
+    177  f12d		       fc		      .byte.b	%11111100
+    178  f12e		       cc		      .byte.b	%11001100
+    179  f12f		       cc		      .byte.b	%11001100
+    180  f130		       cc		      .byte.b	%11001100
+    181  f131		       fc		      .byte.b	%11111100
+    182  f132		       00		      .byte.b	%00000000	; ----
+    183  f133		       84		      .byte.b	%10000100
+    184  f134		       cc		      .byte.b	%11001100
+    185  f135		       fc		      .byte.b	%11111100
+    186  f136		       cc		      .byte.b	%11001100
+    187  f137		       cc		      .byte.b	%11001100
+    188  f138
+    189  f138		       00	   player1    .byte.b	%00000000
+    190  f139		       78		      .byte.b	%01111000	; 8BLIT bitmap, one byte per line, reverse order
+    191  f13a		       cc		      .byte.b	%11001100
+    192  f13b		       cc		      .byte.b	%11001100
+    193  f13c		       cc		      .byte.b	%11001100
+    194  f13d		       cc		      .byte.b	%11001100
+    195  f13e		       78		      .byte.b	%01111000
+    196  f13f		       00		      .byte.b	%00000000	; ----
+    197  f140		       fc		      .byte.b	%11111100
+    198  f141		       c0		      .byte.b	%11000000
+    199  f142		       c0		      .byte.b	%11000000
+    200  f143		       c0		      .byte.b	%11000000
+    201  f144		       c0		      .byte.b	%11000000
+    202  f145		       c0		      .byte.b	%11000000	; ----
+    203  f146		       00		      .byte.b	%00000000
+    204  f147		       fc		      .byte.b	%11111100
+    205  f148		       c0		      .byte.b	%11000000
+    206  f149		       c0		      .byte.b	%11000000
+    207  f14a		       c0		      .byte.b	%11000000
+    208  f14b		       c0		      .byte.b	%11000000	; ----
+    209  f14c		       00		      .byte.b	%00000000
+    210  f14d		       fc		      .byte.b	%11111100
+    211  f14e		       c0		      .byte.b	%11000000
+    212  f14f		       fc		      .byte.b	%11111100
+    213  f150		       c0		      .byte.b	%11000000
+    214  f151		       fc		      .byte.b	%11111100
+    215  f152		       00		      .byte.b	%00000000	; ----
+    216  f153		       cc		      .byte.b	%11001100
+    217  f154		       cc		      .byte.b	%11001100
+    218  f155		       fc		      .byte.b	%11111100
+    219  f156		       cc		      .byte.b	%11001100
+    220  f157		       cc		      .byte.b	%11001100
+    221  f158
+    222  fffa					      org	$FFFA
+    223  fffa
+    224  fffa				   irq
+    225  fffa		       00 f0		      .word.w	reset	; NMI	($FFFA)
+    226  fffc		       00 f0		      .word.w	reset	; RESET ($FFFC)
+    227  fffe		       00 f0		      .word.w	reset	; IRQ ($FFFE)
+    228  10000
+    229  10000

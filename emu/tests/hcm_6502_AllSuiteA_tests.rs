@@ -1,25 +1,14 @@
-use rustella::{cmn, cpu::*, riot};
-use std::{cell::Cell, fs, path::PathBuf, rc::Rc};
+pub mod common;
+use rustella::{cmn, cmn::RefExtensions, cpu::*, riot};
 
 /// Test suite from https://codegolf.stackexchange.com/q/12844.
 #[test]
 fn hcm_6502_allsuitea_tests_main() {
-    log::set_logger(&win_dbg_logger::DEBUGGER_LOGGER).unwrap();
-    log::set_max_level(log::LevelFilter::Debug);
-
-    let bin_path: PathBuf = [
-        env!("CARGO_MANIFEST_DIR"),
-        "tests",
-        "bins",
-        "hcm_6502_AllSuiteA.bin",
-    ]
-    .iter()
-    .collect();
-
-    let buffer = fs::read(bin_path).unwrap();
+    common::setup_logger();
+    let buffer = common::read_rom("hcm_6502_AllSuiteA.bin");
     let mut mem =
         riot::Memory::new_with_rom(&buffer, 0x4000.into(), riot::mm_6502, None, None, true);
-    let rdy = Rc::new(Cell::new(cmn::LineState::High));
+    let rdy = cmn::LineState::High.rc_cell();
     let mut cpu = NMOS6502::new(rdy.clone(), &mem);
 
     loop {

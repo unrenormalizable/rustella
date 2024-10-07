@@ -1,39 +1,23 @@
-mod common;
-
+pub mod common;
 use insta::*;
-use rustella::{cmn, tia, tia::TV, NtscAtari};
-use std::{cell::RefCell, fs, path::PathBuf, rc::Rc};
+use rustella::{cmn, cmn::RefExtensions, tia, tia::TV, NtscAtari};
 
 /// Test suite from https://forums.atariage.com/blogs/entry/11109-step-1-generate-a-stable-display/
 #[test]
 fn spiceware_collect_1_stable_display() {
-    log::set_logger(&win_dbg_logger::DEBUGGER_LOGGER).unwrap();
-    log::set_max_level(log::LevelFilter::Debug);
+    common::setup_logger();
 
-    let bin_path: PathBuf = [
-        env!("CARGO_MANIFEST_DIR"),
-        "tests",
-        "bins",
-        "collect",
-        "collect-01-StableDisplay.bin",
-    ]
-    .iter()
-    .collect();
-
-    let tv = Rc::new(RefCell::new(tia::InMemoryTV::<
-        { tia::NTSC_SCANLINES },
-        { tia::NTSC_PIXELS_PER_SCANLINE },
-    >::new(tia::ntsc_tv_config())));
+    let tv = tia::InMemoryTV::<{ tia::NTSC_SCANLINES }, { tia::NTSC_PIXELS_PER_SCANLINE }>::new(
+        tia::ntsc_tv_config(),
+    )
+    .rc_refcell();
     let mut atari = NtscAtari::new(tv.clone());
-    let buffer = fs::read(bin_path).unwrap();
-    atari.load_rom(0xF800u16, &buffer);
+    atari.load_rom(
+        0xF800u16,
+        &common::read_rom("collect/collect-01-StableDisplay.bin"),
+    );
 
-    loop {
-        atari.tick(1);
-        if atari.cpu_state().instructions() == 53681 {
-            break;
-        }
-    }
+    atari.run_for(53681);
 
     assert_debug_snapshot!(common::serialize_tv_buffer(&tv.borrow().buffer()));
     assert_eq!(tv.borrow().frame_counter(), 54);

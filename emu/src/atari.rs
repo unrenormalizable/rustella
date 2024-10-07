@@ -44,6 +44,15 @@ impl NtscAtari {
         }
     }
 
+    pub fn run_for(&mut self, instructions: u64) {
+        loop {
+            self.tick(1);
+            if self.cpu_state().instructions() == instructions {
+                break;
+            }
+        }
+    }
+
     pub fn cpu_state(&self) -> cpu::NMOS6502 {
         self.cpu.borrow().clone()
     }

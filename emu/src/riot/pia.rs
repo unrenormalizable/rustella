@@ -67,7 +67,7 @@ impl InMemory6532 {
     fn check_read_unsupported_register_flags(&self, addr: usize) {
         let (r, _, name, _) = regs::IMPLEMENTED_REGISTERS[addr - IOT_MIN_ADDRESS];
 
-        if r {
+        if !r {
             log::error!("Reading {name} ({addr:02X}) is not implemented yet.")
         }
     }
@@ -79,11 +79,11 @@ impl InMemory6532 {
             regs::IMPLEMENTED_REGISTERS[addr - IOT_MIN_ADDRESS];
 
         // NOTE: CLEAN_START macro sets everything to 0x00, dont log for those.
-        if w || val == 0x00 {
+        if !w && val != 0x00 {
             log::error!("{name} ({addr:02X}) is not implemented yet, Value 0b{val:08b}.");
         }
 
-        if val & !supported_write_mask == 0 {
+        if val & !supported_write_mask != 0 {
             log::error!("{name} ({addr:02X}) for value 0b{val:08b} is not implemented yet. Supported bits 0b{supported_write_mask:08b}.")
         }
     }

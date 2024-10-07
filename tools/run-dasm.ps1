@@ -17,4 +17,7 @@ $incDirs = @("$toolsDir\machines\atari2600", $asmDir, (Join-Path $asmDir "grx"),
 
 Write-Host -ForegroundColor Green "... DASM: $asmFile"
 
+del "$asmDir\$asmFileName.bin"
+del "$asmDir\$asmFileName.sym"
+del "$asmDir\$asmFileName.lst"
 & "$toolsDir\dasm.exe" "$asmFile" -f3 -v0 @incDirs "-o$asmDir\$asmFileName.bin" "-s$asmDir\$asmFileName.sym" "-l$asmDir\$asmFileName.lst" @flags

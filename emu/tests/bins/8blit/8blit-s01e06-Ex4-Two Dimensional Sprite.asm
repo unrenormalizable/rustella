@@ -11,7 +11,7 @@
 										; Subscribe to 8Blit - https://www.youtube.com/8blit?sub_confirmation=1
 										; Follow on Facebook - https://www.facebook.com/8Blit
 										; Follow on Instagram - https://www.instagram.com/8blit
-										; Visit the Website - https://www.8blit.com 
+										; Visit the Website - https://www.8blit.com
                    	                    ;
                        	                ; Email - 8blit0@gmail.com
 
@@ -22,7 +22,8 @@ P0HEIGHT	equ	#32
 MAX_VPOS	equ	#192
 
 BKCOLOR		equ 	#$9A		; background colour (blue)
-COLP0		equ	#$0E		; player 0 sprite colour (white)
+COLP0		equ	#$F4		; player 0 sprite colour (white)
+COLP1		equ	#$72		; player 1 sprite colour (white)
 
                 seg.u	vars		; uninitialized segment
                 org	$80
@@ -42,7 +43,9 @@ reset:		CLEAN_START		; macro included in macro.h file
                 sta	COLUBK		; (3) set the PF color
 
                 lda	#COLP0		; (2)
-                sta	COLUP0		; (3) set the player 1 sprite colour
+                sta	COLUP0		; (3) set the player 0 sprite colour
+                lda	#COLP1		; (2)
+                sta	COLUP1		; (3) set the player 1 sprite colour
 
                 lda	#80		; (2) the scan line to start drawing the player 0 graphic
                 sta 	p0_y	        ; (3) assign a to our vertical position memory location
@@ -52,6 +55,8 @@ reset:		CLEAN_START		; macro included in macro.h file
 
                 ldx 	#%11110000	; (2) set the horizontal movement player 0 (HMP0) register to adjust the position of
                 stx	HMP0		; (3) the player graphic to the right by 1 color clock (only uses the 4 high bits)
+                ldx 	#%00010000	; (2) set the horizontal movement player 1 (HMP1) register to adjust the position of
+                stx	HMP1		; (3) the player graphic to the right by 1 color clock (only uses the 4 high bits)
 
                                         ; 0111 = left 7
                                         ; 0110 = left 6
@@ -105,10 +110,13 @@ drawfield:		txa		; (2) transfer x to a
                 lda	#0		; (2)
 p0insprite:
                 tay			; (2)
+                lda	player1,y	; (4) load the byte at index y starting from the memory location of player1
+                                        ; this will grab the appropriate line of the graphic for the current scanline
+                sta	GRP0		; (3)
                 lda	player0,y	; (4) load the byte at index y starting from the memory location of player0
                                         ; this will grab the appropriate line of the graphic for the current scanline
+                sta	GRP1		; (3)
                 sta	WSYNC		; (3)
-                sta	GRP0		; (3)
                 dex			; (2)
                 bne 	drawfield	; (2/3)
 
@@ -141,41 +149,75 @@ pos_x  					; (3) subroutine to position the sprite, pass the HPOS in X register
 SimpleLoop:		dex		; (2) decrement x
                 bne 	SimpleLoop	; (2/3) branch if not equal
                 sta 	RESP0		; (3) strobe the RESP0 register to set the course position
+                sta 	RESP1		; (3) strobe the RESP1 register to set the course position
 
                 rts			; (6) return to caller
 
-player0 	.byte %00000000		; 8BLIT bitmap, one byte per line, reverse order
-                .byte %01000000
-                .byte %01000000
-                .byte %01000000
-                .byte %01000000
-                .byte %11100000
-                .byte %00000000
-                .byte %11100000
-                .byte %01000000
-                .byte %01000000
-                .byte %01000000
-                .byte %11100000
-                .byte %00000000
-                .byte %11100000
-                .byte %10000000
-                .byte %10000000
-                .byte %10000000
-                .byte %10000000
-                .byte %00000000
+player0 	    .byte %00000000
+                .byte %11111000		; 8BLIT bitmap, one byte per line, reverse order
+                .byte %11001100
+                .byte %11001100
+                .byte %11001100
+                .byte %11001100
+                .byte %11111000
+                .byte %00000000     ; ----
+                .byte %11111100
                 .byte %11000000
-                .byte %10100000
-                .byte %10100000
                 .byte %11000000
-                .byte %10100000
                 .byte %11000000
+                .byte %11000000
+                .byte %11000000     ; ----
                 .byte %00000000
-                .byte %11100000
-                .byte %10100000
-                .byte %10100000
-                .byte %11100000
-                .byte %10100000
-                .byte %11100000
+                .byte %11001100
+                .byte %11110000
+                .byte %11111100
+                .byte %11001100
+                .byte %11111100     ; ----
+                .byte %00000000
+                .byte %11111100
+                .byte %11001100
+                .byte %11001100
+                .byte %11001100
+                .byte %11111100
+                .byte %00000000     ; ----
+                .byte %10000100
+                .byte %11001100
+                .byte %11111100
+                .byte %11001100
+                .byte %11001100
+
+player1 	    .byte %00000000
+                .byte %01111000     ; 8BLIT bitmap, one byte per line, reverse order
+                .byte %11001100
+                .byte %11001100
+                .byte %11001100
+                .byte %11001100
+                .byte %01111000
+                .byte %00000000     ; ----
+                .byte %11111100
+                .byte %11000000
+                .byte %11000000
+                .byte %11000000
+                .byte %11000000
+                .byte %11000000     ; ----
+                .byte %00000000
+                .byte %11111100
+                .byte %11000000
+                .byte %11000000
+                .byte %11000000
+                .byte %11000000     ; ----
+                .byte %00000000
+                .byte %11111100
+                .byte %11000000
+                .byte %11111100
+                .byte %11000000
+                .byte %11111100
+                .byte %00000000     ; ----
+                .byte %11001100
+                .byte %11001100
+                .byte %11111100
+                .byte %11001100
+                .byte %11001100
 
                 org 	$FFFA
 

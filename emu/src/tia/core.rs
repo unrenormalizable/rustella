@@ -26,8 +26,8 @@ pub struct InMemoryTIA<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
 
     registers: [u8; cmn::TIA_MAX_ADDRESS + 1],
     hsync_counter: usize,
-    player0_hpos_counter: usize,
-    player0_hpos_counter_for_next_scanline: Option<usize>,
+    player_hpos_counters: [usize; 2],
+    player_hpos_counters_for_next_scanline: [Option<usize>; 2],
 }
 
 #[allow(dead_code)]
@@ -42,19 +42,21 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
             tv_cfg,
             registers: [0x00; cmn::TIA_MAX_ADDRESS + 1],
             hsync_counter: 0,
-            player0_hpos_counter: 0,
-            player0_hpos_counter_for_next_scanline: None,
+            player_hpos_counters: [0, 0],
+            player_hpos_counters_for_next_scanline: [None, None],
         }
     }
 
     fn one_tick(&mut self) {
         if self.hsync_counter == 0 {
             self.rdy.set(LineState::High);
-            self.player0_hpos_counter_for_next_scanline =
-                self.player0_hpos_counter_for_next_scanline.and_then(|x| {
-                    self.player0_hpos_counter = x;
-                    None
-                });
+            (0..2).for_each(|x| {
+                self.player_hpos_counters_for_next_scanline[x] =
+                    self.player_hpos_counters_for_next_scanline[x].and_then(|val| {
+                        self.player_hpos_counters[x] = val;
+                        None
+                    });
+            })
         }
 
         let color = if bits::tst_bits(self.registers[cmn::regs::VBLANK], bits::BIT_D1)
@@ -62,16 +64,31 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
         {
             0x00
         } else {
-            grp::get_color(self.player0_hpos_counter, &self.registers)
-                .or_else(|| pf::get_color(self.hsync_counter, &self.registers, &self.tv_cfg))
-                .unwrap_or(self.registers[cmn::regs::COLUBK])
+            grp::get_color(
+                self.player_hpos_counters()[0],
+                self.registers[cmn::regs::GRP0],
+                self.registers[cmn::regs::COLUP0],
+                self.registers[cmn::regs::REFP0],
+            )
+            .or_else(|| {
+                grp::get_color(
+                    self.player_hpos_counters()[1],
+                    self.registers[cmn::regs::GRP1],
+                    self.registers[cmn::regs::COLUP1],
+                    self.registers[cmn::regs::REFP1],
+                )
+            })
+            .or_else(|| pf::get_color(self.hsync_counter, &self.registers, &self.tv_cfg))
+            .unwrap_or(self.registers[cmn::regs::COLUBK])
         };
 
         self.tv.borrow_mut().render_pixel(color);
 
         if !self.is_on_hblank() {
-            self.player0_hpos_counter =
-                (self.player0_hpos_counter + 1) % self.tv_cfg.visible_pixels();
+            (0..2).for_each(|x| {
+                self.player_hpos_counters[x] =
+                    (self.player_hpos_counters[x] + 1) % self.tv_cfg.visible_pixels();
+            });
         }
         // NOTE: This needs to be done last to signify start of next color clk.
         self.hsync_counter = (self.hsync_counter + 1) % self.tv_cfg.pixels_per_scanline();
@@ -88,8 +105,8 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
     }
 
     #[inline]
-    pub fn player0_hpos_counter(&self) -> usize {
-        self.player0_hpos_counter
+    pub fn player_hpos_counters(&mut self) -> &mut [usize; 2] {
+        &mut self.player_hpos_counters
     }
 
     #[cfg(debug_assertions)]
@@ -105,13 +122,32 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize>
         let (w, _, name, supported_write_mask) = cmn::regs::IMPLEMENTED_REGISTERS[addr];
 
         // NOTE: CLEAN_START macro sets everything to 0x00, dont log for those.
-        if w || val == 0x00 {
+        if !w && val != 0x00 {
             log::error!("{name} ({addr:02X}) is not implemented yet, Value 0b{val:08b}.");
         }
 
-        if val & !supported_write_mask == 0 {
+        if val & !supported_write_mask != 0 {
             log::error!("{name} ({addr:02X}) for value 0b{val:08b} is not implemented yet. Supported bits 0b{supported_write_mask:08b}.");
         }
+    }
+
+    fn initialize_player_hpos_counter(&mut self, player_id: usize) {
+        if self.is_on_hblank() {
+            self.player_hpos_counters[player_id] = self.tv_cfg.visible_pixels() - 3;
+        } else {
+            self.player_hpos_counters_for_next_scanline[player_id] = Some(
+                self.tv_cfg.visible_pixels()
+                    - (self.hsync_counter - self.tv_cfg.hblank_pixels() + 5)
+                        % self.tv_cfg.visible_pixels(),
+            );
+        };
+    }
+
+    fn update_player_hpos_counter(&mut self, player_id: usize) {
+        let temp = self.tv_cfg.visible_pixels() + self.player_hpos_counters[player_id];
+        let delta = (self.registers[cmn::regs::HMP0 + player_id] as i8 as isize) / 0x10;
+        self.player_hpos_counters[player_id] =
+            temp.wrapping_add_signed(delta) % self.tv_cfg.visible_pixels();
     }
 }
 
@@ -155,16 +191,20 @@ impl<const SCANLINES: usize, const PIXELS_PER_SCANLINE: usize> MemorySegment
                 }
             }
 
-            cmn::regs::RESP0 => {
-                if self.is_on_hblank() {
-                    self.player0_hpos_counter = self.tv_cfg.visible_pixels() - 3;
-                } else {
-                    self.player0_hpos_counter_for_next_scanline = Some(
-                        self.tv_cfg.visible_pixels()
-                            - (self.hsync_counter - self.tv_cfg.hblank_pixels() + 5)
-                                % self.tv_cfg.visible_pixels(),
-                    );
-                };
+            cmn::regs::RESP0..=cmn::regs::RESP1 => {
+                self.initialize_player_hpos_counter(addr - cmn::regs::RESP0);
+            }
+
+            cmn::regs::HMOVE => (0..2).for_each(|x| {
+                self.update_player_hpos_counter(x);
+            }),
+
+            cmn::regs::HMCLR => {
+                self.registers[cmn::regs::HMP0] = 0;
+                self.registers[cmn::regs::HMP1] = 0;
+                self.registers[cmn::regs::HMM0] = 0;
+                self.registers[cmn::regs::HMM1] = 0;
+                self.registers[cmn::regs::HMBL] = 0;
             }
 
             _ => {}
@@ -181,6 +221,7 @@ mod tests {
         cmn::{LineState, RefExtensions},
         tia::tv::*,
     };
+    use core::cell::Cell;
     use test_case::test_case;
 
     const PIXELS_PER_SCANLINE: usize = 3;
@@ -348,7 +389,7 @@ mod tests {
     #[test_case(228+67, 0; "Wrap around - 2")]
     #[test_case(228+68, 0; "Wrap around - 3")]
     #[test_case(228+69, 1; "Wrap around - 4")]
-    fn player0_hpos_counter_no_reset(color_clks_done: usize, expected: usize) {
+    fn playern_hpos_counter_no_reset(color_clks_done: usize, expected: usize) {
         let tv_cfg = cmn::ntsc_tv_config();
         let tv = cmn::NtscTV::new_testable(3, 0, tv_cfg);
         let mut tia = InMemoryTIA::new(LineState::Low.rc_cell(), tv.rc_refcell());
@@ -358,7 +399,8 @@ mod tests {
             tia.hsync_counter(),
             color_clks_done % tv_cfg.pixels_per_scanline()
         );
-        assert_eq!(tia.player0_hpos_counter(), expected);
+        assert_eq!(tia.player_hpos_counters()[0], expected);
+        assert_eq!(tia.player_hpos_counters()[1], expected);
     }
 
     #[test_case(67, 157; "At HBLANK end")]
@@ -391,27 +433,53 @@ mod tests {
     fn player0_hpos_counter_with_reset(color_clks_done: usize, expected: usize) {
         let rdy = LineState::Low.rc_cell();
         let tv = cmn::NtscTV::new_testable(3, 0, cmn::ntsc_tv_config());
-        let mut tia = InMemoryTIA::new(rdy.clone(), tv.rc_refcell());
+        let tia = InMemoryTIA::new(rdy.clone(), tv.rc_refcell()).rc_refcell();
 
-        tia.write(cmn::regs::RESP0, 0x00);
-        tia.tick(color_clks_done);
-        let prev_p0_hpos = tia.player0_hpos_counter();
-        tia.write(cmn::regs::RESP0, 0x00);
+        tia.borrow_mut().write(cmn::regs::RESP0, 0x00);
+        tia.borrow_mut().tick(color_clks_done);
+        let prev_p0_hpos = tia.borrow_mut().player_hpos_counters()[0];
+        tia.borrow_mut().write(cmn::regs::RESP0, 0x00);
 
-        assert_eq!(
-            tia.player0_hpos_counter(),
-            if tia.is_on_hblank() {
-                expected
-            } else {
-                prev_p0_hpos
-            }
-        );
+        let hpos_curr = if tia.borrow().is_on_hblank() {
+            expected
+        } else {
+            prev_p0_hpos
+        };
+        assert_eq!(tia.borrow_mut().player_hpos_counters()[0], hpos_curr);
 
-        tia.write(cmn::regs::WSYNC, 0x00);
+        wsync(tia.clone(), rdy);
+        assert_eq!(tia.borrow_mut().player_hpos_counters()[0], expected);
+    }
+
+    #[test_case(0, 50*3, 0b_0000_0000, 73; "Stay in place - 0")]
+    #[test_case(1, 50*3, 0b_0000_0000, 73; "Stay in place - 1")]
+    #[test_case(0, 50*3, 0b_0011_0000, 76; "Move right - 0")]
+    #[test_case(1, 50*3, 0b_0011_0000, 76; "Move right - 1")]
+    #[test_case(0, 50*3, 0b_1110_0000, 71; "Move left - 0")]
+    #[test_case(1, 50*3, 0b_1110_0000, 71; "Move left - 1")]
+    fn player_hpos_counter_with_hmove(
+        player_id: usize,
+        color_clks_done: usize,
+        hmp0: u8,
+        expected: usize,
+    ) {
+        let rdy = LineState::Low.rc_cell();
+        let tv = cmn::NtscTV::new_testable(3, 0, cmn::ntsc_tv_config());
+        let tia = InMemoryTIA::new(rdy.clone(), tv.rc_refcell()).rc_refcell();
+
+        tia.borrow_mut().tick(color_clks_done);
+        tia.borrow_mut().write(cmn::regs::RESP0 + player_id, 0x00);
+        wsync(tia.clone(), rdy);
+        tia.borrow_mut().write(cmn::regs::HMP0 + player_id, hmp0);
+        tia.borrow_mut().write(cmn::regs::HMOVE, 0x00);
+        assert_eq!(tia.borrow_mut().player_hpos_counters()[player_id], expected);
+    }
+
+    fn wsync(tia: Rc<RefCell<dyn TIA>>, rdy: Rc<Cell<LineState>>) {
+        tia.borrow_mut().write(cmn::regs::WSYNC, 0x00);
         while rdy.get() == LineState::Low {
-            tia.tick(1)
+            tia.borrow_mut().tick(1)
         }
-        assert_eq!(tia.player0_hpos_counter(), expected);
     }
 }
 
@@ -482,7 +550,6 @@ mod pf {
     }
 
     #[cfg(test)]
-    #[allow(non_snake_case)]
     mod tests {
         use super::*;
         use alloc::vec;
@@ -515,63 +582,45 @@ mod pf {
             assert_eq!(obtained, display)
         }
 
-        #[test_case(0x1A, (0xA0, 0x55, 0xAA), bits::BIT_00, [None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A)]; "Normal")]
-        #[test_case(0x55, (0xF0, 0xFC, 0x00), bits::BIT_D0, [Some(0x55), Some(0x55), Some(0x55), Some(0x55), Some(0x55), Some(0x55), Some(0x55), Some(0x55), Some(0x55), Some(0x55), None, None, None, None, None, None, None, None, None, None]; "Mirror")]
-        fn test_pf_ctrlpf_D0(
-            col_pf: u8,
-            pf: (u8, u8, u8),
+        #[test_case(
+            bits::BIT_00,
+            vec![None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A)],
+            vec![None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A)];
+            "Duplicated + PF color")]
+        #[test_case(
+            bits::BIT_D1,
+            vec![None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A)],
+            vec![None, Some(0x3A), None, Some(0x3A), None, Some(0x3A), None, Some(0x3A), None, Some(0x3A), None, Some(0x3A), None, Some(0x3A), None, Some(0x3A), None, Some(0x3A), None, Some(0x3A)];
+            "Duplicated + Player colors")]
+        #[test_case(
+            bits::BIT_D0,
+            vec![None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A)],
+            vec![Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None];
+            "Mirrored + PF color")]
+        #[test_case(
+            bits::BIT_D0 | bits::BIT_D1,
+            vec![None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A)],
+            vec![Some(0x3A), None, Some(0x3A), None, Some(0x3A), None, Some(0x3A), None, Some(0x3A), None, Some(0x3A), None, Some(0x3A), None, Some(0x3A), None, Some(0x3A), None, Some(0x3A), None];
+            "Mirrored + Player colors")]
+        fn test_pf_colors(
             ctrl_pf: u8,
-            display: [Option<u8>; PLAYFIELD_WIDTH],
+            display_left: Vec<Option<u8>>,
+            display_right: Vec<Option<u8>>,
         ) {
             let cfg = TestableTVConfig::default();
             let mut regs: [u8; cmn::TIA_MAX_ADDRESS + 1] = [0x00; cmn::TIA_MAX_ADDRESS + 1];
             regs[cmn::regs::CTRLPF] = ctrl_pf;
-            regs[cmn::regs::COLUPF] = col_pf;
-            regs[cmn::regs::PF0] = pf.0;
-            regs[cmn::regs::PF1] = pf.1;
-            regs[cmn::regs::PF2] = pf.2;
-
-            let left: Vec<_> = (1..21usize).map(|x| get_color(x, &regs, &cfg)).collect();
-            let mut right: Vec<_> = (21..41usize).map(|x| get_color(x, &regs, &cfg)).collect();
-            if ctrl_pf == bits::BIT_D0 {
-                right.reverse()
-            }
-
-            assert_eq!(left, display);
-            assert_eq!(right, display);
-        }
-
-        #[test_case((0x1A, 0x2A, 0x3A), (0xA0, 0x55, 0xAA), bits::BIT_00, vec![None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A), None, Some(0x1A)]; "PF color")]
-        #[test_case((0x1A, 0x2A, 0x3A), (0xA0, 0x55, 0xAA), bits::BIT_D1, vec![None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A), None, Some(0x2A)]; "Player colors")]
-        fn test_pf_ctrlpf_D1(
-            cols: (u8, u8, u8),
-            pf: (u8, u8, u8),
-            ctrl_pf: u8,
-            display: Vec<Option<u8>>,
-        ) {
-            let cfg = TestableTVConfig::default();
-            let mut regs: [u8; cmn::TIA_MAX_ADDRESS + 1] = [0x00; cmn::TIA_MAX_ADDRESS + 1];
-            regs[cmn::regs::CTRLPF] = ctrl_pf;
-            regs[cmn::regs::COLUPF] = cols.0;
-            regs[cmn::regs::COLUP0] = cols.1;
-            regs[cmn::regs::COLUP1] = cols.2;
-            regs[cmn::regs::PF0] = pf.0;
-            regs[cmn::regs::PF1] = pf.1;
-            regs[cmn::regs::PF2] = pf.2;
+            regs[cmn::regs::COLUPF] = 0x1A;
+            regs[cmn::regs::COLUP0] = 0x2A;
+            regs[cmn::regs::COLUP1] = 0x3A;
+            regs[cmn::regs::PF0] = 0xA0;
+            regs[cmn::regs::PF1] = 0x55;
+            regs[cmn::regs::PF2] = 0xAA;
 
             let left: Vec<_> = (1..21usize).map(|x| get_color(x, &regs, &cfg)).collect();
             let right: Vec<_> = (21..41usize).map(|x| get_color(x, &regs, &cfg)).collect();
-            let display_right = if ctrl_pf == bits::BIT_D1 {
-                display
-                    .clone()
-                    .iter()
-                    .map(|col| col.map(|_| cols.2))
-                    .collect::<Vec<_>>()
-            } else {
-                display.clone()
-            };
 
-            assert_eq!(left, display);
+            assert_eq!(left, display_left);
             assert_eq!(right, display_right);
         }
     }
@@ -589,7 +638,7 @@ mod grp {
     // HMCLR -s-       => clears hmotion for p,m,b
     // HMOVE -s-       => apply fine tuning set in hmotion
 
-    pub static POSITION_MASK: &[u8; 8] = &[
+    static POSITION_MASK: &[u8; 8] = &[
         bits::BIT_D0,
         bits::BIT_D1,
         bits::BIT_D2,
@@ -603,17 +652,19 @@ mod grp {
     /// Refer:
     /// - https://forums.atariage.com/topic/208473-resp0-while-pixel-position-is-negativelow/#comment-2692375
     /// - https://forums.atariage.com/topic/271085-when-do-i-use-resp0-command-to-put-sprite-on-left-of-screen/#comment-3871580
-    pub fn get_color(
-        player0_hpos_counter: usize,
-        registers: &[u8; cmn::TIA_MAX_ADDRESS + 1],
-    ) -> Option<u8> {
-        if player0_hpos_counter > 7 {
+    pub fn get_color(playern_hpos_counter: usize, grpn: u8, colupn: u8, refpn: u8) -> Option<u8> {
+        if playern_hpos_counter > 7 {
             return None;
         }
 
-        let mask = POSITION_MASK[7 - player0_hpos_counter];
-        if bits::tst_bits(registers[cmn::regs::GRP0], mask) {
-            return Some(registers[cmn::regs::COLUP0]);
+        let mut mask_index = 7 - playern_hpos_counter;
+        if bits::tst_bits(refpn, bits::BIT_D3) {
+            mask_index = playern_hpos_counter;
+        }
+
+        let mask = POSITION_MASK[mask_index];
+        if bits::tst_bits(grpn, mask) {
+            return Some(colupn);
         }
 
         None
@@ -626,19 +677,20 @@ mod grp {
         use alloc::vec::*;
         use test_case::test_case;
 
-        #[test_case(0)]
-        #[test_case(0xFE)]
-        fn get_color_transcribes_player_hpos(color: u8) {
-            let mut regs: [u8; cmn::TIA_MAX_ADDRESS + 1] = [0x00; cmn::TIA_MAX_ADDRESS + 1];
+        #[test_case(0, false)]
+        #[test_case(0xFE, false)]
+        #[test_case(0x11, true)]
+        fn get_color_transcribes_player0_hpos(color: u8, rev: bool) {
+            let refpn = if rev { bits::BIT_D3 } else { bits::BIT_00 };
 
-            regs[cmn::regs::COLUP0] = color;
-            regs[cmn::regs::GRP0] = 0b_10101111;
-
-            let col: Vec<_> = (159..)
+            let mut col: Vec<_> = (159..)
                 .take(10)
                 .map(|x| x % 160)
-                .map(|hpos| get_color(hpos, &regs))
+                .map(|hpos| get_color(hpos, 0b_10101111, color, refpn))
                 .collect();
+            if rev {
+                col.reverse();
+            }
 
             assert_eq!(
                 col,
