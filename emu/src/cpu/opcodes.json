@@ -1,8 +1,6 @@
 /*
-NOTE: To generate json data, run the following on https://www.masswerk.at/6502/6502_instruction_set.html
-JSON.stringify([...document.querySelectorAll("dl[class='opcodes'] [aria-label='details'] tbody")].flatMap(x => [...x.querySelectorAll("tr")].slice(1).map(e => { const fields = [...e.childNodes].map(c => c.innerText); const obj = {}; obj["addressing"] = fields[0].trim(); obj["assembler"] = fields[1].trim(); obj["opc"] = fields[2].trim(); obj["bytes"] = fields[3].trim(); obj["cycles"] = fields[4].trim(); return obj })))
-gc -Raw "D:\src\u\s\lib\src\opcodes.json" | ConvertFrom-Json | sort -Property opc | ConvertTo-Json
-$json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").replace("implied", "impl").replace("relative", "rel").replace("zeropage", "zpg").replace("accumulator", "A").replace("immediate", "#").replace("indirect", "ind"); $json>D:\src\u\s\lib\src\opcodes.json
+NOTE: To generate json data, run the following on https://www.pagetable.com/c64ref/6502/?tab=2 with show undocumented opcodes.
+copy(JSON.stringify([...document.querySelectorAll("table[class*='reference_table'] tr")].filter(inode => ![...inode.childNodes].some(n => n.nodeName === "TH")).map(n => { const obj = {}; obj["addressing"] = n.childNodes[0].innerText; obj["assembler"] = n.childNodes[1].innerText; obj["opc"] = n.childNodes[2].innerText.replace("$", "").replace("*", ""); obj["bytes"] = n.childNodes[3].innerText; obj["cycles"] = n.childNodes[4].innerText; return obj; }).sort((a, b) => a["opc"].localeCompare(b["opc"]))))
 */
 [
   {
@@ -13,23 +11,51 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
     "cycles": "7"
   },
   {
-    "addressing": "(ind,X)",
-    "assembler": "ORA (oper,X)",
+    "addressing": "X,ind",
+    "assembler": "ORA ($LL,X)",
     "opc": "01",
     "bytes": "2",
     "cycles": "6"
   },
   {
+    "addressing": "impl",
+    "assembler": "JAM",
+    "opc": "02",
+    "bytes": "1",
+    "cycles": "X"
+  },
+  {
+    "addressing": "X,ind",
+    "assembler": "SLO ($LL,X)",
+    "opc": "03",
+    "bytes": "2",
+    "cycles": "8"
+  },
+  {
     "addressing": "zpg",
-    "assembler": "ORA oper",
+    "assembler": "NOP $LL",
+    "opc": "04",
+    "bytes": "2",
+    "cycles": "3"
+  },
+  {
+    "addressing": "zpg",
+    "assembler": "ORA $LL",
     "opc": "05",
     "bytes": "2",
     "cycles": "3"
   },
   {
     "addressing": "zpg",
-    "assembler": "ASL oper",
+    "assembler": "ASL $LL",
     "opc": "06",
+    "bytes": "2",
+    "cycles": "5"
+  },
+  {
+    "addressing": "zpg",
+    "assembler": "SLO $LL",
+    "opc": "07",
     "bytes": "2",
     "cycles": "5"
   },
@@ -42,57 +68,106 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
   },
   {
     "addressing": "#",
-    "assembler": "ORA #oper",
+    "assembler": "ORA #$LL",
     "opc": "09",
     "bytes": "2",
     "cycles": "2"
   },
   {
-    "addressing": "A",
+    "addressing": "acc",
     "assembler": "ASL A",
     "opc": "0A",
     "bytes": "1",
     "cycles": "2"
   },
   {
+    "addressing": "#",
+    "assembler": "ANC #$LL",
+    "opc": "0B",
+    "bytes": "2",
+    "cycles": "2"
+  },
+  {
     "addressing": "abs",
-    "assembler": "ORA oper",
+    "assembler": "NOP $LLHH",
+    "opc": "0C",
+    "bytes": "3",
+    "cycles": "4"
+  },
+  {
+    "addressing": "abs",
+    "assembler": "ORA $LLHH",
     "opc": "0D",
     "bytes": "3",
     "cycles": "4"
   },
   {
     "addressing": "abs",
-    "assembler": "ASL oper",
+    "assembler": "ASL $LLHH",
     "opc": "0E",
     "bytes": "3",
     "cycles": "6"
   },
   {
-    "addressing": "rel",
-    "assembler": "BPL oper",
-    "opc": "10",
-    "bytes": "2",
-    "cycles": "2**"
+    "addressing": "abs",
+    "assembler": "SLO $LLHH",
+    "opc": "0F",
+    "bytes": "3",
+    "cycles": "6"
   },
   {
-    "addressing": "(ind),Y",
-    "assembler": "ORA (oper),Y",
+    "addressing": "rel",
+    "assembler": "BPL $LLHH",
+    "opc": "10",
+    "bytes": "2",
+    "cycles": "2+t+p"
+  },
+  {
+    "addressing": "ind,Y",
+    "assembler": "ORA ($LL),Y",
     "opc": "11",
     "bytes": "2",
-    "cycles": "5*"
+    "cycles": "5+p"
+  },
+  {
+    "addressing": "impl",
+    "assembler": "JAM",
+    "opc": "12",
+    "bytes": "1",
+    "cycles": "X"
+  },
+  {
+    "addressing": "ind,Y",
+    "assembler": "SLO ($LL),Y",
+    "opc": "13",
+    "bytes": "2",
+    "cycles": "8"
   },
   {
     "addressing": "zpg,X",
-    "assembler": "ORA oper,X",
+    "assembler": "NOP $LL,X",
+    "opc": "14",
+    "bytes": "2",
+    "cycles": "4"
+  },
+  {
+    "addressing": "zpg,X",
+    "assembler": "ORA $LL,X",
     "opc": "15",
     "bytes": "2",
     "cycles": "4"
   },
   {
     "addressing": "zpg,X",
-    "assembler": "ASL oper,X",
+    "assembler": "ASL $LL,X",
     "opc": "16",
+    "bytes": "2",
+    "cycles": "6"
+  },
+  {
+    "addressing": "zpg,X",
+    "assembler": "SLO $LL,X",
+    "opc": "17",
     "bytes": "2",
     "cycles": "6"
   },
@@ -105,57 +180,106 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
   },
   {
     "addressing": "abs,Y",
-    "assembler": "ORA oper,Y",
+    "assembler": "ORA $LLHH,Y",
     "opc": "19",
     "bytes": "3",
-    "cycles": "4*"
+    "cycles": "4+p"
+  },
+  {
+    "addressing": "impl",
+    "assembler": "NOP",
+    "opc": "1A",
+    "bytes": "1",
+    "cycles": "2"
+  },
+  {
+    "addressing": "abs,Y",
+    "assembler": "SLO $LLHH,Y",
+    "opc": "1B",
+    "bytes": "3",
+    "cycles": "7"
   },
   {
     "addressing": "abs,X",
-    "assembler": "ORA oper,X",
+    "assembler": "NOP $LLHH,X",
+    "opc": "1C",
+    "bytes": "3",
+    "cycles": "4+p"
+  },
+  {
+    "addressing": "abs,X",
+    "assembler": "ORA $LLHH,X",
     "opc": "1D",
     "bytes": "3",
-    "cycles": "4*"
+    "cycles": "4+p"
   },
   {
     "addressing": "abs,X",
-    "assembler": "ASL oper,X",
+    "assembler": "ASL $LLHH,X",
     "opc": "1E",
     "bytes": "3",
     "cycles": "7"
   },
   {
+    "addressing": "abs,X",
+    "assembler": "SLO $LLHH,X",
+    "opc": "1F",
+    "bytes": "3",
+    "cycles": "7"
+  },
+  {
     "addressing": "abs",
-    "assembler": "JSR oper",
+    "assembler": "JSR $LLHH",
     "opc": "20",
     "bytes": "3",
     "cycles": "6"
   },
   {
-    "addressing": "(ind,X)",
-    "assembler": "AND (oper,X)",
+    "addressing": "X,ind",
+    "assembler": "AND ($LL,X)",
     "opc": "21",
     "bytes": "2",
     "cycles": "6"
   },
   {
+    "addressing": "impl",
+    "assembler": "JAM",
+    "opc": "22",
+    "bytes": "1",
+    "cycles": "X"
+  },
+  {
+    "addressing": "X,ind",
+    "assembler": "RLA ($LL,X)",
+    "opc": "23",
+    "bytes": "2",
+    "cycles": "8"
+  },
+  {
     "addressing": "zpg",
-    "assembler": "BIT oper",
+    "assembler": "BIT $LL",
     "opc": "24",
     "bytes": "2",
     "cycles": "3"
   },
   {
     "addressing": "zpg",
-    "assembler": "AND oper",
+    "assembler": "AND $LL",
     "opc": "25",
     "bytes": "2",
     "cycles": "3"
   },
   {
     "addressing": "zpg",
-    "assembler": "ROL oper",
+    "assembler": "ROL $LL",
     "opc": "26",
+    "bytes": "2",
+    "cycles": "5"
+  },
+  {
+    "addressing": "zpg",
+    "assembler": "RLA $LL",
+    "opc": "27",
     "bytes": "2",
     "cycles": "5"
   },
@@ -168,64 +292,106 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
   },
   {
     "addressing": "#",
-    "assembler": "AND #oper",
+    "assembler": "AND #$LL",
     "opc": "29",
     "bytes": "2",
     "cycles": "2"
   },
   {
-    "addressing": "A",
+    "addressing": "acc",
     "assembler": "ROL A",
     "opc": "2A",
     "bytes": "1",
     "cycles": "2"
   },
   {
+    "addressing": "#",
+    "assembler": "ANC #$LL",
+    "opc": "2B",
+    "bytes": "2",
+    "cycles": "2"
+  },
+  {
     "addressing": "abs",
-    "assembler": "BIT oper",
+    "assembler": "BIT $LLHH",
     "opc": "2C",
     "bytes": "3",
     "cycles": "4"
   },
   {
     "addressing": "abs",
-    "assembler": "AND oper",
+    "assembler": "AND $LLHH",
     "opc": "2D",
     "bytes": "3",
     "cycles": "4"
   },
   {
     "addressing": "abs",
-    "assembler": "ROL oper",
+    "assembler": "ROL $LLHH",
     "opc": "2E",
     "bytes": "3",
     "cycles": "6"
   },
   {
-    "addressing": "rel",
-    "assembler": "BMI oper",
-    "opc": "30",
-    "bytes": "2",
-    "cycles": "2**"
+    "addressing": "abs",
+    "assembler": "RLA $LLHH",
+    "opc": "2F",
+    "bytes": "3",
+    "cycles": "6"
   },
   {
-    "addressing": "(ind),Y",
-    "assembler": "AND (oper),Y",
+    "addressing": "rel",
+    "assembler": "BMI $LLHH",
+    "opc": "30",
+    "bytes": "2",
+    "cycles": "2+t+p"
+  },
+  {
+    "addressing": "ind,Y",
+    "assembler": "AND ($LL),Y",
     "opc": "31",
     "bytes": "2",
-    "cycles": "5*"
+    "cycles": "5+p"
+  },
+  {
+    "addressing": "impl",
+    "assembler": "JAM",
+    "opc": "32",
+    "bytes": "1",
+    "cycles": "X"
+  },
+  {
+    "addressing": "ind,Y",
+    "assembler": "RLA ($LL),Y",
+    "opc": "33",
+    "bytes": "2",
+    "cycles": "8"
   },
   {
     "addressing": "zpg,X",
-    "assembler": "AND oper,X",
+    "assembler": "NOP $LL,X",
+    "opc": "34",
+    "bytes": "2",
+    "cycles": "4"
+  },
+  {
+    "addressing": "zpg,X",
+    "assembler": "AND $LL,X",
     "opc": "35",
     "bytes": "2",
     "cycles": "4"
   },
   {
     "addressing": "zpg,X",
-    "assembler": "ROL oper,X",
+    "assembler": "ROL $LL,X",
     "opc": "36",
+    "bytes": "2",
+    "cycles": "6"
+  },
+  {
+    "addressing": "zpg,X",
+    "assembler": "RLA $LL,X",
+    "opc": "37",
     "bytes": "2",
     "cycles": "6"
   },
@@ -238,22 +404,50 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
   },
   {
     "addressing": "abs,Y",
-    "assembler": "AND oper,Y",
+    "assembler": "AND $LLHH,Y",
     "opc": "39",
     "bytes": "3",
-    "cycles": "4*"
+    "cycles": "4+p"
+  },
+  {
+    "addressing": "impl",
+    "assembler": "NOP",
+    "opc": "3A",
+    "bytes": "1",
+    "cycles": "2"
+  },
+  {
+    "addressing": "abs,Y",
+    "assembler": "RLA $LLHH,Y",
+    "opc": "3B",
+    "bytes": "3",
+    "cycles": "7"
   },
   {
     "addressing": "abs,X",
-    "assembler": "AND oper,X",
+    "assembler": "NOP $LLHH,X",
+    "opc": "3C",
+    "bytes": "3",
+    "cycles": "4+p"
+  },
+  {
+    "addressing": "abs,X",
+    "assembler": "AND $LLHH,X",
     "opc": "3D",
     "bytes": "3",
-    "cycles": "4*"
+    "cycles": "4+p"
   },
   {
     "addressing": "abs,X",
-    "assembler": "ROL oper,X",
+    "assembler": "ROL $LLHH,X",
     "opc": "3E",
+    "bytes": "3",
+    "cycles": "7"
+  },
+  {
+    "addressing": "abs,X",
+    "assembler": "RLA $LLHH,X",
+    "opc": "3F",
     "bytes": "3",
     "cycles": "7"
   },
@@ -265,23 +459,51 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
     "cycles": "6"
   },
   {
-    "addressing": "(ind,X)",
-    "assembler": "EOR (oper,X)",
+    "addressing": "X,ind",
+    "assembler": "EOR ($LL,X)",
     "opc": "41",
     "bytes": "2",
     "cycles": "6"
   },
   {
+    "addressing": "impl",
+    "assembler": "JAM",
+    "opc": "42",
+    "bytes": "1",
+    "cycles": "X"
+  },
+  {
+    "addressing": "X,ind",
+    "assembler": "SRE ($LL,X)",
+    "opc": "43",
+    "bytes": "2",
+    "cycles": "8"
+  },
+  {
     "addressing": "zpg",
-    "assembler": "EOR oper",
+    "assembler": "NOP $LL",
+    "opc": "44",
+    "bytes": "2",
+    "cycles": "3"
+  },
+  {
+    "addressing": "zpg",
+    "assembler": "EOR $LL",
     "opc": "45",
     "bytes": "2",
     "cycles": "3"
   },
   {
     "addressing": "zpg",
-    "assembler": "LSR oper",
+    "assembler": "LSR $LL",
     "opc": "46",
+    "bytes": "2",
+    "cycles": "5"
+  },
+  {
+    "addressing": "zpg",
+    "assembler": "SRE $LL",
+    "opc": "47",
     "bytes": "2",
     "cycles": "5"
   },
@@ -294,64 +516,106 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
   },
   {
     "addressing": "#",
-    "assembler": "EOR #oper",
+    "assembler": "EOR #$LL",
     "opc": "49",
     "bytes": "2",
     "cycles": "2"
   },
   {
-    "addressing": "A",
+    "addressing": "acc",
     "assembler": "LSR A",
     "opc": "4A",
     "bytes": "1",
     "cycles": "2"
   },
   {
+    "addressing": "#",
+    "assembler": "ASR #$LL",
+    "opc": "4B",
+    "bytes": "2",
+    "cycles": "2"
+  },
+  {
     "addressing": "abs",
-    "assembler": "JMP oper",
+    "assembler": "JMP $LLHH",
     "opc": "4C",
     "bytes": "3",
     "cycles": "3"
   },
   {
     "addressing": "abs",
-    "assembler": "EOR oper",
+    "assembler": "EOR $LLHH",
     "opc": "4D",
     "bytes": "3",
     "cycles": "4"
   },
   {
     "addressing": "abs",
-    "assembler": "LSR oper",
+    "assembler": "LSR $LLHH",
     "opc": "4E",
     "bytes": "3",
     "cycles": "6"
   },
   {
-    "addressing": "rel",
-    "assembler": "BVC oper",
-    "opc": "50",
-    "bytes": "2",
-    "cycles": "2**"
+    "addressing": "abs",
+    "assembler": "SRE $LLHH",
+    "opc": "4F",
+    "bytes": "3",
+    "cycles": "6"
   },
   {
-    "addressing": "(ind),Y",
-    "assembler": "EOR (oper),Y",
+    "addressing": "rel",
+    "assembler": "BVC $LLHH",
+    "opc": "50",
+    "bytes": "2",
+    "cycles": "2+t+p"
+  },
+  {
+    "addressing": "ind,Y",
+    "assembler": "EOR ($LL),Y",
     "opc": "51",
     "bytes": "2",
-    "cycles": "5*"
+    "cycles": "5+p"
+  },
+  {
+    "addressing": "impl",
+    "assembler": "JAM",
+    "opc": "52",
+    "bytes": "1",
+    "cycles": "X"
+  },
+  {
+    "addressing": "ind,Y",
+    "assembler": "SRE ($LL),Y",
+    "opc": "53",
+    "bytes": "2",
+    "cycles": "8"
   },
   {
     "addressing": "zpg,X",
-    "assembler": "EOR oper,X",
+    "assembler": "NOP $LL,X",
+    "opc": "54",
+    "bytes": "2",
+    "cycles": "4"
+  },
+  {
+    "addressing": "zpg,X",
+    "assembler": "EOR $LL,X",
     "opc": "55",
     "bytes": "2",
     "cycles": "4"
   },
   {
     "addressing": "zpg,X",
-    "assembler": "LSR oper,X",
+    "assembler": "LSR $LL,X",
     "opc": "56",
+    "bytes": "2",
+    "cycles": "6"
+  },
+  {
+    "addressing": "zpg,X",
+    "assembler": "SRE $LL,X",
+    "opc": "57",
     "bytes": "2",
     "cycles": "6"
   },
@@ -364,22 +628,50 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
   },
   {
     "addressing": "abs,Y",
-    "assembler": "EOR oper,Y",
+    "assembler": "EOR $LLHH,Y",
     "opc": "59",
     "bytes": "3",
-    "cycles": "4*"
+    "cycles": "4+p"
+  },
+  {
+    "addressing": "impl",
+    "assembler": "NOP",
+    "opc": "5A",
+    "bytes": "1",
+    "cycles": "2"
+  },
+  {
+    "addressing": "abs,Y",
+    "assembler": "SRE $LLHH,Y",
+    "opc": "5B",
+    "bytes": "3",
+    "cycles": "7"
   },
   {
     "addressing": "abs,X",
-    "assembler": "EOR oper,X",
+    "assembler": "NOP $LLHH,X",
+    "opc": "5C",
+    "bytes": "3",
+    "cycles": "4+p"
+  },
+  {
+    "addressing": "abs,X",
+    "assembler": "EOR $LLHH,X",
     "opc": "5D",
     "bytes": "3",
-    "cycles": "4*"
+    "cycles": "4+p"
   },
   {
     "addressing": "abs,X",
-    "assembler": "LSR oper,X",
+    "assembler": "LSR $LLHH,X",
     "opc": "5E",
+    "bytes": "3",
+    "cycles": "7"
+  },
+  {
+    "addressing": "abs,X",
+    "assembler": "SRE $LLHH,X",
+    "opc": "5F",
     "bytes": "3",
     "cycles": "7"
   },
@@ -391,23 +683,51 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
     "cycles": "6"
   },
   {
-    "addressing": "(ind,X)",
-    "assembler": "ADC (oper,X)",
+    "addressing": "X,ind",
+    "assembler": "ADC ($LL,X)",
     "opc": "61",
     "bytes": "2",
     "cycles": "6"
   },
   {
+    "addressing": "impl",
+    "assembler": "JAM",
+    "opc": "62",
+    "bytes": "1",
+    "cycles": "X"
+  },
+  {
+    "addressing": "X,ind",
+    "assembler": "RRA ($LL,X)",
+    "opc": "63",
+    "bytes": "2",
+    "cycles": "8"
+  },
+  {
     "addressing": "zpg",
-    "assembler": "ADC oper",
+    "assembler": "NOP $LL",
+    "opc": "64",
+    "bytes": "2",
+    "cycles": "3"
+  },
+  {
+    "addressing": "zpg",
+    "assembler": "ADC $LL",
     "opc": "65",
     "bytes": "2",
     "cycles": "3"
   },
   {
     "addressing": "zpg",
-    "assembler": "ROR oper",
+    "assembler": "ROR $LL",
     "opc": "66",
+    "bytes": "2",
+    "cycles": "5"
+  },
+  {
+    "addressing": "zpg",
+    "assembler": "RRA $LL",
+    "opc": "67",
     "bytes": "2",
     "cycles": "5"
   },
@@ -420,64 +740,106 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
   },
   {
     "addressing": "#",
-    "assembler": "ADC #oper",
+    "assembler": "ADC #$LL",
     "opc": "69",
     "bytes": "2",
     "cycles": "2"
   },
   {
-    "addressing": "A",
+    "addressing": "acc",
     "assembler": "ROR A",
     "opc": "6A",
     "bytes": "1",
     "cycles": "2"
   },
   {
-    "addressing": "ind",
-    "assembler": "JMP (oper)",
+    "addressing": "#",
+    "assembler": "ARR #$LL",
+    "opc": "6B",
+    "bytes": "2",
+    "cycles": "2"
+  },
+  {
+    "addressing": "abs ind",
+    "assembler": "JMP ($LLHH)",
     "opc": "6C",
     "bytes": "3",
     "cycles": "5"
   },
   {
     "addressing": "abs",
-    "assembler": "ADC oper",
+    "assembler": "ADC $LLHH",
     "opc": "6D",
     "bytes": "3",
     "cycles": "4"
   },
   {
     "addressing": "abs",
-    "assembler": "ROR oper",
+    "assembler": "ROR $LLHH",
     "opc": "6E",
     "bytes": "3",
     "cycles": "6"
   },
   {
-    "addressing": "rel",
-    "assembler": "BVS oper",
-    "opc": "70",
-    "bytes": "2",
-    "cycles": "2**"
+    "addressing": "abs",
+    "assembler": "RRA $LLHH",
+    "opc": "6F",
+    "bytes": "3",
+    "cycles": "6"
   },
   {
-    "addressing": "(ind),Y",
-    "assembler": "ADC (oper),Y",
+    "addressing": "rel",
+    "assembler": "BVS $LLHH",
+    "opc": "70",
+    "bytes": "2",
+    "cycles": "2+t+p"
+  },
+  {
+    "addressing": "ind,Y",
+    "assembler": "ADC ($LL),Y",
     "opc": "71",
     "bytes": "2",
-    "cycles": "5*"
+    "cycles": "5+p"
+  },
+  {
+    "addressing": "impl",
+    "assembler": "JAM",
+    "opc": "72",
+    "bytes": "1",
+    "cycles": "X"
+  },
+  {
+    "addressing": "ind,Y",
+    "assembler": "RRA ($LL),Y",
+    "opc": "73",
+    "bytes": "2",
+    "cycles": "8"
   },
   {
     "addressing": "zpg,X",
-    "assembler": "ADC oper,X",
+    "assembler": "NOP $LL,X",
+    "opc": "74",
+    "bytes": "2",
+    "cycles": "4"
+  },
+  {
+    "addressing": "zpg,X",
+    "assembler": "ADC $LL,X",
     "opc": "75",
     "bytes": "2",
     "cycles": "4"
   },
   {
     "addressing": "zpg,X",
-    "assembler": "ROR oper,X",
+    "assembler": "ROR $LL,X",
     "opc": "76",
+    "bytes": "2",
+    "cycles": "6"
+  },
+  {
+    "addressing": "zpg,X",
+    "assembler": "RRA $LL,X",
+    "opc": "77",
     "bytes": "2",
     "cycles": "6"
   },
@@ -490,50 +852,106 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
   },
   {
     "addressing": "abs,Y",
-    "assembler": "ADC oper,Y",
+    "assembler": "ADC $LLHH,Y",
     "opc": "79",
     "bytes": "3",
-    "cycles": "4*"
+    "cycles": "4+p"
+  },
+  {
+    "addressing": "impl",
+    "assembler": "NOP",
+    "opc": "7A",
+    "bytes": "1",
+    "cycles": "2"
+  },
+  {
+    "addressing": "abs,Y",
+    "assembler": "RRA $LLHH,Y",
+    "opc": "7B",
+    "bytes": "3",
+    "cycles": "7"
   },
   {
     "addressing": "abs,X",
-    "assembler": "ADC oper,X",
+    "assembler": "NOP $LLHH,X",
+    "opc": "7C",
+    "bytes": "3",
+    "cycles": "4+p"
+  },
+  {
+    "addressing": "abs,X",
+    "assembler": "ADC $LLHH,X",
     "opc": "7D",
     "bytes": "3",
-    "cycles": "4*"
+    "cycles": "4+p"
   },
   {
     "addressing": "abs,X",
-    "assembler": "ROR oper,X",
+    "assembler": "ROR $LLHH,X",
     "opc": "7E",
     "bytes": "3",
     "cycles": "7"
   },
   {
-    "addressing": "(ind,X)",
-    "assembler": "STA (oper,X)",
+    "addressing": "abs,X",
+    "assembler": "RRA $LLHH,X",
+    "opc": "7F",
+    "bytes": "3",
+    "cycles": "7"
+  },
+  {
+    "addressing": "#",
+    "assembler": "NOP #$LL",
+    "opc": "80",
+    "bytes": "2",
+    "cycles": "2"
+  },
+  {
+    "addressing": "X,ind",
+    "assembler": "STA ($LL,X)",
     "opc": "81",
     "bytes": "2",
     "cycles": "6"
   },
   {
+    "addressing": "#",
+    "assembler": "NOP #$LL",
+    "opc": "82",
+    "bytes": "2",
+    "cycles": "2"
+  },
+  {
+    "addressing": "X,ind",
+    "assembler": "SAX ($LL,X)",
+    "opc": "83",
+    "bytes": "2",
+    "cycles": "6"
+  },
+  {
     "addressing": "zpg",
-    "assembler": "STY oper",
+    "assembler": "STY $LL",
     "opc": "84",
     "bytes": "2",
     "cycles": "3"
   },
   {
     "addressing": "zpg",
-    "assembler": "STA oper",
+    "assembler": "STA $LL",
     "opc": "85",
     "bytes": "2",
     "cycles": "3"
   },
   {
     "addressing": "zpg",
-    "assembler": "STX oper",
+    "assembler": "STX $LL",
     "opc": "86",
+    "bytes": "2",
+    "cycles": "3"
+  },
+  {
+    "addressing": "zpg",
+    "assembler": "SAX $LL",
+    "opc": "87",
     "bytes": "2",
     "cycles": "3"
   },
@@ -545,6 +963,13 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
     "cycles": "2"
   },
   {
+    "addressing": "#",
+    "assembler": "NOP #$LL",
+    "opc": "89",
+    "bytes": "2",
+    "cycles": "2"
+  },
+  {
     "addressing": "impl",
     "assembler": "TXA",
     "opc": "8A",
@@ -552,58 +977,93 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
     "cycles": "2"
   },
   {
+    "addressing": "#",
+    "assembler": "XAA #$LL",
+    "opc": "8B",
+    "bytes": "2",
+    "cycles": "2"
+  },
+  {
     "addressing": "abs",
-    "assembler": "STY oper",
+    "assembler": "STY $LLHH",
     "opc": "8C",
     "bytes": "3",
     "cycles": "4"
   },
   {
     "addressing": "abs",
-    "assembler": "STA oper",
+    "assembler": "STA $LLHH",
     "opc": "8D",
     "bytes": "3",
     "cycles": "4"
   },
   {
     "addressing": "abs",
-    "assembler": "STX oper",
+    "assembler": "STX $LLHH",
     "opc": "8E",
     "bytes": "3",
     "cycles": "4"
   },
   {
-    "addressing": "rel",
-    "assembler": "BCC oper",
-    "opc": "90",
-    "bytes": "2",
-    "cycles": "2**"
+    "addressing": "abs",
+    "assembler": "SAX $LLHH",
+    "opc": "8F",
+    "bytes": "3",
+    "cycles": "4"
   },
   {
-    "addressing": "(ind),Y",
-    "assembler": "STA (oper),Y",
+    "addressing": "rel",
+    "assembler": "BCC $LLHH",
+    "opc": "90",
+    "bytes": "2",
+    "cycles": "2+t+p"
+  },
+  {
+    "addressing": "ind,Y",
+    "assembler": "STA ($LL),Y",
     "opc": "91",
     "bytes": "2",
     "cycles": "6"
   },
   {
+    "addressing": "impl",
+    "assembler": "JAM",
+    "opc": "92",
+    "bytes": "1",
+    "cycles": "X"
+  },
+  {
+    "addressing": "ind,Y",
+    "assembler": "SHA ($LL),Y",
+    "opc": "93",
+    "bytes": "2",
+    "cycles": "6"
+  },
+  {
     "addressing": "zpg,X",
-    "assembler": "STY oper,X",
+    "assembler": "STY $LL,X",
     "opc": "94",
     "bytes": "2",
     "cycles": "4"
   },
   {
     "addressing": "zpg,X",
-    "assembler": "STA oper,X",
+    "assembler": "STA $LL,X",
     "opc": "95",
     "bytes": "2",
     "cycles": "4"
   },
   {
     "addressing": "zpg,Y",
-    "assembler": "STX oper,Y",
+    "assembler": "STX $LL,Y",
     "opc": "96",
+    "bytes": "2",
+    "cycles": "4"
+  },
+  {
+    "addressing": "zpg,Y",
+    "assembler": "SAX $LL,Y",
+    "opc": "97",
     "bytes": "2",
     "cycles": "4"
   },
@@ -616,7 +1076,7 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
   },
   {
     "addressing": "abs,Y",
-    "assembler": "STA oper,Y",
+    "assembler": "STA $LLHH,Y",
     "opc": "99",
     "bytes": "3",
     "cycles": "5"
@@ -629,51 +1089,93 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
     "cycles": "2"
   },
   {
+    "addressing": "abs,Y",
+    "assembler": "SHS $LLHH,Y",
+    "opc": "9B",
+    "bytes": "3",
+    "cycles": "5"
+  },
+  {
     "addressing": "abs,X",
-    "assembler": "STA oper,X",
+    "assembler": "SHY $LLHH,X",
+    "opc": "9C",
+    "bytes": "3",
+    "cycles": "5"
+  },
+  {
+    "addressing": "abs,X",
+    "assembler": "STA $LLHH,X",
     "opc": "9D",
     "bytes": "3",
     "cycles": "5"
   },
   {
+    "addressing": "abs,Y",
+    "assembler": "SHX $LLHH,Y",
+    "opc": "9E",
+    "bytes": "3",
+    "cycles": "5"
+  },
+  {
+    "addressing": "abs,Y",
+    "assembler": "SHA $LLHH,Y",
+    "opc": "9F",
+    "bytes": "3",
+    "cycles": "5"
+  },
+  {
     "addressing": "#",
-    "assembler": "LDY #oper",
+    "assembler": "LDY #$LL",
     "opc": "A0",
     "bytes": "2",
     "cycles": "2"
   },
   {
-    "addressing": "(ind,X)",
-    "assembler": "LDA (oper,X)",
+    "addressing": "X,ind",
+    "assembler": "LDA ($LL,X)",
     "opc": "A1",
     "bytes": "2",
     "cycles": "6"
   },
   {
     "addressing": "#",
-    "assembler": "LDX #oper",
+    "assembler": "LDX #$LL",
     "opc": "A2",
     "bytes": "2",
     "cycles": "2"
   },
   {
+    "addressing": "X,ind",
+    "assembler": "LAX ($LL,X)",
+    "opc": "A3",
+    "bytes": "2",
+    "cycles": "6"
+  },
+  {
     "addressing": "zpg",
-    "assembler": "LDY oper",
+    "assembler": "LDY $LL",
     "opc": "A4",
     "bytes": "2",
     "cycles": "3"
   },
   {
     "addressing": "zpg",
-    "assembler": "LDA oper",
+    "assembler": "LDA $LL",
     "opc": "A5",
     "bytes": "2",
     "cycles": "3"
   },
   {
     "addressing": "zpg",
-    "assembler": "LDX oper",
+    "assembler": "LDX $LL",
     "opc": "A6",
+    "bytes": "2",
+    "cycles": "3"
+  },
+  {
+    "addressing": "zpg",
+    "assembler": "LAX $LL",
+    "opc": "A7",
     "bytes": "2",
     "cycles": "3"
   },
@@ -686,7 +1188,7 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
   },
   {
     "addressing": "#",
-    "assembler": "LDA #oper",
+    "assembler": "LDA #$LL",
     "opc": "A9",
     "bytes": "2",
     "cycles": "2"
@@ -699,58 +1201,93 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
     "cycles": "2"
   },
   {
+    "addressing": "#",
+    "assembler": "LAX #$LL",
+    "opc": "AB",
+    "bytes": "2",
+    "cycles": "2"
+  },
+  {
     "addressing": "abs",
-    "assembler": "LDY oper",
+    "assembler": "LDY $LLHH",
     "opc": "AC",
     "bytes": "3",
     "cycles": "4"
   },
   {
     "addressing": "abs",
-    "assembler": "LDA oper",
+    "assembler": "LDA $LLHH",
     "opc": "AD",
     "bytes": "3",
     "cycles": "4"
   },
   {
     "addressing": "abs",
-    "assembler": "LDX oper",
+    "assembler": "LDX $LLHH",
     "opc": "AE",
     "bytes": "3",
     "cycles": "4"
   },
   {
-    "addressing": "rel",
-    "assembler": "BCS oper",
-    "opc": "B0",
-    "bytes": "2",
-    "cycles": "2**"
+    "addressing": "abs",
+    "assembler": "LAX $LLHH",
+    "opc": "AF",
+    "bytes": "3",
+    "cycles": "4"
   },
   {
-    "addressing": "(ind),Y",
-    "assembler": "LDA (oper),Y",
+    "addressing": "rel",
+    "assembler": "BCS $LLHH",
+    "opc": "B0",
+    "bytes": "2",
+    "cycles": "2+t+p"
+  },
+  {
+    "addressing": "ind,Y",
+    "assembler": "LDA ($LL),Y",
     "opc": "B1",
     "bytes": "2",
-    "cycles": "5*"
+    "cycles": "5+p"
+  },
+  {
+    "addressing": "impl",
+    "assembler": "JAM",
+    "opc": "B2",
+    "bytes": "1",
+    "cycles": "X"
+  },
+  {
+    "addressing": "ind,Y",
+    "assembler": "LAX ($LL),Y",
+    "opc": "B3",
+    "bytes": "2",
+    "cycles": "5+p"
   },
   {
     "addressing": "zpg,X",
-    "assembler": "LDY oper,X",
+    "assembler": "LDY $LL,X",
     "opc": "B4",
     "bytes": "2",
     "cycles": "4"
   },
   {
     "addressing": "zpg,X",
-    "assembler": "LDA oper,X",
+    "assembler": "LDA $LL,X",
     "opc": "B5",
     "bytes": "2",
     "cycles": "4"
   },
   {
     "addressing": "zpg,Y",
-    "assembler": "LDX oper,Y",
+    "assembler": "LDX $LL,Y",
     "opc": "B6",
+    "bytes": "2",
+    "cycles": "4"
+  },
+  {
+    "addressing": "zpg,Y",
+    "assembler": "LAX $LL,Y",
+    "opc": "B7",
     "bytes": "2",
     "cycles": "4"
   },
@@ -763,10 +1300,10 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
   },
   {
     "addressing": "abs,Y",
-    "assembler": "LDA oper,Y",
+    "assembler": "LDA $LLHH,Y",
     "opc": "B9",
     "bytes": "3",
-    "cycles": "4*"
+    "cycles": "4+p"
   },
   {
     "addressing": "impl",
@@ -776,58 +1313,93 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
     "cycles": "2"
   },
   {
-    "addressing": "abs,X",
-    "assembler": "LDY oper,X",
-    "opc": "BC",
+    "addressing": "abs,Y",
+    "assembler": "LAS $LLHH,Y",
+    "opc": "BB",
     "bytes": "3",
-    "cycles": "4*"
+    "cycles": "4+p"
   },
   {
     "addressing": "abs,X",
-    "assembler": "LDA oper,X",
+    "assembler": "LDY $LLHH,X",
+    "opc": "BC",
+    "bytes": "3",
+    "cycles": "4+p"
+  },
+  {
+    "addressing": "abs,X",
+    "assembler": "LDA $LLHH,X",
     "opc": "BD",
     "bytes": "3",
-    "cycles": "4*"
+    "cycles": "4+p"
   },
   {
     "addressing": "abs,Y",
-    "assembler": "LDX oper,Y",
+    "assembler": "LDX $LLHH,Y",
     "opc": "BE",
     "bytes": "3",
-    "cycles": "4*"
+    "cycles": "4+p"
+  },
+  {
+    "addressing": "abs,Y",
+    "assembler": "LAX $LLHH,Y",
+    "opc": "BF",
+    "bytes": "3",
+    "cycles": "4+p"
   },
   {
     "addressing": "#",
-    "assembler": "CPY #oper",
+    "assembler": "CPY #$LL",
     "opc": "C0",
     "bytes": "2",
     "cycles": "2"
   },
   {
-    "addressing": "(ind,X)",
-    "assembler": "CMP (oper,X)",
+    "addressing": "X,ind",
+    "assembler": "CMP ($LL,X)",
     "opc": "C1",
     "bytes": "2",
     "cycles": "6"
   },
   {
+    "addressing": "#",
+    "assembler": "NOP #$LL",
+    "opc": "C2",
+    "bytes": "2",
+    "cycles": "2"
+  },
+  {
+    "addressing": "X,ind",
+    "assembler": "DCP ($LL,X)",
+    "opc": "C3",
+    "bytes": "2",
+    "cycles": "8"
+  },
+  {
     "addressing": "zpg",
-    "assembler": "CPY oper",
+    "assembler": "CPY $LL",
     "opc": "C4",
     "bytes": "2",
     "cycles": "3"
   },
   {
     "addressing": "zpg",
-    "assembler": "CMP oper",
+    "assembler": "CMP $LL",
     "opc": "C5",
     "bytes": "2",
     "cycles": "3"
   },
   {
     "addressing": "zpg",
-    "assembler": "DEC oper",
+    "assembler": "DEC $LL",
     "opc": "C6",
+    "bytes": "2",
+    "cycles": "5"
+  },
+  {
+    "addressing": "zpg",
+    "assembler": "DCP $LL",
+    "opc": "C7",
     "bytes": "2",
     "cycles": "5"
   },
@@ -840,7 +1412,7 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
   },
   {
     "addressing": "#",
-    "assembler": "CMP #oper",
+    "assembler": "CMP #$LL",
     "opc": "C9",
     "bytes": "2",
     "cycles": "2"
@@ -853,51 +1425,93 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
     "cycles": "2"
   },
   {
+    "addressing": "#",
+    "assembler": "SBX #$LL",
+    "opc": "CB",
+    "bytes": "2",
+    "cycles": "2"
+  },
+  {
     "addressing": "abs",
-    "assembler": "CPY oper",
+    "assembler": "CPY $LLHH",
     "opc": "CC",
     "bytes": "3",
     "cycles": "4"
   },
   {
     "addressing": "abs",
-    "assembler": "CMP oper",
+    "assembler": "CMP $LLHH",
     "opc": "CD",
     "bytes": "3",
     "cycles": "4"
   },
   {
     "addressing": "abs",
-    "assembler": "DEC oper",
+    "assembler": "DEC $LLHH",
     "opc": "CE",
     "bytes": "3",
     "cycles": "6"
   },
   {
-    "addressing": "rel",
-    "assembler": "BNE oper",
-    "opc": "D0",
-    "bytes": "2",
-    "cycles": "2**"
+    "addressing": "abs",
+    "assembler": "DCP $LLHH",
+    "opc": "CF",
+    "bytes": "3",
+    "cycles": "6"
   },
   {
-    "addressing": "(ind),Y",
-    "assembler": "CMP (oper),Y",
+    "addressing": "rel",
+    "assembler": "BNE $LLHH",
+    "opc": "D0",
+    "bytes": "2",
+    "cycles": "2+t+p"
+  },
+  {
+    "addressing": "ind,Y",
+    "assembler": "CMP ($LL),Y",
     "opc": "D1",
     "bytes": "2",
-    "cycles": "5*"
+    "cycles": "5+p"
+  },
+  {
+    "addressing": "impl",
+    "assembler": "JAM",
+    "opc": "D2",
+    "bytes": "1",
+    "cycles": "X"
+  },
+  {
+    "addressing": "ind,Y",
+    "assembler": "DCP ($LL),Y",
+    "opc": "D3",
+    "bytes": "2",
+    "cycles": "8"
   },
   {
     "addressing": "zpg,X",
-    "assembler": "CMP oper,X",
+    "assembler": "NOP $LL,X",
+    "opc": "D4",
+    "bytes": "2",
+    "cycles": "4"
+  },
+  {
+    "addressing": "zpg,X",
+    "assembler": "CMP $LL,X",
     "opc": "D5",
     "bytes": "2",
     "cycles": "4"
   },
   {
     "addressing": "zpg,X",
-    "assembler": "DEC oper,X",
+    "assembler": "DEC $LL,X",
     "opc": "D6",
+    "bytes": "2",
+    "cycles": "6"
+  },
+  {
+    "addressing": "zpg,X",
+    "assembler": "DCP $LL,X",
+    "opc": "D7",
     "bytes": "2",
     "cycles": "6"
   },
@@ -910,57 +1524,106 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
   },
   {
     "addressing": "abs,Y",
-    "assembler": "CMP oper,Y",
+    "assembler": "CMP $LLHH,Y",
     "opc": "D9",
     "bytes": "3",
-    "cycles": "4*"
+    "cycles": "4+p"
+  },
+  {
+    "addressing": "impl",
+    "assembler": "NOP",
+    "opc": "DA",
+    "bytes": "1",
+    "cycles": "2"
+  },
+  {
+    "addressing": "abs,Y",
+    "assembler": "DCP $LLHH,Y",
+    "opc": "DB",
+    "bytes": "3",
+    "cycles": "7"
   },
   {
     "addressing": "abs,X",
-    "assembler": "CMP oper,X",
+    "assembler": "NOP $LLHH,X",
+    "opc": "DC",
+    "bytes": "3",
+    "cycles": "4+p"
+  },
+  {
+    "addressing": "abs,X",
+    "assembler": "CMP $LLHH,X",
     "opc": "DD",
     "bytes": "3",
-    "cycles": "4*"
+    "cycles": "4+p"
   },
   {
     "addressing": "abs,X",
-    "assembler": "DEC oper,X",
+    "assembler": "DEC $LLHH,X",
     "opc": "DE",
     "bytes": "3",
     "cycles": "7"
   },
   {
+    "addressing": "abs,X",
+    "assembler": "DCP $LLHH,X",
+    "opc": "DF",
+    "bytes": "3",
+    "cycles": "7"
+  },
+  {
     "addressing": "#",
-    "assembler": "CPX #oper",
+    "assembler": "CPX #$LL",
     "opc": "E0",
     "bytes": "2",
     "cycles": "2"
   },
   {
-    "addressing": "(ind,X)",
-    "assembler": "SBC (oper,X)",
+    "addressing": "X,ind",
+    "assembler": "SBC ($LL,X)",
     "opc": "E1",
     "bytes": "2",
     "cycles": "6"
   },
   {
+    "addressing": "#",
+    "assembler": "NOP #$LL",
+    "opc": "E2",
+    "bytes": "2",
+    "cycles": "2"
+  },
+  {
+    "addressing": "X,ind",
+    "assembler": "ISC ($LL,X)",
+    "opc": "E3",
+    "bytes": "2",
+    "cycles": "8"
+  },
+  {
     "addressing": "zpg",
-    "assembler": "CPX oper",
+    "assembler": "CPX $LL",
     "opc": "E4",
     "bytes": "2",
     "cycles": "3"
   },
   {
     "addressing": "zpg",
-    "assembler": "SBC oper",
+    "assembler": "SBC $LL",
     "opc": "E5",
     "bytes": "2",
     "cycles": "3"
   },
   {
     "addressing": "zpg",
-    "assembler": "INC oper",
+    "assembler": "INC $LL",
     "opc": "E6",
+    "bytes": "2",
+    "cycles": "5"
+  },
+  {
+    "addressing": "zpg",
+    "assembler": "ISC $LL",
+    "opc": "E7",
     "bytes": "2",
     "cycles": "5"
   },
@@ -973,7 +1636,7 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
   },
   {
     "addressing": "#",
-    "assembler": "SBC #oper",
+    "assembler": "SBC #$LL",
     "opc": "E9",
     "bytes": "2",
     "cycles": "2"
@@ -986,51 +1649,93 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
     "cycles": "2"
   },
   {
+    "addressing": "#",
+    "assembler": "SBC #$LL",
+    "opc": "EB",
+    "bytes": "2",
+    "cycles": "2"
+  },
+  {
     "addressing": "abs",
-    "assembler": "CPX oper",
+    "assembler": "CPX $LLHH",
     "opc": "EC",
     "bytes": "3",
     "cycles": "4"
   },
   {
     "addressing": "abs",
-    "assembler": "SBC oper",
+    "assembler": "SBC $LLHH",
     "opc": "ED",
     "bytes": "3",
     "cycles": "4"
   },
   {
     "addressing": "abs",
-    "assembler": "INC oper",
+    "assembler": "INC $LLHH",
     "opc": "EE",
     "bytes": "3",
     "cycles": "6"
   },
   {
-    "addressing": "rel",
-    "assembler": "BEQ oper",
-    "opc": "F0",
-    "bytes": "2",
-    "cycles": "2**"
+    "addressing": "abs",
+    "assembler": "ISC $LLHH",
+    "opc": "EF",
+    "bytes": "3",
+    "cycles": "6"
   },
   {
-    "addressing": "(ind),Y",
-    "assembler": "SBC (oper),Y",
+    "addressing": "rel",
+    "assembler": "BEQ $LLHH",
+    "opc": "F0",
+    "bytes": "2",
+    "cycles": "2+t+p"
+  },
+  {
+    "addressing": "ind,Y",
+    "assembler": "SBC ($LL),Y",
     "opc": "F1",
     "bytes": "2",
-    "cycles": "5*"
+    "cycles": "5+p"
+  },
+  {
+    "addressing": "impl",
+    "assembler": "JAM",
+    "opc": "F2",
+    "bytes": "1",
+    "cycles": "X"
+  },
+  {
+    "addressing": "ind,Y",
+    "assembler": "ISC ($LL),Y",
+    "opc": "F3",
+    "bytes": "2",
+    "cycles": "8"
   },
   {
     "addressing": "zpg,X",
-    "assembler": "SBC oper,X",
+    "assembler": "NOP $LL,X",
+    "opc": "F4",
+    "bytes": "2",
+    "cycles": "4"
+  },
+  {
+    "addressing": "zpg,X",
+    "assembler": "SBC $LL,X",
     "opc": "F5",
     "bytes": "2",
     "cycles": "4"
   },
   {
     "addressing": "zpg,X",
-    "assembler": "INC oper,X",
+    "assembler": "INC $LL,X",
     "opc": "F6",
+    "bytes": "2",
+    "cycles": "6"
+  },
+  {
+    "addressing": "zpg,X",
+    "assembler": "ISC $LL,X",
+    "opc": "F7",
     "bytes": "2",
     "cycles": "6"
   },
@@ -1043,24 +1748,51 @@ $json = (gc -Raw "D:\src\u\s\lib\src\opcodes.json").replace("absolute", "abs").r
   },
   {
     "addressing": "abs,Y",
-    "assembler": "SBC oper,Y",
+    "assembler": "SBC $LLHH,Y",
     "opc": "F9",
     "bytes": "3",
-    "cycles": "4*"
+    "cycles": "4+p"
+  },
+  {
+    "addressing": "impl",
+    "assembler": "NOP",
+    "opc": "FA",
+    "bytes": "1",
+    "cycles": "2"
+  },
+  {
+    "addressing": "abs,Y",
+    "assembler": "ISC $LLHH,Y",
+    "opc": "FB",
+    "bytes": "3",
+    "cycles": "7"
   },
   {
     "addressing": "abs,X",
-    "assembler": "SBC oper,X",
+    "assembler": "NOP $LLHH,X",
+    "opc": "FC",
+    "bytes": "3",
+    "cycles": "4+p"
+  },
+  {
+    "addressing": "abs,X",
+    "assembler": "SBC $LLHH,X",
     "opc": "FD",
     "bytes": "3",
-    "cycles": "4*"
+    "cycles": "4+p"
   },
   {
     "addressing": "abs,X",
-    "assembler": "INC oper,X",
+    "assembler": "INC $LLHH,X",
     "opc": "FE",
+    "bytes": "3",
+    "cycles": "7"
+  },
+  {
+    "addressing": "abs,X",
+    "assembler": "ISC $LLHH,X",
+    "opc": "FF",
     "bytes": "3",
     "cycles": "7"
   }
 ]
-

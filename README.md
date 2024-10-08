@@ -1,11 +1,8 @@
 # rustella - Atari 2600 Emulator written in Rust
 
-[![CDP](https://github.com/unrenormalizable/rustella/actions/workflows/cdp.yml/badge.svg)](https://github.com/unrenormalizable/rustella/actions/workflows/cdp.yml) [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg?label=license)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+[![CDP](https://github.com/unrenormalizable/rustella/actions/workflows/cdp.yml/badge.svg)](https://github.com/unrenormalizable/rustella/actions/workflows/cdp.yml) [![Vercel Deploy](https://deploy-badge.vercel.app/vercel/rustella)](https://rustella.vercel.app/) [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg?label=license)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
 > Built with [**rust-analyzer.vs**](https://marketplace.visualstudio.com/items?itemName=kitamstudios.RustAnalyzer&ssr=false#overview) (free Visual Studio 2022 Extension)
-
-> [!NOTE]
-> Deployed at [rustella](https://rustella.vercel.app/).
 
 ## What?
 
@@ -40,7 +37,7 @@ Why not?
   - [ ] Bank switching
 - TIA
   - [x] Background + playfield
-  - [ ] Player sprites
+  - [x] Player sprites
   - [ ] Missile sprites
   - [ ] Ball sprite
 - TV
