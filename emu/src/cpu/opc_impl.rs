@@ -26,6 +26,11 @@ pub mod load_store {
     }
 
     #[inline]
+    pub fn A_AND_X(cpu: &NMOS6502) -> u8 {
+        cpu.a() & cpu.x()
+    }
+
+    #[inline]
     pub fn reg_Y(cpu: &NMOS6502) -> u8 {
         cpu.y()
     }
@@ -46,6 +51,15 @@ pub mod load_store {
     #[inline]
     pub fn set_reg_A(cpu: &mut NMOS6502, val: u8) {
         cpu.set_a(val);
+
+        psr_utils::sync_pcr_n(cpu, val);
+        psr_utils::sync_pcr_z(cpu, val);
+    }
+
+    #[inline]
+    pub fn set_regs_AX(cpu: &mut NMOS6502, val: u8) {
+        cpu.set_a(val);
+        cpu.set_x(val);
 
         psr_utils::sync_pcr_n(cpu, val);
         psr_utils::sync_pcr_z(cpu, val);
@@ -643,6 +657,16 @@ pub mod flags {
     }
 }
 
+pub mod nop {
+    use super::*;
+
+    #[inline]
+    pub fn NOP_1(_: &mut NMOS6502) {}
+
+    #[inline]
+    pub fn NOP_2(_: &mut NMOS6502, _: u8) {}
+}
+
 mod psr_utils {
     use super::*;
 
@@ -693,7 +717,8 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     am::pre_indexed_indirect::opcode_steps_read!(logic::ORA_core, load_store::reg_X, am::opc_step_illegal),
     /* 0x02 */ am::stub_opcode_steps!(),
     /* 0x03 */ am::stub_opcode_steps!(),
-    /* 0x04 */ am::stub_opcode_steps!(),
+    /* 0x04 - zpg | NOP oper */
+    am::zero_page::opcode_steps_read!(nop::NOP_2, am::opc_step_illegal),
     /* 0x05 - zpg | ORA oper */
     am::zero_page::opcode_steps_read!(logic::ORA_core, am::opc_step_illegal),
     /* 0x06 - zpg | ASL oper */
@@ -706,7 +731,8 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0x0A - A | ASL A */
     am::implied::opcode_steps!(shift::ASL_A, am::opc_step_illegal),
     /* 0x0B */ am::stub_opcode_steps!(),
-    /* 0x0C */ am::stub_opcode_steps!(),
+    /* 0x0C - abs | NOP oper */
+    am::absolute::opcode_steps_read!(nop::NOP_2, am::opc_step_illegal),
     /* 0x0D - abs | ORA oper */
     am::absolute::opcode_steps_read!(logic::ORA_core, am::opc_step_illegal),
     /* 0x0E - abs | ASL oper */
@@ -718,7 +744,8 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     am::post_indexed_indirect::opcode_steps_read!(logic::ORA_core, load_store::reg_Y, am::opc_step_illegal),
     /* 0x12 */ am::stub_opcode_steps!(),
     /* 0x13 */ am::stub_opcode_steps!(),
-    /* 0x14 */ am::stub_opcode_steps!(),
+    /* 0x14 - zpg,X | NOP oper,X */
+    am::indexed_zero_page::opcode_steps_read!(nop::NOP_2, load_store::reg_X, am::opc_step_illegal),
     /* 0x15 - zpg,X | ORA oper,X */
     am::indexed_zero_page::opcode_steps_read!(logic::ORA_core, load_store::reg_X, am::opc_step_illegal),
     /* 0x16 - zpg,X | ASL oper,X */
@@ -728,9 +755,11 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     am::implied::opcode_steps!(flags::CLC_core, am::opc_step_illegal),
     /* 0x19 - abs,Y | ORA oper,Y */
     am::indexed_absolute::opcode_steps_read!(logic::ORA_core, load_store::reg_Y, am::opc_step_illegal),
-    /* 0x1A */ am::stub_opcode_steps!(),
+    /* 0x1A - impl | NOP */
+    am::implied::opcode_steps!(nop::NOP_1, am::opc_step_illegal),
     /* 0x1B */ am::stub_opcode_steps!(),
-    /* 0x1C */ am::stub_opcode_steps!(),
+    /* 0x1C - abs,X | NOP oper,X */
+    am::indexed_absolute::opcode_steps_read!(nop::NOP_2, load_store::reg_X, am::opc_step_illegal),
     /* 0x1D - abs,X | ORA oper,X */
     am::indexed_absolute::opcode_steps_read!(logic::ORA_core, load_store::reg_X, am::opc_step_illegal),
     /* 0x1E - abs,X | ASL oper,X */
@@ -769,7 +798,8 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     am::post_indexed_indirect::opcode_steps_read!(logic::AND_core, load_store::reg_Y, am::opc_step_illegal),
     /* 0x32 */ am::stub_opcode_steps!(),
     /* 0x33 */ am::stub_opcode_steps!(),
-    /* 0x34 */ am::stub_opcode_steps!(),
+    /* 0x34 - zpg,X | NOP oper,X */
+    am::indexed_zero_page::opcode_steps_read!(nop::NOP_2, load_store::reg_X, am::opc_step_illegal),
     /* 0x35 - zpg,X | AND oper,X */
     am::indexed_zero_page::opcode_steps_read!(logic::AND_core, load_store::reg_X, am::opc_step_illegal),
     /* 0x36 - zpg,X | ROL oper,X */
@@ -779,9 +809,11 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     am::implied::opcode_steps!(flags::SEC_core, am::opc_step_illegal),
     /* 0x39 - abs,Y | AND oper,Y */
     am::indexed_absolute::opcode_steps_read!(logic::AND_core, load_store::reg_Y, am::opc_step_illegal),
-    /* 0x3A */ am::stub_opcode_steps!(),
+    /* 0x3A - impl | NOP */
+    am::implied::opcode_steps!(nop::NOP_1, am::opc_step_illegal),
     /* 0x3B */ am::stub_opcode_steps!(),
-    /* 0x3C */ am::stub_opcode_steps!(),
+    /* 0x3C - abs,X | NOP oper,X */
+    am::indexed_absolute::opcode_steps_read!(nop::NOP_2, load_store::reg_X, am::opc_step_illegal),
     /* 0x3D - abs,X | AND oper,X */
     am::indexed_absolute::opcode_steps_read!(logic::AND_core, load_store::reg_X, am::opc_step_illegal),
     /* 0x3E - abs,X | ROL oper,X */
@@ -793,7 +825,8 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     am::pre_indexed_indirect::opcode_steps_read!(logic::EOR_core, load_store::reg_X, am::opc_step_illegal),
     /* 0x42 */ am::stub_opcode_steps!(),
     /* 0x43 */ am::stub_opcode_steps!(),
-    /* 0x44 */ am::stub_opcode_steps!(),
+    /* 0x44 - zpg | NOP oper */
+    am::zero_page::opcode_steps_read!(nop::NOP_2, am::opc_step_illegal),
     /* 0x45 - zpg | EOR oper */
     am::zero_page::opcode_steps_read!(logic::EOR_core, am::opc_step_illegal),
     /* 0x46 - zpg | LSR oper */
@@ -819,7 +852,8 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     am::post_indexed_indirect::opcode_steps_read!(logic::EOR_core, load_store::reg_Y, am::opc_step_illegal),
     /* 0x52 */ am::stub_opcode_steps!(),
     /* 0x53 */ am::stub_opcode_steps!(),
-    /* 0x54 */ am::stub_opcode_steps!(),
+    /* 0x54 - zpg,X | NOP oper,X */
+    am::indexed_zero_page::opcode_steps_read!(nop::NOP_2, load_store::reg_X, am::opc_step_illegal),
     /* 0x55 - zpg,X | EOR oper,X */
     am::indexed_zero_page::opcode_steps_read!(logic::EOR_core, load_store::reg_X, am::opc_step_illegal),
     /* 0x56 - zpg,X | LSR oper,X */
@@ -829,9 +863,11 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     am::implied::opcode_steps!(flags::CLI_core, am::opc_step_illegal),
     /* 0x59 - abs,Y | EOR oper,Y */
     am::indexed_absolute::opcode_steps_read!(logic::EOR_core, load_store::reg_Y, am::opc_step_illegal),
-    /* 0x5A */ am::stub_opcode_steps!(),
+    /* 0x5A - impl | NOP */
+    am::implied::opcode_steps!(nop::NOP_1, am::opc_step_illegal),
     /* 0x5B */ am::stub_opcode_steps!(),
-    /* 0x5C */ am::stub_opcode_steps!(),
+    /* 0x5C - abs,X | NOP oper,X */
+    am::indexed_absolute::opcode_steps_read!(nop::NOP_2, load_store::reg_X, am::opc_step_illegal),
     /* 0x5D - abs,X | EOR oper,X */
     am::indexed_absolute::opcode_steps_read!(logic::EOR_core, load_store::reg_X, am::opc_step_illegal),
     /* 0x5E - abs,X | LSR oper,X */
@@ -843,7 +879,8 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     am::pre_indexed_indirect::opcode_steps_read!(arithmetic::ADC_core, load_store::reg_X, am::opc_step_illegal),
     /* 0x62 */ am::stub_opcode_steps!(),
     /* 0x63 */ am::stub_opcode_steps!(),
-    /* 0x64 */ am::stub_opcode_steps!(),
+    /* 0x64 - zpg | NOP oper */
+    am::zero_page::opcode_steps_read!(nop::NOP_2, am::opc_step_illegal),
     /* 0x65 - zpg | ADC oper */
     am::zero_page::opcode_steps_read!(arithmetic::ADC_core, am::opc_step_illegal),
     /* 0x66 - zpg | ROR oper */
@@ -869,7 +906,8 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     am::post_indexed_indirect::opcode_steps_read!(arithmetic::ADC_core, load_store::reg_Y, am::opc_step_illegal),
     /* 0x72 */ am::stub_opcode_steps!(),
     /* 0x73 */ am::stub_opcode_steps!(),
-    /* 0x74 */ am::stub_opcode_steps!(),
+    /* 0x74 - zpg,X | NOP oper,X */
+    am::indexed_zero_page::opcode_steps_read!(nop::NOP_2, load_store::reg_X, am::opc_step_illegal),
     /* 0x75 - zpg,X | ADC oper,X */
     am::indexed_zero_page::opcode_steps_read!(arithmetic::ADC_core, load_store::reg_X, am::opc_step_illegal),
     /* 0x76 - zpg,X | ROR oper,X */
@@ -879,29 +917,36 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     am::implied::opcode_steps!(flags::SEI_core, am::opc_step_illegal),
     /* 0x79 - abs,Y | ADC oper,Y */
     am::indexed_absolute::opcode_steps_read!(arithmetic::ADC_core, load_store::reg_Y, am::opc_step_illegal),
-    /* 0x7A */ am::stub_opcode_steps!(),
+    /* 0x7A - impl | NOP */
+    am::implied::opcode_steps!(nop::NOP_1, am::opc_step_illegal),
     /* 0x7B */ am::stub_opcode_steps!(),
-    /* 0x7C */ am::stub_opcode_steps!(),
+    /* 0x7C - abs,X | NOP oper,X */
+    am::indexed_absolute::opcode_steps_read!(nop::NOP_2, load_store::reg_X, am::opc_step_illegal),
     /* 0x7D - abs,X | ADC oper,X */
     am::indexed_absolute::opcode_steps_read!(arithmetic::ADC_core, load_store::reg_X, am::opc_step_illegal),
     /* 0x7E - abs,X | ROR oper,X */
     am::indexed_absolute::opcode_steps_read_modify_write!(shift::ROR_core, load_store::reg_X, am::opc_step_illegal),
     /* 0x7F */ am::stub_opcode_steps!(),
-    /* 0x80 */ am::stub_opcode_steps!(),
+    /* 0x80 - # | NOP #oper */
+    am::immediate::opcode_steps!(nop::NOP_2, am::opc_step_illegal),
     /* 0x81 - (ind,X) | STA (oper,X) */
     am::pre_indexed_indirect::opcode_steps_write!(load_store::reg_A, load_store::reg_X, am::opc_step_illegal),
-    /* 0x82 */ am::stub_opcode_steps!(),
-    /* 0x83 */ am::stub_opcode_steps!(),
+    /* 0x82 - # | NOP #oper */
+    am::immediate::opcode_steps!(nop::NOP_2, am::opc_step_illegal),
+    /* 0x83 - (ind,X) | SAX (oper,X) */
+    am::pre_indexed_indirect::opcode_steps_write!(load_store::A_AND_X, load_store::reg_X, am::opc_step_illegal),
     /* 0x84 - zpg | STY oper */
     am::zero_page::opcode_steps_write!(load_store::reg_Y, am::opc_step_illegal),
     /* 0x85 - zpg | STA oper */
     am::zero_page::opcode_steps_write!(load_store::reg_A, am::opc_step_illegal),
     /* 0x86 - zpg | STX oper */
     am::zero_page::opcode_steps_write!(load_store::reg_X, am::opc_step_illegal),
-    /* 0x87 */ am::stub_opcode_steps!(),
+    /* 0x87 - zpg | SAX oper */
+    am::zero_page::opcode_steps_write!(load_store::A_AND_X, am::opc_step_illegal),
     /* 0x88 - impl | DEY */
     am::implied::opcode_steps!(arithmetic_inc_dec::DEY_core, am::opc_step_illegal),
-    /* 0x89 */ am::stub_opcode_steps!(),
+    /* 0x89 - # | NOP #oper */
+    am::immediate::opcode_steps!(nop::NOP_2, am::opc_step_illegal),
     /* 0x8A - impl | TXA */
     am::implied::opcode_steps!(transfer::TXA_core, am::opc_step_illegal),
     /* 0x8B */ am::stub_opcode_steps!(),
@@ -911,7 +956,8 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     am::absolute::opcode_steps_write!(load_store::reg_A, am::opc_step_illegal),
     /* 0x8E - abs | STX oper */
     am::absolute::opcode_steps_write!(load_store::reg_X, am::opc_step_illegal),
-    /* 0x8F */ am::stub_opcode_steps!(),
+    /* 0x8F - abs | SAX oper */
+    am::absolute::opcode_steps_write!(load_store::A_AND_X, am::opc_step_illegal),
     /* 0x90 - rel | BCC oper */
     am::relative::opcode_steps!(control_flow_branch::BCC_core, am::opc_step_illegal),
     /* 0x91 - (ind),Y | STA (oper),Y */
@@ -924,7 +970,8 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     am::indexed_zero_page::opcode_steps_write!(load_store::reg_A, load_store::reg_X, am::opc_step_illegal),
     /* 0x96 - zpg,Y | STX oper,Y */
     am::indexed_zero_page::opcode_steps_write!(load_store::reg_X, load_store::reg_Y, am::opc_step_illegal),
-    /* 0x97 */ am::stub_opcode_steps!(),
+    /* 0x97 - zpg,Y | SAX oper,Y */
+    am::indexed_zero_page::opcode_steps_write!(load_store::A_AND_X, load_store::reg_Y, am::opc_step_illegal),
     /* 0x98 - impl | TYA */
     am::implied::opcode_steps!(transfer::TYA_core, am::opc_step_illegal),
     /* 0x99 - abs,Y | STA oper,Y */
@@ -943,41 +990,47 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     am::pre_indexed_indirect::opcode_steps_read!(load_store::set_reg_A, load_store::reg_X, am::opc_step_illegal),
     /* 0xA2 - # | LDX #oper */
     am::immediate::opcode_steps!(load_store::set_reg_X, am::opc_step_illegal),
-    /* 0xA3 */ am::stub_opcode_steps!(),
+    /* 0xA3 - (ind,X) | LAX (oper,X) */
+    am::pre_indexed_indirect::opcode_steps_read!(load_store::set_regs_AX, load_store::reg_X, am::opc_step_illegal),
     /* 0xA4 - zpg | LDY oper */
     am::zero_page::opcode_steps_read!(load_store::set_reg_Y, am::opc_step_illegal),
     /* 0xA5 - zpg | LDA oper */
     am::zero_page::opcode_steps_read!(load_store::set_reg_A, am::opc_step_illegal),
     /* 0xA6 - zpg | LDX oper */
     am::zero_page::opcode_steps_read!(load_store::set_reg_X, am::opc_step_illegal),
-    /* 0xA7 */ am::stub_opcode_steps!(),
+    /* 0xA7 - zpg | LAX oper */
+    am::zero_page::opcode_steps_read!(load_store::set_regs_AX, am::opc_step_illegal),
     /* 0xA8 - impl | TAY */
     am::implied::opcode_steps!(transfer::TAY_core, am::opc_step_illegal),
     /* 0xA9 - # | LDA #oper */
     am::immediate::opcode_steps!(load_store::set_reg_A, am::opc_step_illegal),
     /* 0xAA - impl | TAX */
     am::implied::opcode_steps!(transfer::TAX_core, am::opc_step_illegal),
-    /* 0xAB */ am::stub_opcode_steps!(),
+    /* 0xAB - # | LAX #oper */
+    am::immediate::opcode_steps!(load_store::set_regs_AX, am::opc_step_illegal),
     /* 0xAC - abs | LDY oper */
     am::absolute::opcode_steps_read!(load_store::set_reg_Y, am::opc_step_illegal),
     /* 0xAD - abs | LDA oper */
     am::absolute::opcode_steps_read!(load_store::set_reg_A, am::opc_step_illegal),
     /* 0xAE - abs | LDX oper */
     am::absolute::opcode_steps_read!(load_store::set_reg_X, am::opc_step_illegal),
-    /* 0xAF */ am::stub_opcode_steps!(),
+    /* 0xAF - abs | LAX oper */
+    am::absolute::opcode_steps_read!(load_store::set_regs_AX, am::opc_step_illegal),
     /* 0xB0 - rel | BCS oper */
     am::relative::opcode_steps!(control_flow_branch::BCS_core, am::opc_step_illegal),
     /* 0xB1 - (ind),Y | LDA (oper),Y */
     am::post_indexed_indirect::opcode_steps_read!(load_store::set_reg_A, load_store::reg_Y, am::opc_step_illegal),
     /* 0xB2 */ am::stub_opcode_steps!(),
-    /* 0xB3 */ am::stub_opcode_steps!(),
+    /* 0xB3 - (ind),Y | LAX (oper),Y */
+    am::post_indexed_indirect::opcode_steps_read!(load_store::set_regs_AX, load_store::reg_Y, am::opc_step_illegal),
     /* 0xB4 - zpg,X | LDY oper,X */
     am::indexed_zero_page::opcode_steps_read!(load_store::set_reg_Y, load_store::reg_X, am::opc_step_illegal),
     /* 0xB5 - zpg,X | LDA oper,X */
     am::indexed_zero_page::opcode_steps_read!(load_store::set_reg_A, load_store::reg_X, am::opc_step_illegal),
     /* 0xB6 - zpg,Y | LDX oper,Y */
     am::indexed_zero_page::opcode_steps_read!(load_store::set_reg_X, load_store::reg_Y, am::opc_step_illegal),
-    /* 0xB7 */ am::stub_opcode_steps!(),
+    /* 0xB7 - zpg,Y | LAX oper,Y */
+    am::indexed_zero_page::opcode_steps_read!(load_store::set_regs_AX, load_store::reg_Y, am::opc_step_illegal),
     /* 0xB8 - impl | CLV */
     am::implied::opcode_steps!(flags::CLV_core, am::opc_step_illegal),
     /* 0xB9 - abs,Y | LDA oper,Y */
@@ -991,12 +1044,14 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     am::indexed_absolute::opcode_steps_read!(load_store::set_reg_A, load_store::reg_X, am::opc_step_illegal),
     /* 0xBE - abs,Y | LDX oper,Y */
     am::indexed_absolute::opcode_steps_read!(load_store::set_reg_X, load_store::reg_Y, am::opc_step_illegal),
-    /* 0xBF */ am::stub_opcode_steps!(),
+    /* 0xBF - abs,Y | LAX oper,Y */
+    am::indexed_absolute::opcode_steps_read!(load_store::set_regs_AX, load_store::reg_Y, am::opc_step_illegal),
     /* 0xC0 - # | CPY #oper */
     am::immediate::opcode_steps!(arithmetic::CPY_core, am::opc_step_illegal),
     /* 0xC1 - (ind,X) | CMP (oper,X) */
     am::pre_indexed_indirect::opcode_steps_read!(arithmetic::CMP_A_core, load_store::reg_X, am::opc_step_illegal),
-    /* 0xC2 */ am::stub_opcode_steps!(),
+    /* 0xC2 - # | NOP #oper */
+    am::immediate::opcode_steps!(nop::NOP_2, am::opc_step_illegal),
     /* 0xC3 */ am::stub_opcode_steps!(),
     /* 0xC4 - zpg | CPY oper */
     am::zero_page::opcode_steps_read!(arithmetic::CMP_Y_core, am::opc_step_illegal),
@@ -1025,7 +1080,8 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     am::post_indexed_indirect::opcode_steps_read!(arithmetic::CMP_A_core, load_store::reg_Y, am::opc_step_illegal),
     /* 0xD2 */ am::stub_opcode_steps!(),
     /* 0xD3 */ am::stub_opcode_steps!(),
-    /* 0xD4 */ am::stub_opcode_steps!(),
+    /* 0xD4 - zpg,X | NOP oper,X */
+    am::indexed_zero_page::opcode_steps_read!(nop::NOP_2, load_store::reg_X, am::opc_step_illegal),
     /* 0xD5 - zpg,X | CMP oper,X */
     am::indexed_zero_page::opcode_steps_read!(arithmetic::CMP_A_core, load_store::reg_X, am::opc_step_illegal),
     /* 0xD6 - zpg,X | DEC oper,X */
@@ -1035,9 +1091,11 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     am::implied::opcode_steps!(flags::CLD_core, am::opc_step_illegal),
     /* 0xD9 - abs,Y | CMP oper,Y */
     am::indexed_absolute::opcode_steps_read!(arithmetic::CMP_A_core, load_store::reg_Y, am::opc_step_illegal),
-    /* 0xDA */ am::stub_opcode_steps!(),
+    /* 0xDA - impl | NOP */
+    am::implied::opcode_steps!(nop::NOP_1, am::opc_step_illegal),
     /* 0xDB */ am::stub_opcode_steps!(),
-    /* 0xDC */ am::stub_opcode_steps!(),
+    /* 0xDC - abs,X | NOP oper,X */
+    am::indexed_absolute::opcode_steps_read!(nop::NOP_2, load_store::reg_X, am::opc_step_illegal),
     /* 0xDD - abs,X | CMP oper,X */
     am::indexed_absolute::opcode_steps_read!(arithmetic::CMP_A_core, load_store::reg_X, am::opc_step_illegal),
     /* 0xDE - abs,X | DEC oper,X */
@@ -1047,7 +1105,8 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     am::immediate::opcode_steps!(arithmetic::CPX_core, am::opc_step_illegal),
     /* 0xE1 - (ind,X) | SBC (oper,X) */
     am::pre_indexed_indirect::opcode_steps_read!(arithmetic::SBC_core, load_store::reg_X, am::opc_step_illegal),
-    /* 0xE2 */ am::stub_opcode_steps!(),
+    /* 0xE2 - # | NOP #oper */
+    am::immediate::opcode_steps!(nop::NOP_2, am::opc_step_illegal),
     /* 0xE3 */ am::stub_opcode_steps!(),
     /* 0xE4 - zpg | CPX oper */
     am::zero_page::opcode_steps_read!(arithmetic::CMP_X_core, am::opc_step_illegal),
@@ -1061,7 +1120,7 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     /* 0xE9 - # | SBC #oper */
     am::immediate::opcode_steps!(arithmetic::SBC_core, am::opc_step_illegal),
     /* 0xEA - impl | NOP */
-    am::implied::opcode_steps!(|_| {}, am::opc_step_illegal),
+    am::implied::opcode_steps!(nop::NOP_1, am::opc_step_illegal),
     /* 0xEB */ am::stub_opcode_steps!(),
     /* 0xEC - abs | CPX oper */
     am::absolute::opcode_steps_read!(arithmetic::CMP_X_core, am::opc_step_illegal),
@@ -1076,7 +1135,8 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     am::post_indexed_indirect::opcode_steps_read!(arithmetic::SBC_core, load_store::reg_Y, am::opc_step_illegal),
     /* 0xF2 */ am::stub_opcode_steps!(),
     /* 0xF3 */ am::stub_opcode_steps!(),
-    /* 0xF4 */ am::stub_opcode_steps!(),
+    /* 0xF4 - zpg,X | NOP oper,X */
+    am::indexed_zero_page::opcode_steps_read!(nop::NOP_2, load_store::reg_X, am::opc_step_illegal),
     /* 0xF5 - zpg,X | SBC oper,X */
     am::indexed_zero_page::opcode_steps_read!(arithmetic::SBC_core, load_store::reg_X, am::opc_step_illegal),
     /* 0xF6 - zpg,X | INC oper,X */
@@ -1086,9 +1146,11 @@ pub const ALL_OPCODE_STEPS: &[OpCodeSteps; 0x1_00] = &[
     am::implied::opcode_steps!(flags::SED_core, am::opc_step_illegal),
     /* 0xF9 - abs,Y | SBC oper,Y */
     am::indexed_absolute::opcode_steps_read!(arithmetic::SBC_core, load_store::reg_Y, am::opc_step_illegal),
-    /* 0xFA */ am::stub_opcode_steps!(),
+    /* 0xFA - impl | NOP */
+    am::implied::opcode_steps!(nop::NOP_1, am::opc_step_illegal),
     /* 0xFB */ am::stub_opcode_steps!(),
-    /* 0xFC */ am::stub_opcode_steps!(),
+    /* 0xFC - abs,X | NOP oper,X */
+    am::indexed_absolute::opcode_steps_read!(nop::NOP_2, load_store::reg_X, am::opc_step_illegal),
     /* 0xFD - abs,X | SBC oper,X */
     am::indexed_absolute::opcode_steps_read!(arithmetic::SBC_core, load_store::reg_X, am::opc_step_illegal),
     /* 0xFE - abs,X | INC oper,X */
